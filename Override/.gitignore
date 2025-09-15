@@ -1,5 +1,6 @@
-# Visual Studio 2015 user specific files
+# IDE files
 .vs/
+.idea/
 
 # Compiled Object files
 *.slo
@@ -73,3 +74,14 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# User specifics files
+*.user
+*.userprefs
+
+# Autosaves and logs
+*.log
+*.tlog
+*.backup
+*.bak
+*_autosave.umap
