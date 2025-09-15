@@ -3,12 +3,26 @@
 	"EngineAssociation": "{E3F78C59-43F3-507B-1FE4-CC98EC39600F}",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "Override",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",
+			"Enabled": true
+		},
+		{
+			"Name": "VisualStudioTools",
 			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
+			"SupportedTargetPlatforms": [
+				"Win64"
 			]
 		}
 	]
