@@ -8,6 +8,7 @@ public class OverrideServerTarget : TargetRules
     {
         Type = TargetType.Server;
         DefaultBuildSettings = BuildSettingsVersion.V2;
+        CppStandard = CppStandardVersion.Cpp20; 
         ExtraModuleNames.Add("Override");
     }
 }
