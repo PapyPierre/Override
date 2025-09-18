@@ -1,8 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PlayerCharacter.h"
+
+#include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
-#include "GameFramework/GameModeBase.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -54,7 +55,7 @@ void APlayerCharacter::StopSprint()
 
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
-{
+{	
 	if (!PlayerMovementComponent->IsMovingOnGround()) {
 		FVector TraceStart = GetActorLocation();
 		FVector TraceEnd = GetActorLocation() + GetActorRightVector() * 200;

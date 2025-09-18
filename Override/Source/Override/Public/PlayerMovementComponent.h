@@ -49,12 +49,6 @@ public:
 	
 #pragma endregion
 	
-#pragma region Crouch
-	UPROPERTY(BlueprintReadWrite, Category = "CMC|Crouch")
-	float MaxCrouchSpeed = 400.f;
-
-#pragma endregion	
-	
 #pragma region WallRide
 	
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|WallRun")
@@ -164,6 +158,10 @@ public:
 	
 #pragma endregion
 
+#pragma region Crouch
+	bool bIsCrouched = false;
+#pragma endregion
+
 private:
 	virtual void BeginPlay() override;
 
@@ -189,4 +187,8 @@ private:
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
+
+	virtual void Crouch(bool bClientSimulation = false) override;
+
+	virtual void UnCrouch(bool bClientSimulation = false) override;
 };

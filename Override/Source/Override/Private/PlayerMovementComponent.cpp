@@ -1,8 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PlayerMovementComponent.h"
-
-#include "MathUtil.h"
 #include "PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -15,7 +13,6 @@ void UPlayerMovementComponent::BeginPlay()
 	DefaultBrakingDecelerationWalking = BrakingDecelerationWalking;
 	DefaultMaxWalkSpeedCrouched = MaxWalkSpeedCrouched;
 	JumpZVelocity = FirstJumpZVelocity;
-	MaxWalkSpeedCrouched = MaxCrouchSpeed;
 
 	if (WallRideCurve)
 	{
@@ -207,6 +204,9 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	case CMOVE_WallRide:
 		PhysWallRide(DeltaTime, Iterations);
 		break;
+	default:
+		break;
+		;
 	}
 	Super::PhysCustom(DeltaTime, Iterations);
 }
@@ -330,8 +330,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				BrakingDecelerationWalking = 1400;
 				MaxWalkSpeedCrouched = 0.0;
 				Impact *= SlideImpulse;
-				if (!bIsSliding)
-					AddImpulse(Impact, true);
+				AddImpulse(Impact, true);
 				bIsSliding = true;
 			}
 		}
@@ -511,5 +510,30 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 	else
 	{
 		CharacterRef->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+	}
+}
+
+void UPlayerMovementComponent::Crouch(bool bClientSimulation)
+{
+	if (!CanCrouchInCurrentState())
+		return;
+	
+	bWantsToCrouch = true;
+	bIsCrouched = true;
+	
+	if (ACharacter* CharOwner = Cast<ACharacter>(PawnOwner))
+	{
+		CharOwner->OnStartCrouch(CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight());
+	}
+}
+
+void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
+{
+	bWantsToCrouch = false;
+	bIsCrouched = false;
+
+	if (ACharacter* CharOwner = Cast<ACharacter>(PawnOwner))
+	{
+		CharOwner->OnEndCrouch(CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight());
 	}
 }
