@@ -316,7 +316,6 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 	if (!CanSlide())
 	{
-		ResetSlideValues();
 		SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime, Iterations);
 		return;
@@ -440,7 +439,6 @@ bool UPlayerMovementComponent::CanAttemptJump() const
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 {
-	UE_LOG(LogTemp, Warning, TEXT("DoJump %d "), JumpCount);
 	if (CharacterOwner && CharacterOwner->CanJump())
 	{	
 		if (!bConstrainToPlane || !FMath::IsNearlyEqual(FMath::Abs(GetGravitySpaceZ(PlaneConstraintNormal)), 1.f))
@@ -449,15 +447,15 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 
 			if (bFirstJump || bDontFallBelowJumpZVelocityDuringJump)
 			{
-				if (JumpCount == 0)
+				JumpCount++;
+				if (JumpCount == 1)
 				{
 					Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, JumpZVelocity);
-					JumpCount++;
 				}
 				else
 				{
 					Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, SecondJumpZVelocity);
-					JumpCount = 0;
+					ResetJumpCount();
 				}
 			}
 			
@@ -467,6 +465,11 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 	}
 	
 	return false;
+}
+
+void UPlayerMovementComponent::ResetJumpCount()
+{
+	JumpCount = 0;
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
@@ -513,27 +516,186 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 	}
 }
 
+#include "PlayerMovementComponent.h"
+#include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
+
 void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 {
-	if (!CanCrouchInCurrentState())
-		return;
-	
-	bWantsToCrouch = true;
-	bIsCrouched = true;
-	
-	if (ACharacter* CharOwner = Cast<ACharacter>(PawnOwner))
+	if (!HasValidData())
 	{
-		CharOwner->OnStartCrouch(CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight());
+		return;
+	}
+
+	if (!bClientSimulation && !CanCrouchInCurrentState())
+	{
+		return;
+	}
+
+	// Déjà à la bonne taille (normalement c’est ça qui skippe le reste)
+	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == CrouchedHalfHeight)
+	{
+		if (!bClientSimulation)
+		{
+			CharacterOwner->SetIsCrouched(true);
+		}
+		CharacterOwner->OnStartCrouch(0.f, 0.f);
+		return;
+	}
+
+	if (bClientSimulation && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		// restore collision size avant crouch → on garde pour la logique réseau
+		ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
+		CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(
+			DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(),
+			DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()
+		);
+		bShrinkProxyCapsule = true;
+	}
+
+	// -- Ici normalement Unreal modifie la taille → on supprime cette partie --
+	const float ComponentScale = CharacterOwner->GetCapsuleComponent()->GetShapeScale();
+	const float OldUnscaledHalfHeight = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+	const float OldUnscaledRadius = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleRadius();
+	const float ClampedCrouchedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, CrouchedHalfHeight);
+
+	float HalfHeightAdjust = (OldUnscaledHalfHeight - ClampedCrouchedHalfHeight);
+	float ScaledHalfHeightAdjust = HalfHeightAdjust * ComponentScale;
+
+	if (!bClientSimulation)
+	{
+		// On garde quand même le check encroachment (même si on ne resize pas)
+		if (ClampedCrouchedHalfHeight > OldUnscaledHalfHeight)
+		{
+			FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(CrouchTrace), false, CharacterOwner);
+			FCollisionResponseParams ResponseParam;
+			InitCollisionParams(CapsuleParams, ResponseParam);
+			const bool bEncroached = GetWorld()->OverlapBlockingTestByChannel(
+				UpdatedComponent->GetComponentLocation() + ScaledHalfHeightAdjust * GetGravityDirection(),
+				GetWorldToGravityTransform(),
+				UpdatedComponent->GetCollisionObjectType(),
+				GetPawnCapsuleCollisionShape(SHRINK_None),
+				CapsuleParams,
+				ResponseParam
+			);
+
+			if (bEncroached)
+			{
+				return; // cancel crouch si bloqué
+			}
+		}
+
+		if (bCrouchMaintainsBaseLocation)
+		{
+			UpdatedComponent->MoveComponent(
+				ScaledHalfHeightAdjust * GetGravityDirection(),
+				UpdatedComponent->GetComponentQuat(),
+				true,
+				nullptr,
+				EMoveComponentFlags::MOVECOMP_NoFlags,
+				ETeleportType::TeleportPhysics
+			);
+		}
+
+		CharacterOwner->SetIsCrouched(true);
+	}
+
+	bForceNextFloorCheck = true;
+
+	const float MeshAdjust = ScaledHalfHeightAdjust;
+	ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
+	HalfHeightAdjust = (DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - ClampedCrouchedHalfHeight);
+	ScaledHalfHeightAdjust = HalfHeightAdjust * ComponentScale;
+
+	AdjustProxyCapsuleSize();
+	CharacterOwner->OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+	if ((bClientSimulation && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+		|| (IsNetMode(NM_ListenServer) && CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy))
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (ClientData)
+		{
+			ClientData->MeshTranslationOffset -= MeshAdjust * -GetGravityDirection();
+			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
+		}
 	}
 }
 
 void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 {
-	bWantsToCrouch = false;
-	bIsCrouched = false;
-
-	if (ACharacter* CharOwner = Cast<ACharacter>(PawnOwner))
+	if (!HasValidData() || !CharacterOwner->bIsCrouched)
 	{
-		CharOwner->OnEndCrouch(CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), CharOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight());
+		return;
+	}
+
+	const UCapsuleComponent* CharacterCapsule = CharacterOwner->GetCapsuleComponent();
+	const float CurrentCrouchedHalfHeight = CharacterCapsule->GetUnscaledCapsuleHalfHeight();
+	const float ComponentScale = CharacterCapsule->GetShapeScale();
+	const float OldUnscaledHalfHeight = CurrentCrouchedHalfHeight;
+	const float OldUnscaledRadius = CharacterCapsule->GetUnscaledCapsuleRadius();
+
+	ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
+	const float StandingHalfHeight = DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+
+	// Hauteur clampée
+	const float ClampedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, StandingHalfHeight);
+
+	float HalfHeightAdjust = (ClampedHalfHeight - OldUnscaledHalfHeight);
+	float ScaledHalfHeightAdjust = HalfHeightAdjust * ComponentScale;
+
+	if (!bClientSimulation)
+	{
+		// check encroachment si on grandit
+		if (ClampedHalfHeight > OldUnscaledHalfHeight)
+		{
+			FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(UnCrouchTrace), false, CharacterOwner);
+			FCollisionResponseParams ResponseParam;
+			InitCollisionParams(CapsuleParams, ResponseParam);
+			const bool bEncroached = GetWorld()->OverlapBlockingTestByChannel(
+				UpdatedComponent->GetComponentLocation() + ScaledHalfHeightAdjust * GetGravityDirection(),
+				GetWorldToGravityTransform(),
+				UpdatedComponent->GetCollisionObjectType(),
+				GetPawnCapsuleCollisionShape(SHRINK_None),
+				CapsuleParams,
+				ResponseParam
+			);
+
+			if (bEncroached)
+			{
+				return; // cancel uncrouch si bloqué
+			}
+		}
+
+		if (bCrouchMaintainsBaseLocation)
+		{
+			UpdatedComponent->MoveComponent(
+				-ScaledHalfHeightAdjust * GetGravityDirection(),
+				UpdatedComponent->GetComponentQuat(),
+				true,
+				nullptr,
+				EMoveComponentFlags::MOVECOMP_NoFlags,
+				ETeleportType::TeleportPhysics
+			);
+		}
+
+		CharacterOwner->SetIsCrouched(false);
+	}
+
+	bForceNextFloorCheck = true;
+
+	AdjustProxyCapsuleSize();
+	CharacterOwner->OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+	if ((bClientSimulation && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+		|| (IsNetMode(NM_ListenServer) && CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy))
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (ClientData)
+		{
+			ClientData->MeshTranslationOffset += ScaledHalfHeightAdjust * -GetGravityDirection();
+			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
+		}
 	}
 }

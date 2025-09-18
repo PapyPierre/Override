@@ -82,6 +82,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 	PlayerMovementComponent->bHasResetWallRide = true;
+	PlayerMovementComponent->ResetJumpCount();
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const

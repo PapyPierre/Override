@@ -148,6 +148,8 @@ public:
 	
 	int JumpCount = 0;
 	
+	void ResetJumpCount();
+	
 #pragma endregion
 
 #pragma region EdgeGrab
@@ -158,7 +160,7 @@ public:
 	
 #pragma endregion
 
-#pragma region Crouch
+#pragma region Crouching
 	bool bIsCrouched = false;
 #pragma endregion
 
