@@ -516,10 +516,6 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 	}
 }
 
-#include "PlayerMovementComponent.h"
-#include "GameFramework/Character.h"
-#include "Components/CapsuleComponent.h"
-
 void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 {
 	if (!HasValidData())
@@ -532,7 +528,6 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 		return;
 	}
 
-	// Déjà à la bonne taille (normalement c’est ça qui skippe le reste)
 	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == CrouchedHalfHeight)
 	{
 		if (!bClientSimulation)
@@ -545,7 +540,6 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 
 	if (bClientSimulation && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
 	{
-		// restore collision size avant crouch → on garde pour la logique réseau
 		ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
 		CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(
 			DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(),
@@ -554,7 +548,6 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 		bShrinkProxyCapsule = true;
 	}
 
-	// -- Ici normalement Unreal modifie la taille → on supprime cette partie --
 	const float ComponentScale = CharacterOwner->GetCapsuleComponent()->GetShapeScale();
 	const float OldUnscaledHalfHeight = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 	const float OldUnscaledRadius = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleRadius();
@@ -565,7 +558,6 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		// On garde quand même le check encroachment (même si on ne resize pas)
 		if (ClampedCrouchedHalfHeight > OldUnscaledHalfHeight)
 		{
 			FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(CrouchTrace), false, CharacterOwner);
@@ -582,7 +574,7 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 
 			if (bEncroached)
 			{
-				return; // cancel crouch si bloqué
+				return;
 			}
 		}
 
@@ -639,7 +631,6 @@ void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 	ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
 	const float StandingHalfHeight = DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 
-	// Hauteur clampée
 	const float ClampedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, StandingHalfHeight);
 
 	float HalfHeightAdjust = (ClampedHalfHeight - OldUnscaledHalfHeight);
@@ -647,7 +638,6 @@ void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		// check encroachment si on grandit
 		if (ClampedHalfHeight > OldUnscaledHalfHeight)
 		{
 			FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(UnCrouchTrace), false, CharacterOwner);
@@ -664,7 +654,7 @@ void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 
 			if (bEncroached)
 			{
-				return; // cancel uncrouch si bloqué
+				return;
 			}
 		}
 
