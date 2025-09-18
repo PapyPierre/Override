@@ -16,11 +16,5 @@ class OVERRIDE_API IHackable
 
 public:
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnSelect();
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnUnselect();
-
-	UFUNCTION(BlueprintImplementableEvent)
 	void TryHack();
 };

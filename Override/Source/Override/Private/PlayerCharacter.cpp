@@ -2,6 +2,7 @@
 
 #include "PlayerCharacter.h"
 
+#include "HackingComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
 
