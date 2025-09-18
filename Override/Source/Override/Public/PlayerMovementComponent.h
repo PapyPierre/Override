@@ -42,10 +42,17 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
 	bool bWantsToSprint = false;
 
+	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
+	float DefaultMaxWalkSpeed = 0;
+
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Sprint")
 	float SprintSpeedMultiplier = 1.5f;
 
+	float DefaultSprintSpeed = 0;
+	
 	virtual bool CanSprint() const;
+
+	bool bIsSprinting = false;
 	
 #pragma endregion
 	

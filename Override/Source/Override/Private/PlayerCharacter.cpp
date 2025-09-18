@@ -35,9 +35,9 @@ void APlayerCharacter::Sprint()
 		}
 	}
 	else
-	{
 		RPC_SetSprint(true);
-	}
+	
+	PlayerMovementComponent->bIsSprinting = true;
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
@@ -51,6 +51,7 @@ void APlayerCharacter::StopSprint()
 		PlayerMovementComponent->bWantsToSprint = false;
 	else
 		RPC_SetSprint(false);
+	PlayerMovementComponent->bIsSprinting = false;
 }
 
 // Called every frame

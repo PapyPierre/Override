@@ -12,7 +12,9 @@ void UPlayerMovementComponent::BeginPlay()
 	DefaultGroundFriction = GroundFriction;
 	DefaultBrakingDecelerationWalking = BrakingDecelerationWalking;
 	DefaultMaxWalkSpeedCrouched = MaxWalkSpeedCrouched;
+	DefaultMaxWalkSpeed = MaxWalkSpeed;
 	JumpZVelocity = FirstJumpZVelocity;
+	DefaultSprintSpeed = DefaultMaxWalkSpeed * SprintSpeedMultiplier;
 
 	if (WallRideCurve)
 	{
@@ -169,7 +171,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 
 #pragma endregion
-
+	
 	/////////GROSSE ZONE DE DEBUG
 	if (GEngine)
 	{
@@ -408,7 +410,9 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 {
 	if (IsCustomMovementModeOn(CMOVE_Sprint))
 	{
-		return MaxWalkSpeed * SprintSpeedMultiplier;
+		static float CurrentSpeed = MaxWalkSpeed;
+		float Result = FMath::FInterpTo(CurrentSpeed, DefaultSprintSpeed, GetWorld()->GetDeltaSeconds(), 5.f);
+		return Result;	
 	}
 
 	if (IsCustomMovementModeOn(MOVE_Falling))
@@ -528,7 +532,7 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 		return;
 	}
 
-	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == CrouchedHalfHeight)
+	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == GetCrouchedHalfHeight())
 	{
 		if (!bClientSimulation)
 		{
@@ -551,7 +555,7 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 	const float ComponentScale = CharacterOwner->GetCapsuleComponent()->GetShapeScale();
 	const float OldUnscaledHalfHeight = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 	const float OldUnscaledRadius = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleRadius();
-	const float ClampedCrouchedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, CrouchedHalfHeight);
+	const float ClampedCrouchedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, GetCrouchedHalfHeight());
 
 	float HalfHeightAdjust = (OldUnscaledHalfHeight - ClampedCrouchedHalfHeight);
 	float ScaledHalfHeightAdjust = HalfHeightAdjust * ComponentScale;
