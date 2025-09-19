@@ -2,6 +2,7 @@
 
 #include "PlayerCharacter.h"
 
+#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
 
@@ -21,6 +22,9 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 void APlayerCharacter::BeginPlay()
 {
 	if (!PlayerController) PlayerController = Cast<APlayerController>(GetController());
+
+	FirstPersonCameraComponent = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+	
 	Super::BeginPlay();
 }
 
@@ -36,8 +40,6 @@ void APlayerCharacter::Sprint()
 	}
 	else
 		RPC_SetSprint(true);
-	
-	PlayerMovementComponent->bIsSprinting = true;
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
@@ -51,7 +53,6 @@ void APlayerCharacter::StopSprint()
 		PlayerMovementComponent->bWantsToSprint = false;
 	else
 		RPC_SetSprint(false);
-	PlayerMovementComponent->bIsSprinting = false;
 }
 
 // Called every frame
@@ -75,6 +76,23 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	else
 		PlayerMovementComponent->CloseToWall = false;
+
+	float Speed = GetVelocity().Size();
+	
+	float TargetFOV = FMath::GetMappedRangeValueClamped(
+		FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
+		FVector2D(DefaultFOV, SprintFOV),
+		Speed
+	);
+	
+	float NewFOV = FMath::FInterpTo(
+		FirstPersonCameraComponent->GetFOVAngle(),
+		TargetFOV,
+		DeltaTime,
+		FOVInterpSpeed
+	);
+	
+	FirstPersonCameraComponent->SetFOV(NewFOV);
 	
 	Super::Tick(DeltaTime);
 }

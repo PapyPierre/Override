@@ -38,7 +38,7 @@ public:
 	virtual bool IsMovingOnGround() const override;
 
 #pragma region Sprint
-	
+
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
 	bool bWantsToSprint = false;
 
@@ -46,14 +46,17 @@ public:
 	float DefaultMaxWalkSpeed = 0;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Sprint")
-	float SprintSpeedMultiplier = 1.5f;
+	float SprintSpeed = 825.f;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Sprint")
+	float SprintInterpSpeed = 5.f;
+	
 	float DefaultSprintSpeed = 0;
 	
 	virtual bool CanSprint() const;
 
-	bool bIsSprinting = false;
-	
+	mutable float CurrentSprintSpeed = 0.f;
+
 #pragma endregion
 	
 #pragma region WallRide
@@ -100,14 +103,18 @@ public:
 	float TimeSliding = 0.f;
 	float MinimumSlideThreshold = -0.01f;
 	bool bIsSliding = false;
+	bool bPendingCancelSlide = false;
 
 	float TimeToWaitBetweenSlide = 0;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly,  Category = "CMC|Slide")
 	float SlidingCoolDown = 0.2;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly,  Category = "CMC|Slide")
-	float MaxSlidingTime = 0.8f;
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly,  Category = "CMC|Slide", meta=(ToolTip="Le temps de Boost que va avoir le joueur, Si c'est 3 secondes, pendant 3sec il sera à la vitesse max du Slide"))
+	float BoostSlidingTime = 1.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide", meta=(ToolTip="Le temps de l'easing de la vitesse du joueur, en gros le transfert Slide->Crouch"))
+	float EaseOutTime = 0.2f;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide")
 	float SlideImpulse = 600.0f;
@@ -115,6 +122,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide")
 	float SlopeToleranceValue = 0.02;
 
+	
 	bool SlideLineTrace();
 
 	FHitResult SlideHit;
@@ -132,7 +140,10 @@ public:
 
 	void StartVelocityEase(const FVector& NewTargetVelocity);
 
-	virtual bool CanSlide() const;
+	UFUNCTION()
+	void StopVelocityEaseTimeline();
+
+	virtual bool CanSlide();
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
@@ -167,7 +178,7 @@ public:
 	
 #pragma endregion
 
-#pragma region Crouching
+#pragma region Crouch
 	bool bIsCrouched = false;
 #pragma endregion
 
