@@ -1,20 +1,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Targetable.h"
 #include "UObject/Interface.h"
-#include "Hackable.generated.h"
+#include "Interactable.generated.h"
 
 UINTERFACE(MinimalAPI, Blueprintable)
-class UHackable : public UInterface
+class UInteractable : public UTargetable
 {
 	GENERATED_BODY()
 };
 
-class OVERRIDE_API IHackable
+class OVERRIDE_API IInteractable : public ITargetable
 {
 	GENERATED_BODY()
 
 public:
 	UFUNCTION(BlueprintImplementableEvent)
-	void TryHack();
+	void Interact();
 };
