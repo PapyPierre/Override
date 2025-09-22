@@ -15,7 +15,6 @@ enum ECustomMovementMode
 	CMOVE_Sprint = 0,
 	CMOVE_Crouch = 1,
 	CMOVE_Slide = 2,
-	CMOVE_WallRide = 3,
 };
 
 UCLASS()
@@ -30,7 +29,7 @@ public:
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
 	float DefaultMaxWalkSpeedCrouched;
-	
+
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
 	virtual float GetMaxSpeed() const override;
@@ -44,58 +43,18 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
 	float DefaultMaxWalkSpeed = 0;
-
+	
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Sprint")
 	float SprintSpeed = 825.f;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Sprint")
-	float SprintInterpSpeed = 5.f;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Sprint")
+	float SprintAcceleration = 200.f;
 	
 	float DefaultSprintSpeed = 0;
+	float DefaultAcceleration = 0;
 	
 	virtual bool CanSprint() const;
-
-	mutable float CurrentSprintSpeed = 0.f;
-
-#pragma endregion
 	
-#pragma region WallRide
-	
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|WallRun")
-	bool isWallRunning = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|WallRun")
-	float RightAxis;
-
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|WallRun")
-	float ForwardAxis;
-
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|WallRun")
-	bool CloseToWall;
-
-	UPROPERTY(EditAnywhere, Category = "CMC|WallRun")
-	FVector PlayerDirection;
-
-	UPROPERTY(BlueprintReadWrite, Category = "CMC|WallRun")
-	bool bWantToWallRide = false;
-
-	UPROPERTY(EditAnywhere, Category = "CMC|WallRun")
-	UCurveFloat* WallRideCurve;
-
-	FTimeline WallRideTimeline;
-	bool bPendingWallRide = false;
-
-	UFUNCTION()
-	void OnWallRideTimelineTick(float Value);
-
-	UFUNCTION()
-	void OnWallRideTimelineFinished();
-
-	float TimeWallRunning;
-
-	bool CanWallRun() const;
-	bool bHasResetWallRide = true;
-
 #pragma endregion
 
 #pragma region Slide
@@ -147,26 +106,38 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
+
+	UFUNCTION(BlueprintCallable)
+	bool IsRunning() const;
 	
 #pragma endregion
 
 #pragma region Jump
 	
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Jump")
-	float JumpDeceleration = 20.f;
-
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Jump")
-	float MinJumpHorizontalSpeed = 550.f;
-
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
 	float FirstJumpZVelocity = 800.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
 	float SecondJumpZVelocity = 1000.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
+	float SecondJumpAirControl = 0.05f;
 	
-	int JumpCount = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="CMC|Jump")
+	float AirHorizontalRetainPercent = 0.5f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
+	float CoyoteTime= 0.5f;
 	
-	void ResetJumpCount();
+	FVector InitialHorizontalVelocity;
+	
+	UPROPERTY(Replicated)
+	int32 JumpCount;
+	
+	float DefaultAirControl = 0;
+	float DefaultBrakingDecelerationFalling = 0;
+	
+	void ResetJumpValues();
 	
 #pragma endregion
 
@@ -192,16 +163,14 @@ private:
 
 	virtual void PhysSprint(float DeltaTime, int32 Iterations);
 
+	virtual void PhysWalking(float DeltaTime, int32 Iterations) override;
+	
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 
 	virtual void PhysFalling(float DeltaTime, int32 Iterations) override;
-
+	
 	void ResetSlideValues();
-
-	virtual void PhysWallRide(float DeltaTime, int32 Iterations);
-
-	virtual bool CanAttemptJump() const override;
-
+	
 	virtual bool DoJump(bool bReplayingMoves,  float DeltaTime) override;
 
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
@@ -211,4 +180,6 @@ private:
 	virtual void Crouch(bool bClientSimulation = false) override;
 
 	virtual void UnCrouch(bool bClientSimulation = false) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

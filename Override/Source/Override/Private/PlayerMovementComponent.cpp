@@ -4,6 +4,7 @@
 #include "PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 void UPlayerMovementComponent::BeginPlay()
 {
@@ -15,17 +16,8 @@ void UPlayerMovementComponent::BeginPlay()
 	DefaultMaxWalkSpeed = MaxWalkSpeed;
 	JumpZVelocity = FirstJumpZVelocity;
 	DefaultSprintSpeed = SprintSpeed;
-
-	if (WallRideCurve)
-	{
-		FOnTimelineFloat TickFunc;
-		TickFunc.BindUFunction(this, FName("OnWallRideTimelineTick"));
-		WallRideTimeline.AddInterpFloat(WallRideCurve, TickFunc);
-
-		FOnTimelineEvent FinishedFunc;
-		FinishedFunc.BindUFunction(this, FName("OnWallRideTimelineFinished"));
-		WallRideTimeline.SetTimelineFinishedFunc(FinishedFunc);
-	}
+	DefaultAirControl = AirControl;
+	DefaultAcceleration = GetMaxAcceleration();
 
 	if (VelocityEaseCurve)
 	{
@@ -43,7 +35,6 @@ void UPlayerMovementComponent::BeginPlay()
 void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
 	FActorComponentTickFunction* ThisTickFunction)
 {
-	WallRideTimeline.TickTimeline(DeltaTime);
 	VelocityEaseTimeline.TickTimeline(DeltaTime);
 	FrameCounter++;
 
@@ -116,20 +107,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				FVector LaunchImpulse = FVector(0, 0, 1000);
 				CharacterRef->LaunchCharacter(LaunchImpulse, false, false);
 			}
-		}
-	}
-#pragma endregion
-
-#pragma region Pending WallRide Validation
-	if (bPendingWallRide)
-	{
-		FVector VelocityZ = CharacterOwner->GetVelocity();
-
-		if (VelocityZ.Z <= 0.0f)
-		{
-			bPendingWallRide = false;
-			GravityScale = 0.0f;
-			WallRideTimeline.PlayFromStart();
 		}
 	}
 #pragma endregion
@@ -242,12 +219,8 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	case CMOVE_Slide:
 		PhysSlide(DeltaTime, Iterations);
 		break;
-	case CMOVE_WallRide:
-		PhysWallRide(DeltaTime, Iterations);
-		break;
 	default:
 		break;
-		;
 	}
 	Super::PhysCustom(DeltaTime, Iterations);
 }
@@ -270,77 +243,20 @@ void UPlayerMovementComponent::PhysSprint(float DeltaTime, int32 Iterations)
 	PhysWalking(DeltaTime, Iterations);
 }
 
+void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
+{
+	Super::PhysWalking(DeltaTime, Iterations);
+	MaxAcceleration = DefaultAcceleration;
+}
+
 bool UPlayerMovementComponent::CanSprint() const
 {
 	return IsMovingOnGround() && !bWantsToCrouch && !IsCrouching();
 }
 
-#pragma endregion
-
-#pragma region WallRide
-
-void UPlayerMovementComponent::PhysWallRide(float DeltaTime, int32 Iterations)
+bool UPlayerMovementComponent::IsRunning() const
 {
-	TimeWallRunning += DeltaTime;
-
-	if (!IsCustomMovementModeOn(CMOVE_WallRide) || !CanWallRun() || !bWantToWallRide)
-	{
-		TimeWallRunning = 0;
-		SetMovementMode(MOVE_Walking);
-		StartNewPhysics(DeltaTime, Iterations);
-		return;
-	}
-
-	if (!CharacterRef->WallRunHitResult.GetActor())
-		return;
-
-	float DirDotHit = FVector::DotProduct(CharacterRef->WallRunHitResult.GetActor()->GetActorForwardVector(), GetOwner()->GetActorForwardVector());
-	PlayerDirection = GetOwner()->GetActorForwardVector();
-
-	if (WallRideCurve && !WallRideTimeline.IsPlaying())
-	{
-		bPendingWallRide = true;
-	}
-	DoJump(true, DeltaTime);
-	bWantToWallRide = false;
-}
-
-void UPlayerMovementComponent::OnWallRideTimelineTick(float Value)
-{
-	if (!CloseToWall || Velocity.Length() < 100) {
-		WallRideTimeline.Stop();
-		OnWallRideTimelineFinished();
-		return;
-	}
-
-	AddImpulse(PlayerDirection * 1200, false);
-
-	float Lerpedvalue = FMath::Lerp(0.f, -20.f, Value);
-	FRotator NewRotation = CharacterRef->GetActorRotation();
-	NewRotation.Roll = Lerpedvalue;
-
-	CharacterRef->Controller->SetControlRotation(NewRotation);
-}
-
-void UPlayerMovementComponent::OnWallRideTimelineFinished()
-{
-	GravityScale = 2.f;
-	TimeWallRunning = 0;
-	bHasResetWallRide = false;
-
-	CharacterRef->bUseControllerRotationYaw = true;
-	CharacterRef->GetCharacterMovement()->bOrientRotationToMovement = false;
-
-	FRotator ResetRot = CharacterRef->Controller->GetControlRotation();
-	ResetRot.Roll = 0.f;
-
-	ResetRot.Yaw += 0.01f;
-	CharacterRef->Controller->SetControlRotation(ResetRot);
-}
-
-bool UPlayerMovementComponent::CanWallRun() const
-{
-	return !IsMovingOnGround() && CloseToWall && bHasResetWallRide;
+	return IsCustomMovementModeOn(CMOVE_Sprint);
 }
 
 #pragma endregion
@@ -454,17 +370,12 @@ bool UPlayerMovementComponent::IsCustomMovementModeOn(uint8 customMovementMode) 
 
 float UPlayerMovementComponent::GetMaxSpeed() const
 {
-	const float Delta = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.f;
-	
 	if (IsCustomMovementModeOn(CMOVE_Sprint))
 	{
-		CurrentSprintSpeed = FMath::FInterpTo(CurrentSprintSpeed, DefaultSprintSpeed, Delta, SprintInterpSpeed);
-		return CurrentSprintSpeed;
+		return DefaultSprintSpeed;
 	}
-
-	const float Target = Super::GetMaxSpeed();
-	CurrentSprintSpeed = FMath::FInterpTo(CurrentSprintSpeed, Target, Delta, SprintInterpSpeed);
-	return CurrentSprintSpeed;
+	
+	return Super::GetMaxSpeed();
 }
 
 bool UPlayerMovementComponent::IsMovingOnGround() const
@@ -477,11 +388,23 @@ bool UPlayerMovementComponent::IsMovingOnGround() const
 void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 {
 	Super::PhysFalling(DeltaTime, Iterations);
-}
+	
+	if (Velocity.SizeSquared2D() > 0.f && JumpCount == 2)
+	{
+		FVector TargetHorizontalVel = InitialHorizontalVelocity * AirHorizontalRetainPercent;
+		FVector CurrentHorizontalVel(Velocity.X, Velocity.Y, 0.f);
 
-bool UPlayerMovementComponent::CanAttemptJump() const
-{
-	return IsJumpAllowed() && (IsMovingOnGround() || IsFalling());
+		float ReductionSpeed = 1.f;
+		FVector NewHorizontalVel = FMath::VInterpTo(
+			CurrentHorizontalVel,
+			TargetHorizontalVel,
+			DeltaTime,
+			ReductionSpeed
+		);
+
+		Velocity.X = NewHorizontalVel.X;
+		Velocity.Y = NewHorizontalVel.Y;
+	}
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
@@ -501,8 +424,8 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 				}
 				else
 				{
+					AirControl = SecondJumpAirControl;
 					Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, SecondJumpZVelocity);
-					ResetJumpCount();
 				}
 			}
 			
@@ -510,13 +433,13 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 			return true;
 		}
 	}
-	
 	return false;
 }
 
-void UPlayerMovementComponent::ResetJumpCount()
+void UPlayerMovementComponent::ResetJumpValues()
 {
 	JumpCount = 0;
+	AirControl = DefaultAirControl;
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
@@ -529,11 +452,8 @@ void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 	
 	if (bWantsToSprint && CanSprint())
 	{
+		MaxAcceleration = SprintAcceleration;
 		SetMovementMode(MOVE_Custom, CMOVE_Sprint);
-	}
-
-	if (bWantToWallRide && CanWallRun()) {
-		SetMovementMode(MOVE_Custom, CMOVE_WallRide);
 	}
 
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
@@ -560,6 +480,11 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 	else
 	{
 		CharacterRef->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+	}
+
+	if (MovementMode  == EMovementMode::MOVE_Falling)
+	{
+		InitialHorizontalVelocity = FVector(Velocity.X, Velocity.Y, 0.f);
 	}
 }
 
@@ -735,4 +660,10 @@ void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
 		}
 	}
+}
+
+void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UPlayerMovementComponent, JumpCount);
 }
