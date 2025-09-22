@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ViewMod.h"
 #include "Components/ActorComponent.h"
-#include "Interface/Targetable.h"
 #include "TargetingComponent.generated.h"
 
 
@@ -12,30 +12,51 @@ class OVERRIDE_API UTargetingComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	UTargetingComponent();
-
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-						   FActorComponentTickFunction* ThisTickFunction) override;
-
 	UPROPERTY(BlueprintReadWrite)
 	APlayerController* PlayerController; // Set in Character BP
-	
+
 	UPROPERTY(BlueprintReadOnly)
 	TArray<AActor*> CurrentTargets;
 
 	AActor* ActorInSight;
 
+	UTargetingComponent();
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
+	                           FActorComponentTickFunction* ThisTickFunction) override;
+
 protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
-	float DetectionDistance_View = 1000;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
-	float DetectionDistance_Auto = 500;
-
 private:
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
+	float MaxTargetingDistance = 1000;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
+	float SimulationDetectionDistance = 800;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
+	float AutoTargetMinDistance = 500;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
+	float ScreenPadding = 10;
+
+	ViewMod CurrentViewMod;
+
 	void LookForTarget();
 
-	AActor* FindClosestTarget() const;
+	//	Check if is in the viewport rectangle expanded by Padding.
+	//	Positive Padding lets you count actors slightly outside the screen as still “in view”.
+	//	Negative Padding forces the actor to be deeper inside the screen to count.
+	static bool IsActorInFrustumWithPadding(APlayerController* PC, AActor* Actor, float Padding);
+
+	TArray<AActor*> FindTargetablesInRange(float Range) const;
+
+	static AActor* GetClosestActorToCursor(APlayerController* PC, const TArray<AActor*>& Actors);
+
+	UFUNCTION(BlueprintCallable)
+	void TargetActor(AActor* Target);
+
+	UFUNCTION(BlueprintCallable)
+	void ClearCurrentTargets();
 };
