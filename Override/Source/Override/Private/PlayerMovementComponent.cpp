@@ -163,7 +163,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		GEngine->AddOnScreenDebugMessage(1132, 5.f, FColor::Green, FString::Printf(TEXT("is Sliding ?: %s"), bIsSliding ? TEXT("true") : TEXT("false")));
 		GEngine->AddOnScreenDebugMessage(113642, 5.f, FColor::Green, FString::Printf(TEXT("is PendingSlide ?: %s"), bPendingCancelSlide ? TEXT("true") : TEXT("false")));
 		GEngine->AddOnScreenDebugMessage(6541, 5.0, FColor::Blue, "TimeSliding: " + FString::SanitizeFloat(TimeSliding));
-		GEngine->AddOnScreenDebugMessage(1, 5.0, FColor::Red, "Speed: " + FString::SanitizeFloat(Velocity.Length()));
+		GEngine->AddOnScreenDebugMessage(1, 5.0, FColor::Red, "Speed: " + FString::SanitizeFloat(Velocity.Size()));
 	}
 	if (CharacterRef)
 	{
@@ -342,8 +342,8 @@ void UPlayerMovementComponent::StopVelocityEaseTimeline()
 bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
-	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0 && bWantsToCrouch;
-	bResult &= Velocity.Length() >= MaxWalkSpeed;
+	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
+	bResult &= Velocity.Size() >= MaxWalkSpeed;
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	return bResult;
 }
@@ -405,6 +405,13 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 		Velocity.X = NewHorizontalVel.X;
 		Velocity.Y = NewHorizontalVel.Y;
 	}
+}
+
+bool UPlayerMovementComponent::CanAttemptJump() const
+{
+	return IsJumpAllowed() &&
+		   (IsMovingOnGround() || IsFalling()) &&
+		   	(IsSliding() || !bWantsToCrouch);
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
@@ -499,6 +506,9 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 	{
 		return;
 	}
+
+	if (IsCustomMovementModeOn(ECustomMovementMode::CMOVE_Sprint))
+		return;
 
 	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == GetCrouchedHalfHeight())
 	{

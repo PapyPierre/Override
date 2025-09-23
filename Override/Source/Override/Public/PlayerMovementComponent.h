@@ -149,10 +149,6 @@ public:
 	
 #pragma endregion
 
-#pragma region Crouch
-	bool bIsCrouched = false;
-#pragma endregion
-
 private:
 	virtual void BeginPlay() override;
 
@@ -173,6 +169,8 @@ private:
 	
 	virtual bool DoJump(bool bReplayingMoves,  float DeltaTime) override;
 
+	virtual bool CanAttemptJump() const override;
+	
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;

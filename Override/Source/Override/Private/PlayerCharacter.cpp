@@ -12,7 +12,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-
+	
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -91,7 +91,7 @@ void APlayerCharacter::CameraShake()
 			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 		else
 		{
-			if (PlayerMovementComponent->IsRunning())
+			if (PlayerMovementComponent->IsRunning() && GetVelocity().Size() > PlayerMovementComponent->DefaultSprintSpeed)
 				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
 				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
@@ -121,6 +121,11 @@ void APlayerCharacter::Falling()
 		DefaultCoyoteTime,
 		false
 	);
+}
+
+bool APlayerCharacter::CanJumpInternal_Implementation() const
+{
+	return JumpIsAllowedInternal();
 }
 
 void APlayerCharacter::OnJumpDelayFinished()

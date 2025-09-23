@@ -67,6 +67,8 @@ protected:
 	virtual void Landed(const FHitResult& Hit) override;
 
 	virtual void Falling() override;
+
+	virtual bool CanJumpInternal_Implementation() const override;
 	
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
