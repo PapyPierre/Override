@@ -39,36 +39,49 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	FrameCounter++;
 
 #pragma region WallClimb Verification
-	if (Velocity.Z < 0.0) {
-		FCollisionShape Shape = FCollisionShape::MakeBox(FVector(25, 5, 1));
-		FHitResult SweepResult;
+	if (Velocity.Z < 0.0f)
+	{
+		FCollisionShape Shape = FCollisionShape::MakeBox(FVector(20, 5, 1));
 
 		FCollisionQueryParams QueryParams;
 		QueryParams.AddIgnoredActor(CharacterRef);
 
 		FVector CharaLocation = CharacterRef->GetActorLocation();
 		FVector CharaForward = CharacterRef->GetActorForwardVector();
+		FVector CharaUp = CharacterRef->GetActorUpVector();
 
-		FVector StartLocation = (CharaLocation + CharaForward * 45) + FVector(0, 0, 100);
-		FVector EndLocation = (CharaLocation + CharaForward * 45) + FVector(0, 0, 50);
+		// Rotation du joueur pour aligner la box
+		FQuat BoxRotation = CharacterRef->GetActorQuat();
 
-		///Debug///
-		/*
+		// Start et End liés à l'orientation du joueur
+		FVector StartLocation = (CharaLocation + CharaForward * 45) + CharaUp * 100;
+		FVector EndLocation   = (CharaLocation + CharaForward * 45) + CharaUp * 50;
+
+		// Debug box (utilise la même rotation que le sweep)
 		DrawDebugBox(
 			GetWorld(),
 			StartLocation,
 			Shape.GetBox(),
-			FQuat::Identity,
+			BoxRotation,
 			FColor::Red,
 			false,
 			2.0f
 		);
 
+		// Debug line
 		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 2.0f, 0, 2.0f);
-		*/
 
-		bool bHit = GetWorld()->SweepSingleByChannel(SweepResult, StartLocation, EndLocation, CharacterRef->GetActorRotation().Quaternion(), ECC_WorldStatic, Shape, QueryParams);
-
+		// Sweep avec la même rotation
+		bool bHit = GetWorld()->SweepSingleByChannel(
+			SweepResult,
+			StartLocation,
+			EndLocation,
+			BoxRotation,
+			ECC_WorldStatic,
+			Shape,
+			QueryParams
+		);
+		
 		if (bHit && SweepResult.Distance > 0) {
 			StartLocation = CharaLocation + CharaForward * 5;
 			StartLocation = FVector(StartLocation.X, StartLocation.Y, SweepResult.ImpactPoint.Z);
@@ -90,22 +103,37 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
 
 				GrabHeight = (OriginBounds.Z + BoxExtent.Z) - HalfHeight;
-				FVector NewPosition = FVector(SweepResult.Location.X - CharaForward.X * 50, SweepResult.Location.Y - CharaForward.Z * 50, GrabHeight);
-				CharacterRef->SetActorLocation(NewPosition);
-				FVector NewRotation = FVector(SweepResult.Normal * -1);
+
+				// Position suspendue (avant escalade)
+				FVector GrabPosition = FVector(
+					SweepResult.Location.X - CharaForward.X * 20.f,
+					SweepResult.Location.Y - CharaForward.Y * 20.f,
+					GrabHeight
+				);
+
+				CharacterRef->SetActorLocation(GrabPosition);
+
+				// Face le mur
+				FVector NewRotation = FVector(SweepResult.Normal * -1.f);
 				CharacterRef->SetActorRotation(UKismetMathLibrary::MakeRotFromX(NewRotation));
 
 				bGrabbedLedge = true;
-				/*//////////////////////////////////////
 				StopMovementImmediately();
 				SetMovementMode(MOVE_None);
-					//PLAY MONTAGE/ANIMATION HERE
-							//WHEN FINISHED
-				bGrabbedLedge = false;
-				SetMovementMode(MOVE_Walking);
-				//////////////////////////////////////*/
-				FVector LaunchImpulse = FVector(0, 0, 1000);
-				CharacterRef->LaunchCharacter(LaunchImpulse, false, false);
+
+				// Lancer montage escalade
+				if (EdgeClimbMontage && CharacterRef && CharacterRef->GetMesh())
+				{
+					UAnimInstance* AnimInstance = CharacterRef->GetMesh()->GetAnimInstance();
+					if (AnimInstance)
+					{
+						AnimInstance->Montage_Play(EdgeClimbMontage);
+
+						FOnMontageEnded EndDelegate;
+						EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageEnded);
+						AnimInstance->Montage_SetEndDelegate(EndDelegate, EdgeClimbMontage);
+					}
+				}
 			}
 		}
 	}
@@ -149,7 +177,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	}
 	
-	if (TimeToWaitBetweenSlide > 0)
+	if (TimeToWaitBetweenSlide >= 0)
 	{
 		TimeToWaitBetweenSlide -= DeltaTime;
 	}
@@ -207,6 +235,31 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 #pragma endregion
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+}
+
+void UPlayerMovementComponent::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// Calcul hauteur finale
+	float FinalHeight = GrabHeight + CharacterRef->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	// Base finale
+	FVector FinalPosition = FVector(
+		SweepResult.Location.X,
+		SweepResult.Location.Y,
+		FinalHeight + 10
+	);
+
+	// Correction : avancer un peu dans le forward du perso
+	const float ForwardOffset = 50.f; 
+	FVector ForwardDir = CharacterRef->GetActorForwardVector();
+	FinalPosition += ForwardDir * ForwardOffset;
+
+	// Placer le perso
+	CharacterRef->SetActorLocation(FinalPosition);
+
+	// Restaurer mouvement
+	bGrabbedLedge = false;
+	SetMovementMode(MOVE_Walking);
 }
 
 void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
@@ -277,7 +330,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 		return;
 	}
 	
-	if (GetOwner() && !bIsSliding)
+	if (!bIsSliding)
 	{
 		if (SlideLineTrace()) {
 			if (Impact.Z <= SlopeToleranceValue) {

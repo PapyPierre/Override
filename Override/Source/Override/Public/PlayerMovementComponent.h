@@ -102,7 +102,7 @@ public:
 	UFUNCTION()
 	void StopVelocityEaseTimeline();
 
-	virtual bool CanSlide();
+	bool CanSlide();
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
@@ -146,6 +146,15 @@ public:
 	bool bGrabbedLedge = false;
 
 	float GrabHeight = 0;
+
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	FHitResult SweepResult;
+
+	FVector TargetClimbLocation;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
+	UAnimMontage* EdgeClimbMontage;
 	
 #pragma endregion
 
