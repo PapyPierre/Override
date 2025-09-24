@@ -45,7 +45,7 @@ void AModulation::HandleMovement(float DeltaTime)
 	{
 		CurrentEndIndex = -1;
 		CurrentEnd = Start;
-		CurrentStart = Ends.Last();
+		if (Ends.Num() > 0) CurrentStart = Ends.Last();
 	}
 	else
 	{
