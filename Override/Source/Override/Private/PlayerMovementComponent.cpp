@@ -4,6 +4,7 @@
 #include "PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 void UPlayerMovementComponent::BeginPlay()
@@ -39,7 +40,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	FrameCounter++;
 
 #pragma region WallClimb Verification
-	if (Velocity.Z < 0.0f)
+	if (Velocity.Z < 0.0f && !bGrabbedLedge)
 	{
 		FCollisionShape Shape = FCollisionShape::MakeBox(FVector(20, 5, 1));
 
@@ -104,29 +105,38 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 				GrabHeight = (OriginBounds.Z + BoxExtent.Z) - HalfHeight;
 
-				// Position suspendue (avant escalade)
 				FVector GrabPosition = FVector(
-					SweepResult.Location.X - CharaForward.X * 20.f,
-					SweepResult.Location.Y - CharaForward.Y * 20.f,
+					SweepResult.Location.X - CharaForward.X * 50,
+					SweepResult.Location.Y - CharaForward.Y * 50,
 					GrabHeight
 				);
 
 				CharacterRef->SetActorLocation(GrabPosition);
 
-				// Face le mur
 				FVector NewRotation = FVector(SweepResult.Normal * -1.f);
 				CharacterRef->SetActorRotation(UKismetMathLibrary::MakeRotFromX(NewRotation));
 
 				bGrabbedLedge = true;
 				StopMovementImmediately();
-				SetMovementMode(MOVE_None);
+				bUseControllerDesiredRotation = false;
+				SetMovementMode(MOVE_None);	
 
-				// Lancer montage escalade
 				if (EdgeClimbMontage && CharacterRef && CharacterRef->GetMesh())
 				{
 					UAnimInstance* AnimInstance = CharacterRef->GetMesh()->GetAnimInstance();
 					if (AnimInstance)
 					{
+						FVector TargetLocAndFwd = CharaLocation + CharaForward * 50;
+						FVector TargetRelativeLocation = FVector(TargetLocAndFwd.X, TargetLocAndFwd.Y, CharaLocation.Z + 154);
+
+						FLatentActionInfo JumpDelayInfo;
+						JumpDelayInfo.CallbackTarget = this;
+						JumpDelayInfo.ExecutionFunction = NAME_None;
+						JumpDelayInfo.Linkage = 0;
+						JumpDelayInfo.UUID = 1;
+						
+						UKismetSystemLibrary::MoveComponentTo(Capsule, TargetRelativeLocation, CharacterRef->GetActorRotation(), true, true, 1.0, false, EMoveComponentAction::Move,JumpDelayInfo);
+						
 						AnimInstance->Montage_Play(EdgeClimbMontage);
 
 						FOnMontageEnded EndDelegate;
@@ -239,25 +249,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 void UPlayerMovementComponent::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	// Calcul hauteur finale
-	float FinalHeight = GrabHeight + CharacterRef->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-
-	// Base finale
-	FVector FinalPosition = FVector(
-		SweepResult.Location.X,
-		SweepResult.Location.Y,
-		FinalHeight + 10
-	);
-
-	// Correction : avancer un peu dans le forward du perso
-	const float ForwardOffset = 50.f; 
-	FVector ForwardDir = CharacterRef->GetActorForwardVector();
-	FinalPosition += ForwardDir * ForwardOffset;
-
-	// Placer le perso
-	CharacterRef->SetActorLocation(FinalPosition);
-
-	// Restaurer mouvement
 	bGrabbedLedge = false;
 	SetMovementMode(MOVE_Walking);
 }

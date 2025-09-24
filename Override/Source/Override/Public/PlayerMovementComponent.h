@@ -150,8 +150,6 @@ public:
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	FHitResult SweepResult;
-
-	FVector TargetClimbLocation;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
 	UAnimMontage* EdgeClimbMontage;
