@@ -20,10 +20,8 @@ void AModulation::BeginPlay()
 		End.SetLocation(WorldLoc);
 	}
 
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Caca"));
-
-	CurrentEnd = Ends[CurrentEndIndex];
-
+	if (Ends.Num() > 0) CurrentEnd = Ends[CurrentEndIndex];
+	
 	Super::BeginPlay();
 }
 
