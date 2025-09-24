@@ -11,13 +11,14 @@ void UTargetingComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-void UTargetingComponent::LookForTarget()
+void UTargetingComponent::LookForTarget(float TargetingRange)
 {
 	if (!PlayerController) return;
 
+	TArray<AActor*> ActorsInRange = FindTargetablesInRange(TargetingRange);
 	TArray<AActor*> ActorsInFrustum;
 
-	for (AActor* ActorInRange : FindTargetablesInRange(MaxTargetingDistance))
+	for (AActor* ActorInRange : ActorsInRange)
 	{
 		if (IsActorInFrustumWithPadding(PlayerController, ActorInRange, ScreenPadding))
 		{
@@ -25,8 +26,12 @@ void UTargetingComponent::LookForTarget()
 		}
 	}
 
-	if (ActorsInFrustum.Num() == 0) return;
-	
+	if (ActorsInFrustum.Num() == 0)
+	{
+		ClearCurrentTargets();
+		return;
+	}
+
 	AActor* Target = GetClosestActorToCursor(PlayerController, ActorsInFrustum);
 	TargetActor(Target);
 }
@@ -67,7 +72,7 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 	                                                        FCollisionShape::MakeSphere(Range),
 	                                                        QueryParams);
 
-	//DrawDebugSphere(GetWorld(), GetActorLocation(), range, 12, FColor::Yellow, false);
+	DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
 
 	TArray<AActor*> FoundTargetable;
 
@@ -95,7 +100,7 @@ AActor* UTargetingComponent::GetClosestActorToCursor(APlayerController* PC, cons
 	FVector2D ScreenCenter(ViewportX * 0.5f, ViewportY * 0.5f);
 
 	AActor* ClosestActor = nullptr;
-	float ClosestDistSq = TNumericLimits<float>::Max();
+	float ClosestDist = TNumericLimits<float>::Max();
 
 	for (AActor* Actor : Actors)
 	{
@@ -104,10 +109,10 @@ AActor* UTargetingComponent::GetClosestActorToCursor(APlayerController* PC, cons
 		FVector2D ScreenPos;
 		if (PC->ProjectWorldLocationToScreen(Actor->GetActorLocation(), ScreenPos))
 		{
-			float DistSq = FVector2D::DistSquared(ScreenCenter, ScreenPos);
-			if (DistSq < ClosestDistSq)
+			float Dist = FVector2D::Distance(ScreenCenter, ScreenPos);
+			if (Dist < ClosestDist)
 			{
-				ClosestDistSq = DistSq;
+				ClosestDist = Dist;
 				ClosestActor = Actor;
 			}
 		}
@@ -120,26 +125,24 @@ void UTargetingComponent::TargetActor(AActor* Target)
 {
 	if (!Target) return;
 	if (!Target->Implements<UTargetable>()) return;
-	
+
 	if (CurrentTargets.Num() > 0)
 	{
-		if (CurrentTargets.Contains(Target))
-		{
-			return;
-		}
-
+		if (CurrentTargets.Contains(Target)) return;
 		ClearCurrentTargets();
 	}
-	
+
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Target:" + Target->GetName() + "!"));
+
 	CurrentTargets.Add(Target);
 	ITargetable::Execute_OnTarget(Target);
-	
 }
 
 void UTargetingComponent::ClearCurrentTargets()
 {
 	for (AActor* Targetable : CurrentTargets)
 	{
+		//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Untarget:" + Targetable->GetName() + "!"));
 		ITargetable::Execute_OnUntarget(Targetable);
 	}
 
@@ -149,7 +152,7 @@ void UTargetingComponent::ClearCurrentTargets()
 void UTargetingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)
 {
-	LookForTarget();
+	LookForTarget(MaxTargetingDistance);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }

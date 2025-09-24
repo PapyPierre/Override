@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,10 +15,9 @@ class OVERRIDE_API ITargetable
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
+	 void OnTarget();
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnTarget();
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnUntarget();
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
+	 void OnUntarget();
 };

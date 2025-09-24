@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ViewMod.h"
+#include "Views.h"
 #include "Components/ActorComponent.h"
 #include "TargetingComponent.generated.h"
 
@@ -20,10 +20,19 @@ public:
 
 	AActor* ActorInSight;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
+	float ScreenPadding = 10;
+
 	UTargetingComponent();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
+
+	UFUNCTION(BlueprintCallable)
+	void TargetActor(AActor* Target);
+
+	UFUNCTION(BlueprintCallable)
+	void ClearCurrentTargets();
 
 protected:
 	virtual void BeginPlay() override;
@@ -37,13 +46,10 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
 	float AutoTargetMinDistance = 500;
+	
+	Views CurrentViewMod;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
-	float ScreenPadding = 10;
-
-	ViewMod CurrentViewMod;
-
-	void LookForTarget();
+	void LookForTarget(float TargetingRange);
 
 	//	Check if is in the viewport rectangle expanded by Padding.
 	//	Positive Padding lets you count actors slightly outside the screen as still “in view”.
@@ -53,10 +59,4 @@ private:
 	TArray<AActor*> FindTargetablesInRange(float Range) const;
 
 	static AActor* GetClosestActorToCursor(APlayerController* PC, const TArray<AActor*>& Actors);
-
-	UFUNCTION(BlueprintCallable)
-	void TargetActor(AActor* Target);
-
-	UFUNCTION(BlueprintCallable)
-	void ClearCurrentTargets();
 };

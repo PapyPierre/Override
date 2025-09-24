@@ -1,4 +1,6 @@
 #include "Components/InteractingComponent.h"
+
+#include "ViewportInteractionTypes.h"
 #include "Engine/OverlapResult.h"
 #include "Interface/Hackable.h"
 #include "Interface/Interactable.h"
@@ -29,5 +31,5 @@ void UInteractingComponent::TryInteractWithActor(AActor* Target)
 
 void UInteractingComponent::RPC_TryInteractWithActor_Implementation(AActor* Target)
 {
-	if (Target) IInteractable::Execute_Interact(Target);
+	if (Target) Cast<IInteractable>(Target)->Interact();
 }

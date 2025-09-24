@@ -1,10 +1,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ViewMod.generated.h"
+#include "Views.generated.h"
 
 UENUM(BlueprintType)
-enum class ViewMod : uint8
+enum class Views : uint8
 {
 	WeaponView UMETA(DisplayName = "Weapon View"),
 	HackView   UMETA(DisplayName = "Hack View"),

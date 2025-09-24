@@ -16,6 +16,8 @@ class OVERRIDE_API IHackable : public ITargetable
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintImplementableEvent)
-	void Hack();
+	virtual void Hack() = 0;
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Hackable")
+	void OnHack();
 };
