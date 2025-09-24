@@ -1,6 +1,4 @@
 #include "Components/InteractingComponent.h"
-
-#include "ViewportInteractionTypes.h"
 #include "Engine/OverlapResult.h"
 #include "Interface/Hackable.h"
 #include "Interface/Interactable.h"
