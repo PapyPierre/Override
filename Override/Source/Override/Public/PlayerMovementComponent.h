@@ -147,6 +147,12 @@ public:
 
 	float GrabHeight = 0;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|EdgeGrab")
+	float RaycastStartHeight = 100.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|EdgeGrab")
+	float RaycastEndHeight = 50.f;
+
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	FHitResult SweepResult;

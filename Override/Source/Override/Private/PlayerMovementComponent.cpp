@@ -40,25 +40,22 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	FrameCounter++;
 
 #pragma region WallClimb Verification
-	if (Velocity.Z < 0.0f && !bGrabbedLedge)
-	{
-		FCollisionShape Shape = FCollisionShape::MakeBox(FVector(20, 5, 1));
-
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(CharacterRef);
-
+	
 		FVector CharaLocation = CharacterRef->GetActorLocation();
 		FVector CharaForward = CharacterRef->GetActorForwardVector();
 		FVector CharaUp = CharacterRef->GetActorUpVector();
-
-		// Rotation du joueur pour aligner la box
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(CharacterRef);
+	
+	if ((Velocity.Z < 0.0f || Velocity.Z > 0.0f) && !bGrabbedLedge)
+	{
+		FCollisionShape Shape = FCollisionShape::MakeBox(FVector(20, 5, 1));
+		
 		FQuat BoxRotation = CharacterRef->GetActorQuat();
 
-		// Start et End liés à l'orientation du joueur
-		FVector StartLocation = (CharaLocation + CharaForward * 45) + CharaUp * 100;
-		FVector EndLocation   = (CharaLocation + CharaForward * 45) + CharaUp * 50;
+		FVector StartLocation = (CharaLocation + CharaForward * 45) + CharaUp * RaycastStartHeight;
+		FVector EndLocation   = (CharaLocation + CharaForward * 45) + CharaUp * RaycastEndHeight;
 
-		// Debug box (utilise la même rotation que le sweep)
 		DrawDebugBox(
 			GetWorld(),
 			StartLocation,
@@ -69,10 +66,8 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			2.0f
 		);
 
-		// Debug line
 		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 2.0f, 0, 2.0f);
 
-		// Sweep avec la même rotation
 		bool bHit = GetWorld()->SweepSingleByChannel(
 			SweepResult,
 			StartLocation,
@@ -147,6 +142,77 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			}
 		}
 	}
+
+/*else
+{
+    bool ObstacleFront = GetWorld()->LineTraceSingleByChannel(
+        SweepResult,
+        CharaLocation,
+        CharaLocation + CharaForward * 70,
+        ECC_WorldStatic,
+        QueryParams);
+
+    DrawDebugLine(GetWorld(),
+        CharaLocation,
+        CharaLocation + CharaForward * 70,
+        FColor::Red,
+        false, 2.0f, 0, 2.0f);
+
+    if (ObstacleFront && SweepResult.Distance > 0)
+    {
+        // POINT D’ENTRÉE
+        FVector EntryPoint = SweepResult.ImpactPoint;
+        FVector WallNormal = SweepResult.ImpactNormal;
+
+        // -------- ÉPAISSEUR --------
+        TArray<FHitResult> Hits;
+        FCollisionObjectQueryParams ObjectQueryParams;
+        ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+
+        GetWorld()->LineTraceMultiByObjectType(
+            Hits,
+            EntryPoint + WallNormal * -5.0f,   // légèrement dedans
+            EntryPoint - WallNormal * 500.0f,  // direction opposée
+            ObjectQueryParams,
+            QueryParams
+        );
+
+        if (Hits.Num() >= 2)
+        {
+            FVector ExitPoint = Hits[1].ImpactPoint;
+            float Thickness = FVector::Dist(EntryPoint, ExitPoint);
+
+            if (GEngine)
+                GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
+                    FString::Printf(TEXT("Wall Thickness: %.2f"), Thickness));
+
+            DrawDebugLine(GetWorld(), EntryPoint, ExitPoint, FColor::Green, false, 2.0f, 0, 2.0f);
+        }
+
+        // -------- HAUTEUR --------
+        TArray<FHitResult> VerticalHits;
+        GetWorld()->LineTraceMultiByObjectType(
+            VerticalHits,
+            EntryPoint + WallNormal * -5.0f,
+            EntryPoint + FVector(0, 0, 1000),  // vers le haut
+            ObjectQueryParams,
+            QueryParams
+        );
+
+        if (VerticalHits.Num() >= 2)
+        {
+            FVector TopPoint = VerticalHits.Last().ImpactPoint;
+            float Height = TopPoint.Z - EntryPoint.Z;
+
+            if (GEngine)
+                GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple,
+                    FString::Printf(TEXT("Wall Height: %.2f"), Height));
+
+            DrawDebugLine(GetWorld(), EntryPoint, TopPoint, FColor::Purple, false, 2.0f, 0, 2.0f);
+        }
+    }
+}*/
+	
 #pragma endregion
 
 #pragma region Slide Verification
@@ -243,7 +309,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
 #pragma endregion
-
+	
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
