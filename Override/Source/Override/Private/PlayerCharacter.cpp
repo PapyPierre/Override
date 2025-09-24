@@ -2,16 +2,17 @@
 
 #include "PlayerCharacter.h"
 
+#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
+#include "Net/UnrealNetwork.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(ACharacter::CharacterMovementComponentName))
-{
+: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(ACharacter::CharacterMovementComponentName)){
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-
+	
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -21,9 +22,13 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 void APlayerCharacter::BeginPlay()
 {
 	if (!PlayerController) PlayerController = Cast<APlayerController>(GetController());
+
+	FirstPersonCameraComponent = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+
+	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
+	
 	Super::BeginPlay();
 }
-
 
 void APlayerCharacter::Sprint()
 {
@@ -35,9 +40,7 @@ void APlayerCharacter::Sprint()
 		}
 	}
 	else
-	{
 		RPC_SetSprint(true);
-	}
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
@@ -55,39 +58,79 @@ void APlayerCharacter::StopSprint()
 
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
-{	
-	if (!PlayerMovementComponent->IsMovingOnGround()) {
-		FVector TraceStart = GetActorLocation();
-		FVector TraceEnd = GetActorLocation() + GetActorRightVector() * 200;
+{
+	CameraShake();
+	
+	float Speed = GetVelocity().Size();
+	if (PlayerMovementComponent->IsMovingOnGround())
+	{
+		float TargetFOV = FMath::GetMappedRangeValueClamped(
+			FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
+			FVector2D(DefaultFOV, SprintFOV),
+			Speed
+		);
+		
+		float NewFOV = FMath::FInterpTo(
+			FirstPersonCameraComponent->GetFOVAngle(),
+			TargetFOV,
+			DeltaTime,
+			FOVInterpSpeed
+		);
 
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(this);
-
-		GetWorld()->LineTraceSingleByChannel(WallRunHitResult, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams);
-
-		if (WallRunHitResult.bBlockingHit) {
-			PlayerMovementComponent->CloseToWall = true;
-		}
-		else
-			PlayerMovementComponent->CloseToWall = false;
+		FirstPersonCameraComponent->SetFOV(NewFOV);
 	}
-
-	else
-		PlayerMovementComponent->CloseToWall = false;
 	
 	Super::Tick(DeltaTime);
+}
+
+void APlayerCharacter::CameraShake()
+{
+	if (PlayerMovementComponent->IsMovingOnGround())
+	{
+		if (GetVelocity() == FVector::ZeroVector)
+			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+		else
+		{
+			if (PlayerMovementComponent->IsRunning() && GetVelocity().Size() > PlayerMovementComponent->DefaultSprintSpeed)
+				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
+				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+			
+		}
+	}
 }
 
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	PlayerMovementComponent->bHasResetWallRide = true;
-	PlayerMovementComponent->ResetJumpCount();
+	if (HasAuthority())
+	{
+		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+		PlayerMovementComponent->ResetJumpValues();
+	}
+}
+
+void APlayerCharacter::Falling()
+{
+	JumpCurrentCount--;
+	
+	GetWorldTimerManager().SetTimer(
+		JumpDelayHandle,
+		this,
+		&APlayerCharacter::OnJumpDelayFinished,
+		DefaultCoyoteTime,
+		false
+	);
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const
 {
 	return JumpIsAllowedInternal();
+}
+
+void APlayerCharacter::OnJumpDelayFinished()
+{
+	JumpCurrentCount++;
 }
 
 // Called to bind functionality to input

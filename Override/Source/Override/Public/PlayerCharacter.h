@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
+#include "Camera/CameraComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -21,6 +22,29 @@ public:
 
 	APlayerController* PlayerController;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	float DefaultFOV = 90.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	float SprintFOV = 100.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	float FOVInterpSpeed = 10.f;
+
+	float DefaultCoyoteTime = 0.5f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeIdle;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeRunning;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeWalk;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeJump;
+	
 #pragma region WallRun
 	FHitResult WallRunHitResult;
 #pragma endregion
@@ -34,7 +58,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void StopSprint();
-
 #pragma endregion
 	
 protected:
@@ -43,15 +66,24 @@ protected:
 
 	virtual void Landed(const FHitResult& Hit) override;
 
-	virtual bool CanJumpInternal_Implementation() const override;
+	virtual void Falling() override;
 
+	virtual bool CanJumpInternal_Implementation() const override;
+	
+	UPROPERTY(VisibleAnywhere, Category = Camera)
+	APlayerCameraManager* FirstPersonCameraComponent;
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void CameraShake();
+
+	FTimerHandle JumpDelayHandle;
+
+	UFUNCTION()
+	void OnJumpDelayFinished();
+	
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	
-	
 };
