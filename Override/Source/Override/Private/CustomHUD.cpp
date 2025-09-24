@@ -8,7 +8,9 @@ void ACustomHUD::DrawHUD()
 	int32 ViewportX, ViewportY;
 	GetOwningPlayerController()->GetViewportSize(ViewportX, ViewportY);
 
-	UTargetingComponent* TargetingComp = GetOwningPawn()->FindComponentByClass<UTargetingComponent>();
+	if (!PlayerOwner || !PlayerOwner->GetPawn()) return;
+
+	UTargetingComponent* TargetingComp =  PlayerOwner->GetPawn()->FindComponentByClass<UTargetingComponent>();
 
 	float Padding = TargetingComp->ScreenPadding;;
 	const float MinX = -Padding;
