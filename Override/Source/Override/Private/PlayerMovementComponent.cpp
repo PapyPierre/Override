@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PlayerMovementComponent.h"
+
+#include "K2Node_GetInputAxisValue.h"
 #include "PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -431,7 +433,15 @@ void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 
 bool UPlayerMovementComponent::CanSprint() const
 {
-	return IsMovingOnGround() && !bWantsToCrouch && !IsCrouching();
+	if (!IsMovingOnGround() || bWantsToCrouch || IsCrouching())
+		return false;
+
+	FVector MoveDir = Velocity.GetSafeNormal();
+	FVector ForwardDir = CharacterOwner->GetActorForwardVector();
+
+	float Dot = FVector::DotProduct(MoveDir, ForwardDir);
+
+	return Dot > 0.7f && Velocity.Size() > 0.f;
 }
 
 bool UPlayerMovementComponent::IsRunning() const
