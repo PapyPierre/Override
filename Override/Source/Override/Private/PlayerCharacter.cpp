@@ -120,6 +120,14 @@ void APlayerCharacter::Falling()
 	);
 }
 
+void APlayerCharacter::Jump()
+{
+	if (!PlayerMovementComponent->CanVaultOrClimb())
+	{
+		Super::Jump();
+	}
+}
+
 bool APlayerCharacter::CanJumpInternal_Implementation() const
 {
 	return JumpIsAllowedInternal();

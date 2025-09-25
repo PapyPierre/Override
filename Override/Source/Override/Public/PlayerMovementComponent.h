@@ -153,12 +153,26 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|EdgeGrab")
 	float RaycastEndHeight = 50.f;
 
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
 
+	bool CanVaultOrClimb();
+	
+	AActor* ParkourWallDetection(float &Thickness, float &Height);
+	
 	FHitResult SweepResult;
+
+	AActor* HitSecondWallActor;
+	bool bMontagePending = false;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
 	UAnimMontage* EdgeClimbMontage;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
+	UAnimMontage* VaultMontage;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
+	float ParkourDistanceDetection = 70.f;
 	
 #pragma endregion
 
@@ -193,4 +207,12 @@ private:
 	virtual void UnCrouch(bool bClientSimulation = false) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	FVector CharaLocation;
+	FVector CharaForward;
+	FVector CharaUp;
+
+	FCollisionQueryParams TraceParams;
+
+	UAnimInstance* AnimInstance;
 };
