@@ -68,6 +68,8 @@ protected:
 
 	virtual void Falling() override;
 
+	virtual void Jump() override;
+
 	virtual bool CanJumpInternal_Implementation() const override;
 	
 	UPROPERTY(VisibleAnywhere, Category = Camera)
