@@ -56,25 +56,28 @@ void APlayerCharacter::StopSprint()
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
-	CameraShake();
-	
-	float Speed = GetVelocity().Size();
-	if (PlayerMovementComponent->IsMovingOnGround())
+	if (HasAuthority())
 	{
-		float TargetFOV = FMath::GetMappedRangeValueClamped(
-			FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
-			FVector2D(DefaultFOV, SprintFOV),
-			Speed
-		);
+		CameraShake();
+	
+		float Speed = GetVelocity().Size();
+		if (PlayerMovementComponent->IsMovingOnGround() && PlayerMovementComponent->IsRunning())
+		{
+			float TargetFOV = FMath::GetMappedRangeValueClamped(
+				FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
+				FVector2D(DefaultFOV, SprintFOV),
+				Speed
+			);
 		
-		float NewFOV = FMath::FInterpTo(
-			FirstPersonCameraComponent->GetFOVAngle(),
-			TargetFOV,
-			DeltaTime,
-			FOVInterpSpeed
-		);
+			float NewFOV = FMath::FInterpTo(
+				FirstPersonCameraComponent->GetFOVAngle(),
+				TargetFOV,
+				DeltaTime,
+				FOVInterpSpeed
+			);
 
-		FirstPersonCameraComponent->SetFOV(NewFOV);
+			FirstPersonCameraComponent->SetFOV(NewFOV);
+		}
 	}
 	
 	Super::Tick(DeltaTime);
@@ -118,6 +121,14 @@ void APlayerCharacter::Falling()
 		DefaultCoyoteTime,
 		false
 	);
+}
+
+void APlayerCharacter::Jump()
+{
+	if (!PlayerMovementComponent->CanVaultOrClimb())
+	{
+		Super::Jump();
+	}
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const

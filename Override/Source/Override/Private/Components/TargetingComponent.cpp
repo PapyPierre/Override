@@ -40,11 +40,19 @@ bool UTargetingComponent::IsActorInFrustumWithPadding(APlayerController* PC, AAc
 {
 	if (!PC || !Actor) return false;
 
-	FVector2D ScreenPos;
-	FVector WorldPos = Actor->GetActorLocation();
+	FVector Origin;
+	FVector Extent;
+	Actor->GetActorBounds(true, Origin, Extent);
 
-	bool bOnScreen = PC->ProjectWorldLocationToScreen(WorldPos, ScreenPos);
-	if (!bOnScreen) return false;
+	TArray<FVector> Points;
+	Points.Add(Origin + FVector( Extent.X,  Extent.Y,  Extent.Z));
+	Points.Add(Origin + FVector( Extent.X,  Extent.Y, -Extent.Z));
+	Points.Add(Origin + FVector( Extent.X, -Extent.Y,  Extent.Z));
+	Points.Add(Origin + FVector( Extent.X, -Extent.Y, -Extent.Z));
+	Points.Add(Origin + FVector(-Extent.X,  Extent.Y,  Extent.Z));
+	Points.Add(Origin + FVector(-Extent.X,  Extent.Y, -Extent.Z));
+	Points.Add(Origin + FVector(-Extent.X, -Extent.Y,  Extent.Z));
+	Points.Add(Origin + FVector(-Extent.X, -Extent.Y, -Extent.Z));
 
 	int32 ViewportX, ViewportY;
 	PC->GetViewportSize(ViewportX, ViewportY);
@@ -54,8 +62,20 @@ bool UTargetingComponent::IsActorInFrustumWithPadding(APlayerController* PC, AAc
 	const float MaxX = ViewportX + Padding;
 	const float MaxY = ViewportY + Padding;
 
-	return (ScreenPos.X >= MinX && ScreenPos.X <= MaxX &&
-		ScreenPos.Y >= MinY && ScreenPos.Y <= MaxY);
+	for (const FVector& WorldPos : Points)
+	{
+		FVector2D ScreenPos;
+		if (PC->ProjectWorldLocationToScreen(WorldPos, ScreenPos))
+		{
+			if (ScreenPos.X >= MinX && ScreenPos.X <= MaxX &&
+				ScreenPos.Y >= MinY && ScreenPos.Y <= MaxY)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) const

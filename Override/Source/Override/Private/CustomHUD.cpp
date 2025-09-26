@@ -5,6 +5,7 @@ void ACustomHUD::DrawHUD()
 {
 	Super::DrawHUD();
 
+#if WITH_EDITOR
 	int32 ViewportX, ViewportY;
 	GetOwningPlayerController()->GetViewportSize(ViewportX, ViewportY);
 
@@ -31,4 +32,6 @@ void ACustomHUD::DrawHUD()
 
 	// Right
 	DrawRect(MaskColor, MaxX, MinY, ViewportX - MaxX, MaxY - MinY);
+
+#endif
 }
