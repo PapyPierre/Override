@@ -1,0 +1,15 @@
+#include "Attribute/UHealthAttributeSet.h"
+#include "Net/UnrealNetwork.h"
+ 
+UHealthAttributeSet::UHealthAttributeSet()
+{
+	InitHealth(100.0f);
+	InitMaxHealth(100.0f);
+}
+ 
+void UHealthAttributeSet::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UHealthAttributeSet, MaxHealth);
+	DOREPLIFETIME(UHealthAttributeSet, Health);
+}

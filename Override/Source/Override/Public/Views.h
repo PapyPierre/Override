@@ -7,5 +7,5 @@ UENUM(BlueprintType)
 enum class Views : uint8
 {
 	WeaponView UMETA(DisplayName = "Weapon View"),
-	HackView   UMETA(DisplayName = "Hack View"),
+	SimView UMETA(DisplayName = "Hack View"),
 };

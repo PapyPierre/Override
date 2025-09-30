@@ -1,4 +1,5 @@
-#include "PlayerCharacter.h"
+#include "Player/PlayerCharacter.h"
+#include "Attribute/UHealthAttributeSet.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
@@ -13,6 +14,8 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
+
+	HealthSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthSet"));
 }
 
 // Called when the game starts or when spawned

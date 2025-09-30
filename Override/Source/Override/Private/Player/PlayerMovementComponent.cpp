@@ -1,9 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-#include "PlayerMovementComponent.h"
-
-#include "K2Node_GetInputAxisValue.h"
-#include "PlayerCharacter.h"
+#include "Player/PlayerMovementComponent.h"
+#include "Player/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"

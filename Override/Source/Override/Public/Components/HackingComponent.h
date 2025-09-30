@@ -1,11 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemComponent.h"
 #include "Components/ActorComponent.h"
 #include "HackingComponent.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class OVERRIDE_API UHackingComponent : public UActorComponent
+class OVERRIDE_API UHackingComponent : public UAbilitySystemComponent
 {
 	GENERATED_BODY()
 
