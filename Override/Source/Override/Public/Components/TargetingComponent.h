@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Views.h"
+#include "EViews.h"
 #include "Components/ActorComponent.h"
 #include "TargetingComponent.generated.h"
 
@@ -47,7 +47,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
 	float AutoTargetMinDistance = 500;
 	
-	Views CurrentViewMod;
+	EViews CurrentViewMod;
 
 	void LookForTarget(float TargetingRange);
 

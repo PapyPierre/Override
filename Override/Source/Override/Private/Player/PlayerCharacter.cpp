@@ -147,6 +147,10 @@ void APlayerCharacter::OnJumpDelayFinished()
 // Called to bind functionality to input
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	/*
+	const FTopLevelAssetPath EnumName("/Script/AbilitiesLab.EHackSlotsEnum");
+	FGameplayAbilityInputBinds Binds("ConfirmTargeting", "CancelTargeting", EnumName);
+	LabAbilitySystemComp->BindAbilityActivationToInputComponent(PlayerInputComponent, Binds);
+	*/
 }
 
