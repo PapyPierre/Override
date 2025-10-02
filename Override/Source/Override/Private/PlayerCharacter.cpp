@@ -29,15 +29,13 @@ void APlayerCharacter::BeginPlay()
 
 void APlayerCharacter::Sprint()
 {
-	if (HasAuthority())
-	{
-		if (PlayerMovementComponent->CanSprint())
-		{
-			PlayerMovementComponent->bWantsToSprint = true;
-		}
-		else
-			PlayerMovementComponent->bWantsToSprint = false;
-	}
+    if (IsLocallyControlled())
+    {
+        bool bCan = PlayerMovementComponent->CanSprint();
+        PlayerMovementComponent->bWantsToSprint = bCan;
+
+        RPC_SetSprint(bCan);
+    }
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
@@ -47,34 +45,40 @@ void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
 
 void APlayerCharacter::StopSprint()
 {
-	if (HasAuthority())
-		PlayerMovementComponent->bWantsToSprint = false;
-	else
+	if (IsLocallyControlled())
 	{
-		RPC_SetSprint(false);
 		PlayerMovementComponent->bWantsToSprint = false;
+		RPC_SetSprint(false);
 	}
 }
 
 void APlayerCharacter::AimWeapon()
 {
-	if (HasAuthority())
+	if (IsLocallyControlled())
 	{
 		bIsAimingWeapon = true;
+		RPC_SetAim(true);
 	}
 }
 
 void APlayerCharacter::StopAimWeapon()
 {
-	UE_LOG(LogTemp, Warning, TEXT("iofdgoifdng"));
-	if (HasAuthority())
+	if (IsLocallyControlled())
+	{
 		bIsAimingWeapon = false;
+		RPC_SetAim(false);
+	}
+}
+
+void APlayerCharacter::RPC_SetAim_Implementation(bool value)
+{
+	bIsAimingWeapon = value;
 }
 
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
-	if (HasAuthority())
+	if (IsLocallyControlled())
 	{
 		CameraShake();
 	
@@ -136,7 +140,6 @@ void APlayerCharacter::CameraShake()
 				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
 				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-			
 		}
 	}
 }
@@ -144,7 +147,7 @@ void APlayerCharacter::CameraShake()
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	if (HasAuthority())
+	if (IsLocallyControlled())
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 		PlayerMovementComponent->ResetJumpValues();
@@ -186,5 +189,12 @@ void APlayerCharacter::OnJumpDelayFinished()
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(APlayerCharacter, bIsAimingWeapon);
 }
 

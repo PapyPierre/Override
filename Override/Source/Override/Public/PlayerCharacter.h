@@ -67,10 +67,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Aim")
 	void StopAimWeapon();
 
+	UFUNCTION(Server, Reliable)
+	void RPC_SetAim(bool value);
+
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
 	float AimFOV = 70.f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Aim")
+	UPROPERTY(BlueprintReadOnly,Replicated , Category = "Aim")
 	bool bIsAimingWeapon = false;
 
 protected:
@@ -101,4 +104,7 @@ public:
 	
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 };
