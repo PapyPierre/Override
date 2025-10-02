@@ -2,15 +2,19 @@
 #include "Attribute/UHealthAttributeSet.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/HackingComponent.h"
 #include "Engine/Engine.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/CustomPlayerState.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(ACharacter::CharacterMovementComponentName)){
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(
+		ACharacter::CharacterMovementComponentName))
+{
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-	
+
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -26,7 +30,7 @@ void APlayerCharacter::BeginPlay()
 	FirstPersonCameraComponent = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
 
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
-	
+
 	Super::BeginPlay();
 }
 
@@ -56,13 +60,28 @@ void APlayerCharacter::StopSprint()
 		RPC_SetSprint(false);
 }
 
-// Called every frame
+void APlayerCharacter::PossessedBy(AController* NewController)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("PossessedBy"));
+
+	Super::PossessedBy(NewController);
+	InitAbilitySystem(); // Server-side init
+}
+
+void APlayerCharacter::OnRep_PlayerState()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("OnRep_PlayerState"));
+
+	Super::OnRep_PlayerState();
+	InitAbilitySystem(); // Client-side init
+}
+
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	if (HasAuthority())
 	{
 		CameraShake();
-	
+
 		float Speed = GetVelocity().Size();
 		if (PlayerMovementComponent->IsMovingOnGround() && PlayerMovementComponent->IsRunning())
 		{
@@ -71,7 +90,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 				FVector2D(DefaultFOV, SprintFOV),
 				Speed
 			);
-		
+
 			float NewFOV = FMath::FInterpTo(
 				FirstPersonCameraComponent->GetFOVAngle(),
 				TargetFOV,
@@ -82,7 +101,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 			FirstPersonCameraComponent->SetFOV(NewFOV);
 		}
 	}
-	
+
 	Super::Tick(DeltaTime);
 }
 
@@ -91,14 +110,17 @@ void APlayerCharacter::CameraShake()
 	if (PlayerMovementComponent->IsMovingOnGround())
 	{
 		if (GetVelocity() == FVector::ZeroVector)
-			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
+			                                             FRotator::ZeroRotator);
 		else
 		{
-			if (PlayerMovementComponent->IsRunning() && GetVelocity().Size() > PlayerMovementComponent->DefaultSprintSpeed)
-				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+			if (PlayerMovementComponent->IsRunning() && GetVelocity().Size() > PlayerMovementComponent->
+				DefaultSprintSpeed)
+				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal,
+				                                             FRotator::ZeroRotator);
 			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
-				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-			
+				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
+				                                             FRotator::ZeroRotator);
 		}
 	}
 }
@@ -108,7 +130,8 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 	if (HasAuthority())
 	{
-		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+		                                             FRotator::ZeroRotator);
 		PlayerMovementComponent->ResetJumpValues();
 	}
 }
@@ -116,7 +139,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 void APlayerCharacter::Falling()
 {
 	JumpCurrentCount--;
-	
+
 	GetWorldTimerManager().SetTimer(
 		JumpDelayHandle,
 		this,
@@ -148,9 +171,40 @@ void APlayerCharacter::OnJumpDelayFinished()
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	/*
-	const FTopLevelAssetPath EnumName("/Script/AbilitiesLab.EHackSlotsEnum");
+	APlayerState* Ps = GetPlayerState();
+	if (!Ps) return;
+	ACustomPlayerState* CustomPs = Cast<ACustomPlayerState>(Ps);
+	if (!CustomPs)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No CustomPs"));
+		return;
+	}
+	UAbilitySystemComponent* Asc = CustomPs->GetAbilitySystemComponent();
+	
+	if (!Asc)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Asc"));
+		return;
+	}
+	
+	const FTopLevelAssetPath EnumName("/Source/Override.EHackSlotsEnum");
 	FGameplayAbilityInputBinds Binds("ConfirmTargeting", "CancelTargeting", EnumName);
-	LabAbilitySystemComp->BindAbilityActivationToInputComponent(PlayerInputComponent, Binds);
+	Asc->BindAbilityActivationToInputComponent(PlayerInputComponent, Binds);
 	*/
 }
 
+void APlayerCharacter::InitAbilitySystem()
+{
+	if (ACustomPlayerState* PS = GetCustomPlayerState())
+	{
+		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+		{
+			ASC->InitAbilityActorInfo(PS, this);
+		}
+	}
+}
+
+ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
+{
+	return GetPlayerState<ACustomPlayerState>();
+}

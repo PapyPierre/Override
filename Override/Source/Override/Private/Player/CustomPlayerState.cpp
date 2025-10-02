@@ -4,6 +4,7 @@
 
 ACustomPlayerState::ACustomPlayerState()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("ACustomPlayerState"));
 	HackingComponent = CreateDefaultSubobject<UHackingComponent>(TEXT("AbilitySystem"));
 }
 

@@ -1,11 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CustomPlayerState.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
-#include "Camera/CameraComponent.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -19,7 +17,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	UPlayerMovementComponent* PlayerMovementComponent;
-
+	
 	APlayerController* PlayerController;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
@@ -78,6 +76,10 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UHealthAttributeSet> HealthSet;
 
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void OnRep_PlayerState() override;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -91,4 +93,10 @@ public:
 	
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+private:
+	void InitAbilitySystem();
+
+	UFUNCTION(BlueprintCallable)
+	ACustomPlayerState* GetCustomPlayerState() const;
 };

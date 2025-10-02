@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 
 UENUM(BlueprintType)
-enum class OVERRIDE_API EHackSlotsEnum : uint8
+enum class EHackSlotsEnum : uint8
 {
 	Hack_1,
 	Hack_2,
