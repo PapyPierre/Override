@@ -11,5 +11,7 @@ public class OverrideEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 
 		ExtraModuleNames.AddRange( new string[] { "Override" } );
+		
+		CppStandard = CppStandardVersion.Cpp20;
 	}
 }

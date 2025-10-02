@@ -28,8 +28,10 @@ public:
 	int32 FrameCounter = 0;
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
-	float DefaultMaxWalkSpeedCrouched;
 
+	UPROPERTY(BlueprintReadOnly, Category = "CMC|Crouch")
+	float DefaultMaxWalkSpeedCrouched;
+	
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
 	virtual float GetMaxSpeed() const override;

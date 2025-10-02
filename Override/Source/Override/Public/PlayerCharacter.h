@@ -59,7 +59,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void StopSprint();
 #pragma endregion
-	
+
+#pragma region Aim
+	UFUNCTION(BlueprintCallable, Category = "Aim")
+	void AimWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "Aim")
+	void StopAimWeapon();
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float AimFOV = 70.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Aim")
+	bool bIsAimingWeapon = false;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

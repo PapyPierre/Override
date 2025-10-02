@@ -35,9 +35,9 @@ void APlayerCharacter::Sprint()
 		{
 			PlayerMovementComponent->bWantsToSprint = true;
 		}
+		else
+			PlayerMovementComponent->bWantsToSprint = false;
 	}
-	else
-		RPC_SetSprint(true);
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
@@ -50,7 +50,25 @@ void APlayerCharacter::StopSprint()
 	if (HasAuthority())
 		PlayerMovementComponent->bWantsToSprint = false;
 	else
+	{
 		RPC_SetSprint(false);
+		PlayerMovementComponent->bWantsToSprint = false;
+	}
+}
+
+void APlayerCharacter::AimWeapon()
+{
+	if (HasAuthority())
+	{
+		bIsAimingWeapon = true;
+	}
+}
+
+void APlayerCharacter::StopAimWeapon()
+{
+	UE_LOG(LogTemp, Warning, TEXT("iofdgoifdng"));
+	if (HasAuthority())
+		bIsAimingWeapon = false;
 }
 
 // Called every frame
@@ -60,9 +78,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		CameraShake();
 	
-		float Speed = GetVelocity().Size();
 		if (PlayerMovementComponent->IsMovingOnGround() && PlayerMovementComponent->IsRunning())
 		{
+			float Speed = GetVelocity().Size();
 			float TargetFOV = FMath::GetMappedRangeValueClamped(
 				FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
 				FVector2D(DefaultFOV, SprintFOV),
@@ -78,8 +96,31 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 			FirstPersonCameraComponent->SetFOV(NewFOV);
 		}
+		
+		if (bIsAimingWeapon)
+		{
+			float NewFOV = FMath::FInterpTo(
+				FirstPersonCameraComponent->GetFOVAngle(),
+				AimFOV,
+				DeltaTime,
+				FOVInterpSpeed
+			);
+			
+			FirstPersonCameraComponent->SetFOV(NewFOV);
+		}
+		
+		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon)
+		{
+			float NewFOV = FMath::FInterpTo(
+				FirstPersonCameraComponent->GetFOVAngle(),
+				DefaultFOV,
+				DeltaTime,
+				FOVInterpSpeed
+			);	
+			
+			FirstPersonCameraComponent->SetFOV(NewFOV);
+		}
 	}
-	
 	Super::Tick(DeltaTime);
 }
 
