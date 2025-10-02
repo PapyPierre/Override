@@ -204,9 +204,9 @@ private:
 
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
 
-	virtual void Crouch(bool bClientSimulation = false) override;
+	virtual void Crouch(bool bClientSimulation = true) override;
 
-	virtual void UnCrouch(bool bClientSimulation = false) override;
+	virtual void UnCrouch(bool bClientSimulation = true) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
