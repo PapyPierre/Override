@@ -1,10 +1,21 @@
 #include "Modulations/Modulation.h"
+#include "AbilitySystemComponent.h"
+#include "Attribute/UHealthAttributeSet.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Modulations/ModulationGroup.h"
 
 AModulation::AModulation()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	HealthSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthSet"));
+	check(HealthSet);
+	Asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+	check(Asc);
+}
+
+UAbilitySystemComponent* AModulation::GetAbilitySystemComponent() const
+{
+	return Asc;
 }
 
 void AModulation::BeginPlay()
@@ -21,14 +32,14 @@ void AModulation::BeginPlay()
 	}
 
 	if (Ends.Num() > 0) CurrentEnd = Ends[CurrentEndIndex];
-	
+
 	Super::BeginPlay();
 }
 
 void AModulation::HandleMovement(float DeltaTime)
 {
 	if (CurrentState != ModState::Moving) return;
-	
+
 	LerpTime += DeltaTime * ModSpeedCurve->FloatCurve.Eval(LerpTime);
 
 	if (LerpTime >= 1.0f) LerpTime = 1;
@@ -98,6 +109,11 @@ void AModulation::Tick(float DeltaTime)
 	HandleCooldown(DeltaTime);
 }
 
+void AModulation::Target()
+{
+	if (Group) Group->TargetGroup();
+}
+
 void AModulation::Interact()
 {
 	if (CurrentState != ModState::Stopped) return;
@@ -115,18 +131,4 @@ void AModulation::Interact()
 
 	ChangeState(ModState::Moving);
 	Execute_OnInteract(this);
-}
-
-void AModulation::Hack()
-{
-	if (Group)
-	{
-		for (AModulation* mod : Group->ModulationsInGroup)
-		{
-			if (mod == this) continue;
-			mod->Hack();
-		}
-	}
-
-	Execute_OnHack(this);
 }

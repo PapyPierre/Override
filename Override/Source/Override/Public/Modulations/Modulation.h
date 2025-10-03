@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemInterface.h"
 #include "GameFramework/Actor.h"
-#include "Interface/Hackable.h"
 #include "Interface/Interactable.h"
 #include "Modulation.generated.h"
 
@@ -17,18 +17,23 @@ enum class ModState : uint8
 };
 
 UCLASS()
-class OVERRIDE_API AModulation : public AActor, public IInteractable, public IHackable
+class OVERRIDE_API AModulation : public AActor, public IInteractable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 public:
 	AModulation();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAbilitySystemComponent> Asc;
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 	virtual void Tick(float DeltaTime) override;
 
+	virtual void Target() override;
+	
 	virtual void Interact() override;
-
-	virtual void Hack() override;
 
 	UPROPERTY(BlueprintReadOnly)
 	AModulationGroup* Group;
@@ -46,7 +51,6 @@ public:
 	UPROPERTY(EditAnywhere, Category="Default")
 	UCurveFloat* ModSpeedCurve;
 
-
 	UPROPERTY(BlueprintReadOnly)
 	ModState CurrentState = ModState::Stopped;
 
@@ -59,7 +63,12 @@ public:
 	UPROPERTY(EditAnywhere, Category="Default")
 	float ImpulseForce = 5;
 
-
+#pragma region Attribute
+	
+	UPROPERTY()
+	TObjectPtr<class UHealthAttributeSet> HealthSet;
+	
+#pragma endregion
 
 protected:
 	virtual void BeginPlay() override;

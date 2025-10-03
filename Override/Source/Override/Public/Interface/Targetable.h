@@ -15,9 +15,11 @@ class OVERRIDE_API ITargetable
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
-	 void OnTarget();
+	virtual void Target() = 0;
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
-	 void OnUntarget();
+	void OnTarget();
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
+	void OnUntarget();
 };

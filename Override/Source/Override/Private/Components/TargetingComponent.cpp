@@ -32,7 +32,15 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 		return;
 	}
 
+
 	AActor* Target = GetClosestActorToCursor(PlayerController, ActorsInFrustum);
+
+	if (CurrentTargets.Num() > 0)
+	{
+		if (CurrentTargets.Contains(Target)) return;
+		ClearCurrentTargets();
+	}
+
 	TargetActor(Target);
 }
 
@@ -45,13 +53,13 @@ bool UTargetingComponent::IsActorInFrustumWithPadding(APlayerController* PC, AAc
 	Actor->GetActorBounds(true, Origin, Extent);
 
 	TArray<FVector> Points;
-	Points.Add(Origin + FVector( Extent.X,  Extent.Y,  Extent.Z));
-	Points.Add(Origin + FVector( Extent.X,  Extent.Y, -Extent.Z));
-	Points.Add(Origin + FVector( Extent.X, -Extent.Y,  Extent.Z));
-	Points.Add(Origin + FVector( Extent.X, -Extent.Y, -Extent.Z));
-	Points.Add(Origin + FVector(-Extent.X,  Extent.Y,  Extent.Z));
-	Points.Add(Origin + FVector(-Extent.X,  Extent.Y, -Extent.Z));
-	Points.Add(Origin + FVector(-Extent.X, -Extent.Y,  Extent.Z));
+	Points.Add(Origin + FVector(Extent.X, Extent.Y, Extent.Z));
+	Points.Add(Origin + FVector(Extent.X, Extent.Y, -Extent.Z));
+	Points.Add(Origin + FVector(Extent.X, -Extent.Y, Extent.Z));
+	Points.Add(Origin + FVector(Extent.X, -Extent.Y, -Extent.Z));
+	Points.Add(Origin + FVector(-Extent.X, Extent.Y, Extent.Z));
+	Points.Add(Origin + FVector(-Extent.X, Extent.Y, -Extent.Z));
+	Points.Add(Origin + FVector(-Extent.X, -Extent.Y, Extent.Z));
 	Points.Add(Origin + FVector(-Extent.X, -Extent.Y, -Extent.Z));
 
 	int32 ViewportX, ViewportY;
@@ -83,8 +91,10 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 	TArray<FOverlapResult> OverlapResults;
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
+	//QueryParams.AddIgnoredActor(GetOwner());
+
 
 	bool bHasOverlap = GetWorld()->OverlapMultiByObjectType(OverlapResults, GetOwner()->GetActorLocation(),
 	                                                        FQuat::Identity,
@@ -100,9 +110,13 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 	{
 		for (const FOverlapResult& Result : OverlapResults)
 		{
+			GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Result"));
+			
 			AActor* Actor = Result.GetActor();
 			if (Actor && Actor->Implements<UTargetable>())
 			{
+				GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("UTargetable"));
+
 				FoundTargetable.Add(Actor);
 			}
 		}
@@ -146,15 +160,13 @@ void UTargetingComponent::TargetActor(AActor* Target)
 	if (!Target) return;
 	if (!Target->Implements<UTargetable>()) return;
 
-	if (CurrentTargets.Num() > 0)
-	{
-		if (CurrentTargets.Contains(Target)) return;
-		ClearCurrentTargets();
-	}
+	if (CurrentTargets.Contains(Target)) return;
+
+	CurrentTargets.Add(Target);
 
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Target:" + Target->GetName() + "!"));
 
-	CurrentTargets.Add(Target);
+	Cast<ITargetable>(Target)->Target();
 	ITargetable::Execute_OnTarget(Target);
 }
 

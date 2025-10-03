@@ -45,6 +45,8 @@ void UHealthAttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue)
 	const float OldHealth = OldValue.GetCurrentValue();
 	const float NewHealth = GetHealth();
 	OnHealthChanged.Broadcast(this, OldHealth, NewHealth);
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::SanitizeFloat(NewHealth));
 }
 
 void UHealthAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldValue)

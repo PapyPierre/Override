@@ -1,25 +1,17 @@
 #include "Player/CustomPlayerState.h"
+#include "Attribute/UHealthAttributeSet.h"
 #include "Player/PlayerCharacter.h"
-#include "Components/HackingComponent.h"
 
 ACustomPlayerState::ACustomPlayerState()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("ACustomPlayerState"));
-	HackingComponent = CreateDefaultSubobject<UHackingComponent>(TEXT("AbilitySystem"));
-}
-
-void ACustomPlayerState::BeginPlay()
-{
-	Super::BeginPlay();
-
-	ACharacter* MyChar = nullptr;
-
-	if (APlayerController* PC = Cast<APlayerController>(GetOwner())) MyChar = Cast<ACharacter>(PC->GetPawn());
-	
-	HackingComponent->InitAbilityActorInfo(this, MyChar);
+	bReplicates = true;
+	HealthSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthSet"));
+	check(HealthSet);
+	Asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+	check(Asc);
 }
 
 UAbilitySystemComponent* ACustomPlayerState::GetAbilitySystemComponent() const
 {
-	return HackingComponent;
+	return Asc;
 }

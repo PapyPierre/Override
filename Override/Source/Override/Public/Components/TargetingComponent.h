@@ -18,6 +18,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<AActor*> CurrentTargets;
 
+	UPROPERTY()
 	AActor* ActorInSight;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")

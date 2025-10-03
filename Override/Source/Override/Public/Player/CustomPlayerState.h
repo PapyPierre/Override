@@ -13,10 +13,16 @@ class OVERRIDE_API ACustomPlayerState : public APlayerState, public IAbilitySyst
 public:
 	ACustomPlayerState();
 
-	virtual void BeginPlay() override;
-
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hacking)
-	TObjectPtr<class UHackingComponent> HackingComponent;
+	TObjectPtr<class UAbilitySystemComponent> Asc;
+
+#pragma region Attribute
+	
+	UPROPERTY()
+	TObjectPtr<class UHealthAttributeSet> HealthSet;
+	
+#pragma endregion
+
 };

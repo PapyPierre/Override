@@ -1,10 +1,6 @@
 #include "Player/PlayerCharacter.h"
-#include "Attribute/UHealthAttributeSet.h"
-#include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/HackingComponent.h"
+#include "AbilitySystemComponent.h"
 #include "Engine/Engine.h"
-#include "Net/UnrealNetwork.h"
 #include "Player/CustomPlayerState.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -18,9 +14,9 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
-
-	HealthSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthSet"));
 }
+
+void APlayerCharacter::Target() { }
 
 // Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
@@ -62,17 +58,19 @@ void APlayerCharacter::StopSprint()
 
 void APlayerCharacter::PossessedBy(AController* NewController)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("PossessedBy"));
-
 	Super::PossessedBy(NewController);
+
+		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("PossessedBy"));
+	
 	InitAbilitySystem(); // Server-side init
 }
 
 void APlayerCharacter::OnRep_PlayerState()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("OnRep_PlayerState"));
-
 	Super::OnRep_PlayerState();
+
+		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("OnRep_PlayerState"));
+	
 	InitAbilitySystem(); // Client-side init
 }
 
@@ -202,6 +200,8 @@ void APlayerCharacter::InitAbilitySystem()
 			ASC->InitAbilityActorInfo(PS, this);
 		}
 	}
+
+	OnPostAbilitySystemInit();
 }
 
 ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const

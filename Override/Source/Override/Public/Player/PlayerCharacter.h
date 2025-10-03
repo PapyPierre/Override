@@ -4,10 +4,11 @@
 #include "CustomPlayerState.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
+#include "Interface/Targetable.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class OVERRIDE_API APlayerCharacter : public ACharacter
+class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable
 {
 	GENERATED_BODY()
 
@@ -15,9 +16,12 @@ public:
 	// Sets default values for this character's properties
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	virtual void Target() override;
+
 	UPROPERTY(BlueprintReadOnly)
 	UPlayerMovementComponent* PlayerMovementComponent;
-	
+
+	UPROPERTY()
 	APlayerController* PlayerController;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
@@ -73,12 +77,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
 	
-	UPROPERTY()
-	TObjectPtr<class UHealthAttributeSet> HealthSet;
-
 	virtual void PossessedBy(AController* NewController) override;
 
 	virtual void OnRep_PlayerState() override;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPostAbilitySystemInit();
 
 public:	
 	// Called every frame
@@ -96,7 +100,7 @@ public:
 
 private:
 	void InitAbilitySystem();
-
+	
 	UFUNCTION(BlueprintCallable)
 	ACustomPlayerState* GetCustomPlayerState() const;
 };
