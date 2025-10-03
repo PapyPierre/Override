@@ -56,7 +56,6 @@ void APlayerCharacter::AimWeapon()
 {
 	if (IsLocallyControlled())
 	{
-		bIsAimingWeapon = true;
 		RPC_SetAim(true);
 	}
 }
@@ -65,14 +64,45 @@ void APlayerCharacter::StopAimWeapon()
 {
 	if (IsLocallyControlled())
 	{
-		bIsAimingWeapon = false;
 		RPC_SetAim(false);
 	}
+}
+
+void APlayerCharacter::OnRep_IsAimingWeapon()
+{
+	if (bIsAimingWeapon)
+	{
+		MouseSensitivity = MouseAimSensitivity;
+		PlayerMovementComponent->MaxWalkSpeedCrouched = AimCrouchedSpeed;
+		PlayerMovementComponent->MaxWalkSpeed = AimSpeed;
+		
+	}
+	else
+	{
+		MouseSensitivity = 1.0f;
+		PlayerMovementComponent->MaxWalkSpeedCrouched = PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
+	}
+
+	OnRep_IsAimingWeapon_BP();
 }
 
 void APlayerCharacter::RPC_SetAim_Implementation(bool value)
 {
 	bIsAimingWeapon = value;
+
+	if (value)
+	{
+		MouseSensitivity = MouseAimSensitivity;
+		PlayerMovementComponent->MaxWalkSpeedCrouched = AimCrouchedSpeed;
+		PlayerMovementComponent->MaxWalkSpeed = AimSpeed;
+	}
+	else
+	{
+		MouseSensitivity = 1.0f;
+		PlayerMovementComponent->MaxWalkSpeedCrouched = PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
+	}
 }
 
 // Called every frame

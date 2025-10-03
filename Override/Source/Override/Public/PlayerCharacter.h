@@ -73,8 +73,26 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
 	float AimFOV = 70.f;
 
-	UPROPERTY(BlueprintReadOnly,Replicated , Category = "Aim")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_IsAimingWeapon, Category = "Aim")
 	bool bIsAimingWeapon = false;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float AimCrouchedSpeed = 100.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float AimSpeed = 300.f;
+
+	UFUNCTION(BlueprintCallable)
+	void OnRep_IsAimingWeapon();
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float MouseSensitivity = 1.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float MouseAimSensitivity = 0.4f;
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Replication")
+	void OnRep_IsAimingWeapon_BP();
 
 protected:
 	// Called when the game starts or when spawned
