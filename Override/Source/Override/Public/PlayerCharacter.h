@@ -20,6 +20,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	UPlayerMovementComponent* PlayerMovementComponent;
 
+	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
@@ -53,11 +54,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void Sprint();
 
-	UFUNCTION(Server, Reliable)
-	void RPC_SetSprint(bool value);
-
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void StopSprint();
+	
+	UFUNCTION(Server, Reliable)
+	void RPC_SetSprint(bool value);	
+
 #pragma endregion
 
 #pragma region Aim
@@ -66,9 +68,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Aim")
 	void StopAimWeapon();
+	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetAim(bool bNewAiming);
 
-	UFUNCTION(Server, Reliable)
-	void RPC_SetAim(bool value);
+	bool ServerSetAim_Validate(bool bNewAiming);
+	void ServerSetAim_Implementation(bool bNewAiming);
+
+	void SetAimingState(bool bNewAiming);
+	void UpdateAimingSettings();
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
 	float AimFOV = 70.f;
@@ -93,6 +101,8 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Replication")
 	void OnRep_IsAimingWeapon_BP();
+
+#pragma endregion
 
 protected:
 	// Called when the game starts or when spawned
@@ -124,5 +134,4 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
 };

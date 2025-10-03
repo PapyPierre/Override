@@ -29,13 +29,13 @@ void APlayerCharacter::BeginPlay()
 
 void APlayerCharacter::Sprint()
 {
-    if (IsLocallyControlled())
-    {
-        bool bCan = PlayerMovementComponent->CanSprint();
-        PlayerMovementComponent->bWantsToSprint = bCan;
+	if (IsLocallyControlled())
+	{
+		bool bCan = PlayerMovementComponent->CanSprint();
+		PlayerMovementComponent->bWantsToSprint = bCan;
 
-        RPC_SetSprint(bCan);
-    }
+		RPC_SetSprint(bCan);
+	}
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
@@ -56,7 +56,8 @@ void APlayerCharacter::AimWeapon()
 {
 	if (IsLocallyControlled())
 	{
-		RPC_SetAim(true);
+		SetAimingState(true);
+		ServerSetAim(true);
 	}
 }
 
@@ -64,18 +65,27 @@ void APlayerCharacter::StopAimWeapon()
 {
 	if (IsLocallyControlled())
 	{
-		RPC_SetAim(false);
+		SetAimingState(false);
+		ServerSetAim(false);
 	}
 }
 
-void APlayerCharacter::OnRep_IsAimingWeapon()
+void APlayerCharacter::SetAimingState(bool bNewAiming)
+{
+	if (bIsAimingWeapon == bNewAiming)
+		return;
+
+	bIsAimingWeapon = bNewAiming;
+	UpdateAimingSettings();
+}
+
+void APlayerCharacter::UpdateAimingSettings()
 {
 	if (bIsAimingWeapon)
 	{
 		MouseSensitivity = MouseAimSensitivity;
 		PlayerMovementComponent->MaxWalkSpeedCrouched = AimCrouchedSpeed;
 		PlayerMovementComponent->MaxWalkSpeed = AimSpeed;
-		
 	}
 	else
 	{
@@ -87,22 +97,19 @@ void APlayerCharacter::OnRep_IsAimingWeapon()
 	OnRep_IsAimingWeapon_BP();
 }
 
-void APlayerCharacter::RPC_SetAim_Implementation(bool value)
+void APlayerCharacter::OnRep_IsAimingWeapon()
 {
-	bIsAimingWeapon = value;
+	UpdateAimingSettings();
+}
 
-	if (value)
-	{
-		MouseSensitivity = MouseAimSensitivity;
-		PlayerMovementComponent->MaxWalkSpeedCrouched = AimCrouchedSpeed;
-		PlayerMovementComponent->MaxWalkSpeed = AimSpeed;
-	}
-	else
-	{
-		MouseSensitivity = 1.0f;
-		PlayerMovementComponent->MaxWalkSpeedCrouched = PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
-	}
+bool APlayerCharacter::ServerSetAim_Validate(bool bNewAiming)
+{
+	return true; // tu peux ajouter une validation plus avancée si nécessaire
+}
+
+void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
+{
+	SetAimingState(bNewAiming);
 }
 
 // Called every frame
