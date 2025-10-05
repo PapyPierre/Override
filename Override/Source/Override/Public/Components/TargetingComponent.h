@@ -15,7 +15,7 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	APlayerController* PlayerController; // Set in Character BP
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	TArray<AActor*> CurrentTargets;
 
 	UPROPERTY()
@@ -25,6 +25,8 @@ public:
 	float ScreenPadding = 10;
 
 	UTargetingComponent();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;

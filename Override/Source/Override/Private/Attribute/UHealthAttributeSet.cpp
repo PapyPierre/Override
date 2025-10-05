@@ -45,8 +45,6 @@ void UHealthAttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue)
 	const float OldHealth = OldValue.GetCurrentValue();
 	const float NewHealth = GetHealth();
 	OnHealthChanged.Broadcast(this, OldHealth, NewHealth);
-
-	GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::SanitizeFloat(NewHealth));
 }
 
 void UHealthAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldValue)
@@ -67,8 +65,7 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		// Convert into -Health and then clamp
 		const float DamageValue = GetDamage();
 		const float OldHealthValue = GetHealth();
-		const float MaxHealthValue = GetMaxHealth();
-		const float NewHealthValue = FMath::Clamp(OldHealthValue - DamageValue, 0.0f, MaxHealthValue);
+		const float NewHealthValue = FMath::Clamp(OldHealthValue - DamageValue, 0.0f, GetMaxHealth());
  
 		if (OldHealthValue != NewHealthValue)
 		{

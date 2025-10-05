@@ -4,11 +4,12 @@
 #include "CustomPlayerState.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
+#include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable
+class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -16,10 +17,15 @@ public:
 	// Sets default values for this character's properties
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 	virtual void Target() override;
 
 	UPROPERTY(BlueprintReadOnly)
 	UPlayerMovementComponent* PlayerMovementComponent;
+
+	UPROPERTY(BlueprintReadOnly)
+	UTargetingComponent* TargetingComponent;
 
 	UPROPERTY()
 	APlayerController* PlayerController;

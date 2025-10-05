@@ -1,5 +1,6 @@
 #include "Player/PlayerCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "Components/TargetingComponent.h"
 #include "Engine/Engine.h"
 #include "Player/CustomPlayerState.h"
 
@@ -14,6 +15,13 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
+
+	TargetingComponent = CreateDefaultSubobject<UTargetingComponent>(TEXT("Targeting Component"));
+}
+
+UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
+{
+	return GetCustomPlayerState()->GetAbilitySystemComponent();
 }
 
 void APlayerCharacter::Target() { }
@@ -200,6 +208,7 @@ void APlayerCharacter::InitAbilitySystem()
 			ASC->InitAbilityActorInfo(PS, this);
 		}
 	}
+
 
 	OnPostAbilitySystemInit();
 }

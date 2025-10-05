@@ -1,14 +1,26 @@
 #include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
+#include "Net/UnrealNetwork.h"
+#include "Player/PlayerCharacter.h"
 
 UTargetingComponent::UTargetingComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	SetIsReplicatedByDefault(true);
+}
+
+void UTargetingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UTargetingComponent, CurrentTargets);
 }
 
 void UTargetingComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	const APlayerCharacter* Owner = static_cast<APlayerCharacter*>(GetOwner());
+	PlayerController = static_cast<APlayerController*>(Owner->GetController());
 }
 
 void UTargetingComponent::LookForTarget(float TargetingRange)
@@ -17,6 +29,7 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 
 	TArray<AActor*> ActorsInRange = FindTargetablesInRange(TargetingRange);
 	TArray<AActor*> ActorsInFrustum;
+
 
 	for (AActor* ActorInRange : ActorsInRange)
 	{
@@ -31,7 +44,6 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 		ClearCurrentTargets();
 		return;
 	}
-
 
 	AActor* Target = GetClosestActorToCursor(PlayerController, ActorsInFrustum);
 
@@ -90,11 +102,9 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 {
 	TArray<FOverlapResult> OverlapResults;
 	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1); // equal to ECC_Targetable (custom obj type)
 	FCollisionQueryParams QueryParams;
-	//QueryParams.AddIgnoredActor(GetOwner());
-
+	QueryParams.AddIgnoredActor(GetOwner());
 
 	bool bHasOverlap = GetWorld()->OverlapMultiByObjectType(OverlapResults, GetOwner()->GetActorLocation(),
 	                                                        FQuat::Identity,
@@ -102,7 +112,7 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 	                                                        FCollisionShape::MakeSphere(Range),
 	                                                        QueryParams);
 
-	DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
+	//DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
 
 	TArray<AActor*> FoundTargetable;
 
@@ -110,13 +120,9 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 	{
 		for (const FOverlapResult& Result : OverlapResults)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Result"));
-			
 			AActor* Actor = Result.GetActor();
 			if (Actor && Actor->Implements<UTargetable>())
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("UTargetable"));
-
 				FoundTargetable.Add(Actor);
 			}
 		}
@@ -164,8 +170,6 @@ void UTargetingComponent::TargetActor(AActor* Target)
 
 	CurrentTargets.Add(Target);
 
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Target:" + Target->GetName() + "!"));
-
 	Cast<ITargetable>(Target)->Target();
 	ITargetable::Execute_OnTarget(Target);
 }
@@ -174,7 +178,6 @@ void UTargetingComponent::ClearCurrentTargets()
 {
 	for (AActor* Targetable : CurrentTargets)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Untarget:" + Targetable->GetName() + "!"));
 		ITargetable::Execute_OnUntarget(Targetable);
 	}
 
