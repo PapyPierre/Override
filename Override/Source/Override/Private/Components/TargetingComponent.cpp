@@ -25,12 +25,15 @@ void UTargetingComponent::BeginPlay()
 
 void UTargetingComponent::LookForTarget(float TargetingRange)
 {
+	// Do not read this function server-side
+	if (!GetOwner()) return;
+	if (GetOwner()->HasAuthority()) return;
 	if (!PlayerController) return;
-
+	if (!PlayerController->GetLocalPlayer()) return; 
+	
 	TArray<AActor*> ActorsInRange = FindTargetablesInRange(TargetingRange);
 	TArray<AActor*> ActorsInFrustum;
-
-
+	
 	for (AActor* ActorInRange : ActorsInRange)
 	{
 		if (IsActorInFrustumWithPadding(PlayerController, ActorInRange, ScreenPadding))
@@ -112,7 +115,7 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 	                                                        FCollisionShape::MakeSphere(Range),
 	                                                        QueryParams);
 
-	//DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
+	DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
 
 	TArray<AActor*> FoundTargetable;
 

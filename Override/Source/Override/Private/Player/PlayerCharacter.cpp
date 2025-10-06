@@ -1,7 +1,12 @@
 #include "Player/PlayerCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Components/TargetingComponent.h"
 #include "Engine/Engine.h"
+#include "Hacks/BaseHack.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedInputComponent.h"
+#include "Hacks/TargetDataContainer.h"
 #include "Player/CustomPlayerState.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -24,18 +29,15 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 	return GetCustomPlayerState()->GetAbilitySystemComponent();
 }
 
-void APlayerCharacter::Target() { }
+void APlayerCharacter::Target()
+{
+}
 
-// Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
 {
-	if (!PlayerController) PlayerController = Cast<APlayerController>(GetController());
-
-	FirstPersonCameraComponent = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+	Super::BeginPlay();
 
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
-
-	Super::BeginPlay();
 }
 
 void APlayerCharacter::Sprint()
@@ -68,26 +70,44 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("PossessedBy"));
-	
-	InitAbilitySystem(); // Server-side init
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("PossessedBy"));
+
+	// Server-side
+	SetControllerRef();
+
+	if (PlayerController)
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			if (InputMappingContext) Subsystem->AddMappingContext(InputMappingContext, 0);
+		}
+	}
+
+	// Server-side
+	InitAbilitySystem();
 }
 
 void APlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("OnRep_PlayerState"));
-	
-	InitAbilitySystem(); // Client-side init
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("OnRep_PlayerState"));
+
+	// Client-side
+	SetControllerRef();
+	InitAbilitySystem();
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
+	if (IsLocallyControlled())
+	{
+		//CameraShake();
+	}
+
 	if (HasAuthority())
 	{
-		CameraShake();
-
 		float Speed = GetVelocity().Size();
 		if (PlayerMovementComponent->IsMovingOnGround() && PlayerMovementComponent->IsRunning())
 		{
@@ -173,30 +193,31 @@ void APlayerCharacter::OnJumpDelayFinished()
 	JumpCurrentCount++;
 }
 
-// Called to bind functionality to input
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	/*
-	APlayerState* Ps = GetPlayerState();
-	if (!Ps) return;
-	ACustomPlayerState* CustomPs = Cast<ACustomPlayerState>(Ps);
-	if (!CustomPs)
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No CustomPs"));
-		return;
+		if (Hack1Action)
+			EnhancedInput->BindAction(Hack1Action, ETriggerEvent::Triggered, this,
+			                          &APlayerCharacter::ActivateHack1);
+
+		if (Hack2Action)
+			EnhancedInput->BindAction(Hack2Action, ETriggerEvent::Triggered,
+			                          this, &APlayerCharacter::ActivateHack2);
+
+		if (Hack3Action)
+
+			EnhancedInput->BindAction(Hack3Action, ETriggerEvent::Triggered,
+			                          this, &APlayerCharacter::ActivateHack3);
 	}
-	UAbilitySystemComponent* Asc = CustomPs->GetAbilitySystemComponent();
-	
-	if (!Asc)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No Asc"));
-		return;
-	}
-	
-	const FTopLevelAssetPath EnumName("/Source/Override.EHackSlotsEnum");
-	FGameplayAbilityInputBinds Binds("ConfirmTargeting", "CancelTargeting", EnumName);
-	Asc->BindAbilityActivationToInputComponent(PlayerInputComponent, Binds);
-	*/
+}
+
+void APlayerCharacter::SetControllerRef()
+{
+	PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController) FirstPersonCameraComponent = PlayerController->PlayerCameraManager;
 }
 
 void APlayerCharacter::InitAbilitySystem()
@@ -209,11 +230,52 @@ void APlayerCharacter::InitAbilitySystem()
 		}
 	}
 
-
 	OnPostAbilitySystemInit();
 }
 
 ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 {
 	return GetPlayerState<ACustomPlayerState>();
+}
+
+void APlayerCharacter::ActivateHack1()
+{
+	SendHackEventWithData(Hack1Tag);
+}
+
+void APlayerCharacter::ActivateHack2()
+{
+	SendHackEventWithData(Hack2Tag);
+}
+
+void APlayerCharacter::ActivateHack3()
+{
+	SendHackEventWithData(Hack3Tag);
+}
+
+void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	if (HasAuthority())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SERVEUR : Envoi event %s"), *EventTag.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CLIENT : Envoi event %s"), *EventTag.ToString());
+	}
+
+	FGameplayEventData EventData;
+	EventData.Instigator = this;
+	EventData.Target = this;
+	EventData.EventTag = EventTag;
+	
+	UTargetDataContainer* TargetData = NewObject<UTargetDataContainer>(this);
+	TargetData->Targets = TargetingComponent->CurrentTargets;
+	
+	EventData.OptionalObject = TargetData;
+	
+	ASC->HandleGameplayEvent(EventTag, &EventData);
 }

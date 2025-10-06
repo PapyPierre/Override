@@ -12,6 +12,7 @@ public class Override : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"InputCore",
+			"EnhancedInput",
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks"

@@ -22,3 +22,28 @@ UAbilitySystemComponent* ACustomPlayerState::GetAbilitySystemComponent() const
 {
 	return Asc;
 }
+
+void ACustomPlayerState::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		GiveCharacterHacks();
+	}
+}
+
+void ACustomPlayerState::GiveCharacterHacks()
+{
+	if (!GetAbilitySystemComponent()) return;
+	
+	for (TSubclassOf<UBaseHack>& Hack : CharacterHacks)
+	{
+		FGameplayAbilitySpec HackSpec(Hack, 1, INDEX_NONE, this);
+		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(HackSpec);
+		
+		UE_LOG(LogTemp, Warning, TEXT("Ability donnée: %s, Handle valide: %s"),
+			   *Hack->GetName(),
+			   Handle.IsValid() ? TEXT("OUI") : TEXT("NON"));
+	}
+}

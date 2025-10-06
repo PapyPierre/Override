@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
 #include "AbilitySystemInterface.h"
+#include "Abilities/GameplayAbility.h"
+#include "Hacks/BaseHack.h"
 #include "CustomPlayerState.generated.h"
 
 UCLASS()
@@ -13,10 +15,13 @@ class OVERRIDE_API ACustomPlayerState : public APlayerState, public IAbilitySyst
 public:
 	ACustomPlayerState();
 
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hacking)
 	TObjectPtr<class UAbilitySystemComponent> Asc;
+	
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Hack")
+	TArray<TSubclassOf<UBaseHack>> CharacterHacks;
 
 #pragma region Attribute
 	
@@ -25,4 +30,8 @@ public:
 	
 #pragma endregion
 
+protected:
+	virtual void BeginPlay() override;
+	
+	virtual void GiveCharacterHacks();
 };

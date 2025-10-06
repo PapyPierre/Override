@@ -2,11 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "CustomPlayerState.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
 #include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
 #include "PlayerCharacter.generated.h"
+
+class UInputMappingContext;
+class UInputAction;
 
 UCLASS()
 class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
@@ -14,22 +18,52 @@ class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, pub
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
+	
+	UPROPERTY()
+	APlayerController* PlayerController;
+	
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	
+	virtual void Tick(float DeltaTime) override;
 
 	virtual void Target() override;
 
-	UPROPERTY(BlueprintReadOnly)
-	UPlayerMovementComponent* PlayerMovementComponent;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputMappingContext* InputMappingContext;
 
-	UPROPERTY(BlueprintReadOnly)
-	UTargetingComponent* TargetingComponent;
+#pragma region Hack
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	UPROPERTY()
-	APlayerController* PlayerController;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Hack1Action;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Hack2Action;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Hack3Action;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	FGameplayTag Hack1Tag;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	FGameplayTag Hack2Tag;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	FGameplayTag Hack3Tag;
 
+	
+#pragma endregion
+
+#pragma region Components
+    	UPROPERTY(BlueprintReadOnly)
+    	UPlayerMovementComponent* PlayerMovementComponent;
+    
+    	UPROPERTY(BlueprintReadOnly)
+    	UTargetingComponent* TargetingComponent;
+    #pragma endregion
+
+#pragma region FOV
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	float DefaultFOV = 90.f;
 
@@ -38,8 +72,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	float FOVInterpSpeed = 10.f;
-
-	float DefaultCoyoteTime = 0.5f;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
@@ -52,6 +84,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeJump;
+
+	void CameraShake();
+#pragma endregion
 	
 #pragma region WallRun
 	FHitResult WallRunHitResult;
@@ -67,9 +102,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void StopSprint();
 #pragma endregion
+
+	float DefaultCoyoteTime = 0.5f;
+
+#pragma region Jump
+	FTimerHandle JumpDelayHandle;
+
+	UFUNCTION()
+	void OnJumpDelayFinished();
+#pragma endregion
 	
 protected:
-	// Called when the game starts or when spawned
+	UPROPERTY(VisibleAnywhere, Category = Camera)
+	APlayerCameraManager* FirstPersonCameraComponent;
+	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;
@@ -80,33 +126,26 @@ protected:
 
 	virtual bool CanJumpInternal_Implementation() const override;
 	
-	UPROPERTY(VisibleAnywhere, Category = Camera)
-	APlayerCameraManager* FirstPersonCameraComponent;
-	
 	virtual void PossessedBy(AController* NewController) override;
 
 	virtual void OnRep_PlayerState() override;
-
+	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnPostAbilitySystemInit();
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	void CameraShake();
-
-	FTimerHandle JumpDelayHandle;
-
-	UFUNCTION()
-	void OnJumpDelayFinished();
-	
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 private:
+	void SetControllerRef();
+	
 	void InitAbilitySystem();
 	
 	UFUNCTION(BlueprintCallable)
 	ACustomPlayerState* GetCustomPlayerState() const;
+
+	void ActivateHack1();
+	void ActivateHack2();
+	void ActivateHack3();
+    
+	void SendHackEventWithData(FGameplayTag EventTag);
 };
