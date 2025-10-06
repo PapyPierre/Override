@@ -477,6 +477,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				Impact *= SlideImpulse;
 				AddImpulse(Impact, true);
 				bIsSliding = true;
+				VelocityAtCrouch = FVector::ZeroVector;
 			}
 		}
 	}
@@ -533,7 +534,7 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	bResult &= Velocity.Size() >= MaxWalkSpeed;
+	bResult &= VelocityAtCrouch.Size() >= DefaultMaxWalkSpeed;
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	return bResult;
 }
@@ -698,5 +699,5 @@ void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UPlayerMovementComponent, JumpCount);
+	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
 }

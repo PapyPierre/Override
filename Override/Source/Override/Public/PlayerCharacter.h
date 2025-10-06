@@ -114,7 +114,12 @@ protected:
 
 	virtual void Jump() override;
 
+	virtual void Crouch(bool bClientSimulation = false) override;
+
 	virtual bool CanJumpInternal_Implementation() const override;
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetCrouchVelocity(const FVector& InVelocity);
 	
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;

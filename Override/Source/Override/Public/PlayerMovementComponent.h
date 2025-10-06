@@ -66,6 +66,9 @@ public:
 	bool bIsSliding = false;
 	bool bPendingCancelSlide = false;
 
+	UPROPERTY(Replicated)
+	FVector VelocityAtCrouch;
+
 	float TimeToWaitBetweenSlide = 0;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly,  Category = "CMC|Slide")
@@ -82,7 +85,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide")
 	float SlopeToleranceValue = 0.02;
-
 	
 	bool SlideLineTrace();
 
@@ -133,7 +135,6 @@ public:
 	
 	FVector InitialHorizontalVelocity;
 	
-	UPROPERTY(Replicated)
 	int32 JumpCount;
 	
 	float DefaultAirControl = 0;

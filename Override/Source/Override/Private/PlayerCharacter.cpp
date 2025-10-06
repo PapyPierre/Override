@@ -9,7 +9,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-	
+
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -33,7 +33,7 @@ void APlayerCharacter::Sprint()
 	{
 		bool bCan = PlayerMovementComponent->CanSprint();
 		PlayerMovementComponent->bWantsToSprint = bCan;
-
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
 		RPC_SetSprint(bCan);
 	}
 }
@@ -41,6 +41,10 @@ void APlayerCharacter::Sprint()
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
 {
 	PlayerMovementComponent->bWantsToSprint = value && PlayerMovementComponent->CanSprint();
+	if (PlayerMovementComponent->bWantsToSprint)
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
+	else
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
 }
 
 void APlayerCharacter::StopSprint()
@@ -48,6 +52,7 @@ void APlayerCharacter::StopSprint()
 	if (IsLocallyControlled())
 	{
 		PlayerMovementComponent->bWantsToSprint = false;
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
 		RPC_SetSprint(false);
 	}
 }
@@ -104,7 +109,7 @@ void APlayerCharacter::OnRep_IsAimingWeapon()
 
 bool APlayerCharacter::ServerSetAim_Validate(bool bNewAiming)
 {
-	return true; // tu peux ajouter une validation plus avancée si nécessaire
+	return true;
 }
 
 void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
@@ -187,8 +192,8 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	if (IsLocallyControlled())
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-		PlayerMovementComponent->ResetJumpValues();
 	}
+	PlayerMovementComponent->ResetJumpValues();
 }
 
 void APlayerCharacter::Falling()
@@ -212,6 +217,22 @@ void APlayerCharacter::Jump()
 	}
 }
 
+void APlayerCharacter::Crouch(bool bClientSimulation)
+{
+	PlayerMovementComponent->VelocityAtCrouch = GetVelocity();
+
+	if (!HasAuthority())
+	{
+		Server_SetCrouchVelocity(PlayerMovementComponent->VelocityAtCrouch);
+	}
+
+	Super::Crouch(bClientSimulation);
+}
+
+void APlayerCharacter::Server_SetCrouchVelocity_Implementation(const FVector& InVelocity)
+{
+	PlayerMovementComponent->VelocityAtCrouch = InVelocity;
+}
 bool APlayerCharacter::CanJumpInternal_Implementation() const
 {
 	return JumpIsAllowedInternal();
