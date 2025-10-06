@@ -28,8 +28,10 @@ public:
 	int32 FrameCounter = 0;
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
-	float DefaultMaxWalkSpeedCrouched;
 
+	UPROPERTY(BlueprintReadOnly, Category = "CMC|Crouch")
+	float DefaultMaxWalkSpeedCrouched;
+	
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
 	virtual float GetMaxSpeed() const override;
@@ -64,6 +66,9 @@ public:
 	bool bIsSliding = false;
 	bool bPendingCancelSlide = false;
 
+	UPROPERTY(Replicated)
+	FVector VelocityAtCrouch;
+
 	float TimeToWaitBetweenSlide = 0;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly,  Category = "CMC|Slide")
@@ -80,7 +85,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide")
 	float SlopeToleranceValue = 0.02;
-
 	
 	bool SlideLineTrace();
 
@@ -131,7 +135,6 @@ public:
 	
 	FVector InitialHorizontalVelocity;
 	
-	UPROPERTY(Replicated)
 	int32 JumpCount;
 	
 	float DefaultAirControl = 0;
@@ -202,9 +205,9 @@ private:
 
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
 
-	virtual void Crouch(bool bClientSimulation = false) override;
+	virtual void Crouch(bool bClientSimulation = true) override;
 
-	virtual void UnCrouch(bool bClientSimulation = false) override;
+	virtual void UnCrouch(bool bClientSimulation = true) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

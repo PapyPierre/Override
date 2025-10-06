@@ -5,15 +5,34 @@ void ACustomHUD::DrawHUD()
 {
 	Super::DrawHUD();
 
-#if WITH_EDITOR
-	int32 ViewportX, ViewportY;
-	GetOwningPlayerController()->GetViewportSize(ViewportX, ViewportY);
+	if (!Canvas)
+	{
+		return;
+	}
 
-	if (!PlayerOwner || !PlayerOwner->GetPawn()) return;
+	APlayerController* PC = GetOwningPlayerController();
+	if (!PC)
+	{
+		return;
+	}
 
-	UTargetingComponent* TargetingComp =  PlayerOwner->GetPawn()->FindComponentByClass<UTargetingComponent>();
+	int32 ViewportX = 0, ViewportY = 0;
+	PC->GetViewportSize(ViewportX, ViewportY);
 
-	float Padding = TargetingComp->ScreenPadding;;
+	APawn* Pawn = GetOwningPawn();
+	if (!Pawn)
+	{
+		return;
+	}
+
+	UTargetingComponent* TargetingComp = Pawn->FindComponentByClass<UTargetingComponent>();
+	if (!TargetingComp)
+	{
+		return;
+	}
+
+	float Padding = TargetingComp->ScreenPadding;
+
 	const float MinX = -Padding;
 	const float MinY = -Padding;
 	const float MaxX = ViewportX + Padding;
@@ -32,6 +51,5 @@ void ACustomHUD::DrawHUD()
 
 	// Right
 	DrawRect(MaskColor, MaxX, MinY, ViewportX - MaxX, MaxY - MinY);
-
-#endif
 }
+
