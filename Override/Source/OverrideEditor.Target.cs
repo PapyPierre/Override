@@ -10,5 +10,7 @@ public class OverrideEditorTarget : TargetRules
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		ExtraModuleNames.AddRange( new string[] { "Override" } );
+		
+		CppStandard = CppStandardVersion.Cpp20;
 	}
 }

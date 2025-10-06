@@ -20,6 +20,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	UPlayerMovementComponent* PlayerMovementComponent;
 
+	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
@@ -53,13 +54,56 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void Sprint();
 
-	UFUNCTION(Server, Reliable)
-	void RPC_SetSprint(bool value);
-
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void StopSprint();
-#pragma endregion
 	
+	UFUNCTION(Server, Reliable)
+	void RPC_SetSprint(bool value);	
+
+#pragma endregion
+
+#pragma region Aim
+	UFUNCTION(BlueprintCallable, Category = "Aim")
+	void AimWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "Aim")
+	void StopAimWeapon();
+	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetAim(bool bNewAiming);
+
+	bool ServerSetAim_Validate(bool bNewAiming);
+	void ServerSetAim_Implementation(bool bNewAiming);
+
+	void SetAimingState(bool bNewAiming);
+	void UpdateAimingSettings();
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float AimFOV = 70.f;
+
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_IsAimingWeapon, Category = "Aim")
+	bool bIsAimingWeapon = false;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float AimCrouchedSpeed = 100.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float AimSpeed = 300.f;
+
+	UFUNCTION(BlueprintCallable)
+	void OnRep_IsAimingWeapon();
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float MouseSensitivity = 1.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
+	float MouseAimSensitivity = 0.4f;
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Replication")
+	void OnRep_IsAimingWeapon_BP();
+
+#pragma endregion
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -70,7 +114,12 @@ protected:
 
 	virtual void Jump() override;
 
+	virtual void Crouch(bool bClientSimulation = false) override;
+
 	virtual bool CanJumpInternal_Implementation() const override;
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetCrouchVelocity(const FVector& InVelocity);
 	
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
@@ -88,4 +137,6 @@ public:
 	
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

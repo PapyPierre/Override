@@ -9,7 +9,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-	
+
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -29,40 +29,104 @@ void APlayerCharacter::BeginPlay()
 
 void APlayerCharacter::Sprint()
 {
-	if (HasAuthority())
+	if (IsLocallyControlled())
 	{
-		if (PlayerMovementComponent->CanSprint())
-		{
-			PlayerMovementComponent->bWantsToSprint = true;
-		}
+		bool bCan = PlayerMovementComponent->CanSprint();
+		PlayerMovementComponent->bWantsToSprint = bCan;
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
+		RPC_SetSprint(bCan);
 	}
-	else
-		RPC_SetSprint(true);
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
 {
 	PlayerMovementComponent->bWantsToSprint = value && PlayerMovementComponent->CanSprint();
+	if (PlayerMovementComponent->bWantsToSprint)
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
+	else
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
 }
 
 void APlayerCharacter::StopSprint()
 {
-	if (HasAuthority())
+	if (IsLocallyControlled())
+	{
 		PlayerMovementComponent->bWantsToSprint = false;
-	else
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
 		RPC_SetSprint(false);
+	}
+}
+
+void APlayerCharacter::AimWeapon()
+{
+	if (IsLocallyControlled())
+	{
+		SetAimingState(true);
+		ServerSetAim(true);
+	}
+}
+
+void APlayerCharacter::StopAimWeapon()
+{
+	if (IsLocallyControlled())
+	{
+		SetAimingState(false);
+		ServerSetAim(false);
+	}
+}
+
+void APlayerCharacter::SetAimingState(bool bNewAiming)
+{
+	if (bIsAimingWeapon == bNewAiming)
+		return;
+
+	bIsAimingWeapon = bNewAiming;
+	UpdateAimingSettings();
+}
+
+void APlayerCharacter::UpdateAimingSettings()
+{
+	if (bIsAimingWeapon)
+	{
+		MouseSensitivity = MouseAimSensitivity;
+		PlayerMovementComponent->MaxWalkSpeedCrouched = AimCrouchedSpeed;
+		PlayerMovementComponent->MaxWalkSpeed = AimSpeed;
+	}
+	else
+	{
+		MouseSensitivity = 1.0f;
+		PlayerMovementComponent->MaxWalkSpeedCrouched = PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
+		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
+	}
+
+	OnRep_IsAimingWeapon_BP();
+}
+
+void APlayerCharacter::OnRep_IsAimingWeapon()
+{
+	UpdateAimingSettings();
+}
+
+bool APlayerCharacter::ServerSetAim_Validate(bool bNewAiming)
+{
+	return true;
+}
+
+void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
+{
+	SetAimingState(bNewAiming);
 }
 
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
-	if (HasAuthority())
+	if (IsLocallyControlled())
 	{
 		CameraShake();
 	
-		float Speed = GetVelocity().Size();
 		if (PlayerMovementComponent->IsMovingOnGround() && PlayerMovementComponent->IsRunning())
 		{
+			float Speed = GetVelocity().Size();
 			float TargetFOV = FMath::GetMappedRangeValueClamped(
 				FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
 				FVector2D(DefaultFOV, SprintFOV),
@@ -78,8 +142,31 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 			FirstPersonCameraComponent->SetFOV(NewFOV);
 		}
+		
+		if (bIsAimingWeapon)
+		{
+			float NewFOV = FMath::FInterpTo(
+				FirstPersonCameraComponent->GetFOVAngle(),
+				AimFOV,
+				DeltaTime,
+				FOVInterpSpeed
+			);
+			
+			FirstPersonCameraComponent->SetFOV(NewFOV);
+		}
+		
+		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon)
+		{
+			float NewFOV = FMath::FInterpTo(
+				FirstPersonCameraComponent->GetFOVAngle(),
+				DefaultFOV,
+				DeltaTime,
+				FOVInterpSpeed
+			);	
+			
+			FirstPersonCameraComponent->SetFOV(NewFOV);
+		}
 	}
-	
 	Super::Tick(DeltaTime);
 }
 
@@ -95,7 +182,6 @@ void APlayerCharacter::CameraShake()
 				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
 				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-			
 		}
 	}
 }
@@ -103,11 +189,11 @@ void APlayerCharacter::CameraShake()
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	if (HasAuthority())
+	if (IsLocallyControlled())
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-		PlayerMovementComponent->ResetJumpValues();
 	}
+	PlayerMovementComponent->ResetJumpValues();
 }
 
 void APlayerCharacter::Falling()
@@ -131,6 +217,22 @@ void APlayerCharacter::Jump()
 	}
 }
 
+void APlayerCharacter::Crouch(bool bClientSimulation)
+{
+	PlayerMovementComponent->VelocityAtCrouch = GetVelocity();
+
+	if (!HasAuthority())
+	{
+		Server_SetCrouchVelocity(PlayerMovementComponent->VelocityAtCrouch);
+	}
+
+	Super::Crouch(bClientSimulation);
+}
+
+void APlayerCharacter::Server_SetCrouchVelocity_Implementation(const FVector& InVelocity)
+{
+	PlayerMovementComponent->VelocityAtCrouch = InVelocity;
+}
 bool APlayerCharacter::CanJumpInternal_Implementation() const
 {
 	return JumpIsAllowedInternal();
@@ -145,5 +247,12 @@ void APlayerCharacter::OnJumpDelayFinished()
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(APlayerCharacter, bIsAimingWeapon);
 }
 
