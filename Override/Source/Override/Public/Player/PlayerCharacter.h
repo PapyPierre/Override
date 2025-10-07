@@ -1,15 +1,19 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CustomPlayerState.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
-#include "Camera/CameraComponent.h"
+#include "Components/TargetingComponent.h"
+#include "Interface/Targetable.h"
 #include "PlayerCharacter.generated.h"
 
+class UInputMappingContext;
+class UInputAction;
+
 UCLASS()
-class OVERRIDE_API APlayerCharacter : public ACharacter
+class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -22,7 +26,49 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
+	
+	APlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	
+	virtual void Tick(float DeltaTime) override;
 
+	virtual void Target() override;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputMappingContext* InputMappingContext;
+
+#pragma region Hack
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Hack1Action;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Hack2Action;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* Hack3Action;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	FGameplayTag Hack1Tag;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	FGameplayTag Hack2Tag;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	FGameplayTag Hack3Tag;
+
+	
+#pragma endregion
+
+#pragma region Components
+    	UPROPERTY(BlueprintReadOnly)
+    	UPlayerMovementComponent* PlayerMovementComponent;
+    
+    	UPROPERTY(BlueprintReadOnly)
+    	UTargetingComponent* TargetingComponent;
+    #pragma endregion
+
+#pragma region FOV
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	float DefaultFOV = 90.f;
 
@@ -31,8 +77,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	float FOVInterpSpeed = 10.f;
-
-	float DefaultCoyoteTime = 0.5f;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
@@ -45,6 +89,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeJump;
+
+	void CameraShake();
+#pragma endregion
 	
 #pragma region WallRun
 	FHitResult WallRunHitResult;
@@ -56,6 +103,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void StopSprint();
+#pragma endregion
+
+	float DefaultCoyoteTime = 0.5f;
+
+#pragma region Jump
+	FTimerHandle JumpDelayHandle;
+
+	UFUNCTION()
+	void OnJumpDelayFinished();
+#pragma endregion
 	
 	UFUNCTION(Server, Reliable)
 	void RPC_SetSprint(bool value);	
@@ -105,7 +162,9 @@ public:
 #pragma endregion
 
 protected:
-	// Called when the game starts or when spawned
+	UPROPERTY(VisibleAnywhere, Category = Camera)
+	APlayerCameraManager* FirstPersonCameraComponent;
+	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;
@@ -121,20 +180,28 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_SetCrouchVelocity(const FVector& InVelocity);
 	
-	UPROPERTY(VisibleAnywhere, Category = Camera)
-	APlayerCameraManager* FirstPersonCameraComponent;
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void OnRep_PlayerState() override;
 	
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPostAbilitySystemInit();
 
-	void CameraShake();
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-	FTimerHandle JumpDelayHandle;
-
-	UFUNCTION()
-	void OnJumpDelayFinished();
+private:
+	void SetControllerRef();
 	
+	void InitAbilitySystem();
+	
+	UFUNCTION(BlueprintCallable)
+	ACustomPlayerState* GetCustomPlayerState() const;
+
+	void ActivateHack1();
+	void ActivateHack2();
+	void ActivateHack3();
+    
+	void SendHackEventWithData(FGameplayTag EventTag);
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 

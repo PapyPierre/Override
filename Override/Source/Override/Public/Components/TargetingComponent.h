@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Views.h"
+#include "EViews.h"
 #include "Components/ActorComponent.h"
 #include "TargetingComponent.generated.h"
 
@@ -15,15 +15,18 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	APlayerController* PlayerController; // Set in Character BP
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	TArray<AActor*> CurrentTargets;
 
+	UPROPERTY()
 	AActor* ActorInSight;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
 	float ScreenPadding = 10;
 
 	UTargetingComponent();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
@@ -47,7 +50,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
 	float AutoTargetMinDistance = 500;
 	
-	Views CurrentViewMod;
+	EViews CurrentViewMod;
 
 	void LookForTarget(float TargetingRange);
 

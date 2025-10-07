@@ -1,6 +1,5 @@
 #include "Components/InteractingComponent.h"
 #include "Engine/OverlapResult.h"
-#include "Interface/Hackable.h"
 #include "Interface/Interactable.h"
 
 UInteractingComponent::UInteractingComponent()

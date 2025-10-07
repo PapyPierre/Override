@@ -1,6 +1,8 @@
 #include "Modulations/ModulationGroup.h"
 #include "Components/TargetingComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Modulations/Modulation.h"
+#include "Player/PlayerCharacter.h"
 
 
 AModulationGroup::AModulationGroup()
@@ -24,17 +26,16 @@ void AModulationGroup::OnConstruction(const FTransform& Transform)
 #endif
 }
 
-void AModulationGroup::TargetGroup(UTargetingComponent* TargetingComponent)
+void AModulationGroup::TargetGroup()
 {
+	ACharacter* Character = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	APlayerCharacter* LocalPlayer = static_cast<APlayerCharacter*>(Character);
+
 	for (AModulation* mod : ModulationsInGroup)
 	{
+		UTargetingComponent* TargetingComponent = LocalPlayer->FindComponentByClass<UTargetingComponent>();
 		TargetingComponent->TargetActor(mod);
 	}
-}
-
-void AModulationGroup::UntargetGroup(UTargetingComponent* TargetingComponent)
-{
-	TargetingComponent->ClearCurrentTargets();
 }
 
 void AModulationGroup::BeginPlay()

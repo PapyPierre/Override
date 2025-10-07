@@ -22,9 +22,7 @@ public:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category="Default")
 	TArray<AModulation*> ModulationsInGroup;
 
-	void TargetGroup(UTargetingComponent* TargetingComponent);
-
-	void UntargetGroup(UTargetingComponent* TargetingComponent);
+	void TargetGroup();
 
 protected:
 	virtual void BeginPlay() override;
