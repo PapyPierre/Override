@@ -6,7 +6,7 @@
 #include "Hacks/BaseHack.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "Hacks/TargetDataContainer.h"
+#include "Hacks/GameplayHackTargetData.h"
 #include "Player/CustomPlayerState.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -200,16 +200,16 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		if (Hack1Action)
-			EnhancedInput->BindAction(Hack1Action, ETriggerEvent::Triggered, this,
+			EnhancedInput->BindAction(Hack1Action, ETriggerEvent::Started, this,
 			                          &APlayerCharacter::ActivateHack1);
 
 		if (Hack2Action)
-			EnhancedInput->BindAction(Hack2Action, ETriggerEvent::Triggered,
+			EnhancedInput->BindAction(Hack2Action, ETriggerEvent::Started,
 			                          this, &APlayerCharacter::ActivateHack2);
 
 		if (Hack3Action)
 
-			EnhancedInput->BindAction(Hack3Action, ETriggerEvent::Triggered,
+			EnhancedInput->BindAction(Hack3Action, ETriggerEvent::Started,
 			                          this, &APlayerCharacter::ActivateHack3);
 	}
 }
@@ -271,11 +271,23 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 	EventData.Instigator = this;
 	EventData.Target = this;
 	EventData.EventTag = EventTag;
+
+	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
+
+	if (TargetingComponent && TargetingComponent->CurrentTargets.Num() > 0)
+	{
+		for (AActor* Target : TargetingComponent->CurrentTargets)
+		{
+			if (Target)
+			{
+				HackTargetData->Targets.Add(Target);
+			}
+		}
+	}
 	
-	UTargetDataContainer* TargetData = NewObject<UTargetDataContainer>(this);
-	TargetData->Targets = TargetingComponent->CurrentTargets;
-	
-	EventData.OptionalObject = TargetData;
+	FGameplayAbilityTargetDataHandle Handle;
+	Handle.Add(HackTargetData);
+	EventData.TargetData = Handle;
 	
 	ASC->HandleGameplayEvent(EventTag, &EventData);
 }
