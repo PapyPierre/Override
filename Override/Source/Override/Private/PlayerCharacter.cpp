@@ -233,6 +233,7 @@ void APlayerCharacter::Server_SetCrouchVelocity_Implementation(const FVector& In
 {
 	PlayerMovementComponent->VelocityAtCrouch = InVelocity;
 }
+
 bool APlayerCharacter::CanJumpInternal_Implementation() const
 {
 	return JumpIsAllowedInternal();
