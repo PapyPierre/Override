@@ -42,8 +42,6 @@ void ACustomPlayerState::GiveCharacterHacks()
 		FGameplayAbilitySpec HackSpec(Hack, 1, INDEX_NONE, this);
 		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(HackSpec);
 		
-		UE_LOG(LogTemp, Warning, TEXT("Ability donnée: %s, Handle valide: %s"),
-			   *Hack->GetName(),
-			   Handle.IsValid() ? TEXT("OUI") : TEXT("NON"));
+		UE_LOG(LogTemp, Warning, TEXT("Server hack gave: %s to %s"), *Hack->GetName(), *this->GetName());
 	}
 }

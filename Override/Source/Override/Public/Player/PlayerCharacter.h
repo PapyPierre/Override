@@ -18,16 +18,10 @@ class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, pub
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-	UPROPERTY(BlueprintReadOnly)
-	UPlayerMovementComponent* PlayerMovementComponent;
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
-	
-	APlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	virtual void Tick(float DeltaTime) override;
 
@@ -161,6 +155,9 @@ public:
 
 #pragma endregion
 
+	UFUNCTION(BlueprintCallable)
+	ACustomPlayerState* GetCustomPlayerState() const;
+	
 protected:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
@@ -194,16 +191,11 @@ private:
 	
 	void InitAbilitySystem();
 	
-	UFUNCTION(BlueprintCallable)
-	ACustomPlayerState* GetCustomPlayerState() const;
-
 	void ActivateHack1();
 	void ActivateHack2();
 	void ActivateHack3();
     
 	void SendHackEventWithData(FGameplayTag EventTag);
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
