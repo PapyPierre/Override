@@ -13,7 +13,7 @@ class OVERRIDE_API UTargetingComponent : public UActorComponent
 
 public:
 	UPROPERTY(BlueprintReadWrite)
-	APlayerController* PlayerController; // Set in Character BP
+	APlayerController* PlayerController;
 
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	TArray<AActor*> CurrentTargets;
