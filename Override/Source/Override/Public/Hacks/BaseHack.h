@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EHackInputID.h"
 #include "Abilities/GameplayAbility.h"
 #include "BaseHack.generated.h"
 
