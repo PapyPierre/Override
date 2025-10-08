@@ -38,7 +38,7 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float MaxTargetingDistance = 1000;
+	float MaxTargetingDistance = 3000;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float SimulationDetectionDistance = 800;

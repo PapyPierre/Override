@@ -115,7 +115,7 @@ TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) c
 	                                                        FCollisionShape::MakeSphere(Range),
 	                                                        QueryParams);
 
-	//DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
+	DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
 
 	TArray<AActor*> FoundTargetable;
 
