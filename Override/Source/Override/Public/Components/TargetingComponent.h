@@ -21,6 +21,9 @@ public:
 
 	UPROPERTY()
 	AActor* ActorInSight;
+
+	UPROPERTY(EditAnywhere, Category = "Targeting")
+	float ScreenPadding = 10;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -34,9 +37,6 @@ public:
 	void ClearCurrentTargets();
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float ScreenPadding = 10;
-
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float MaxTargetingDistance = 1000;
 
