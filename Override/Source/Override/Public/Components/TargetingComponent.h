@@ -5,13 +5,14 @@
 #include "Components/ActorComponent.h"
 #include "TargetingComponent.generated.h"
 
-
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(meta=(BlueprintSpawnableComponent))
 class OVERRIDE_API UTargetingComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
+	UTargetingComponent();
+	
 	UPROPERTY(BlueprintReadWrite)
 	APlayerController* PlayerController;
 
@@ -20,12 +21,7 @@ public:
 
 	UPROPERTY()
 	AActor* ActorInSight;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
-	float ScreenPadding = 10;
-
-	UTargetingComponent();
-
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
@@ -38,18 +34,18 @@ public:
 	void ClearCurrentTargets();
 
 protected:
+	UPROPERTY(EditAnywhere, Category = "Targeting")
+	float ScreenPadding = 10;
+
+	UPROPERTY(EditAnywhere, Category = "Targeting")
+	float MaxTargetingDistance = 1000;
+
+	UPROPERTY(EditAnywhere, Category = "Targeting")
+	float SimulationDetectionDistance = 800;
+	
 	virtual void BeginPlay() override;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
-	float MaxTargetingDistance = 1000;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
-	float SimulationDetectionDistance = 800;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
-	float AutoTargetMinDistance = 500;
-	
 	EViews CurrentViewMod;
 
 	void LookForTarget(float TargetingRange);
