@@ -58,7 +58,7 @@ public:
     	UPROPERTY(BlueprintReadOnly)
     	UPlayerMovementComponent* PlayerMovementComponent;
     
-    	UPROPERTY(BlueprintReadOnly)
+    	UPROPERTY(BlueprintReadWrite)
     	UTargetingComponent* TargetingComponent;
     #pragma endregion
 
