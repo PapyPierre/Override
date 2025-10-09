@@ -148,6 +148,12 @@ public:
 
 	float GrabHeight = 0;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category= "CMC|Vaulting")
+	float MaxVaultThickness = 100.f;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category= "CMC|Vaulting")
+	float MaxVaultHeight = 50.f;
+
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|EdgeGrab")
 	float RaycastStartHeight = 100.f;
 
