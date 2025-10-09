@@ -130,7 +130,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 					if (EdgeClimbMontage && CharacterRef && CharacterRef->GetMesh())
 					{
-						if (AnimInstance)
+						if (AnimInstance && CharacterRef->HasAuthority())
 						{
 							FVector TargetLocAndFwd = CharaLocation + CharaForward * 50;
 							FVector TargetRelativeLocation = FVector(TargetLocAndFwd.X, TargetLocAndFwd.Y, CharaLocation.Z + 154);
@@ -295,9 +295,6 @@ bool UPlayerMovementComponent::CanVaultOrClimb()
 	{
 		return false;
 	}
-	
-	const float MaxVaultThickness = 150.f;
-	const float MaxVaultHeight    = 200.f;
 
 	if (Thickness < MaxVaultThickness && Height < MaxVaultHeight)
 	{
