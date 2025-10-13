@@ -46,14 +46,17 @@ void APlayerCharacter::Sprint()
 	{
 		bool bCan = PlayerMovementComponent->CanSprint();
 		PlayerMovementComponent->bWantsToSprint = bCan;
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
-		RPC_SetSprint(bCan);
+		if (bCan)
+		{
+			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
+			RPC_SetSprint(bCan);
+		}
 	}
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
 {
-	PlayerMovementComponent->bWantsToSprint = value && PlayerMovementComponent->CanSprint();
+	PlayerMovementComponent->bWantsToSprint = value;
 	if (PlayerMovementComponent->bWantsToSprint)
 		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
 	else
