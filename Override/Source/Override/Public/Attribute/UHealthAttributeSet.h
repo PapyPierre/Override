@@ -46,4 +46,8 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	FGameplayAttributeData Damage;
 	ATTRIBUTE_ACCESSORS_BASIC(UHealthAttributeSet, Damage);
+
+	UPROPERTY(VisibleAnywhere)
+	FGameplayAttributeData Heal;
+	ATTRIBUTE_ACCESSORS_BASIC(UHealthAttributeSet, Heal);
 };

@@ -63,9 +63,8 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	if (Data.EvaluatedData.Attribute == GetDamageAttribute())
 	{
 		// Convert into -Health and then clamp
-		const float DamageValue = GetDamage();
 		const float OldHealthValue = GetHealth();
-		const float NewHealthValue = FMath::Clamp(OldHealthValue - DamageValue, 0.0f, GetMaxHealth());
+		const float NewHealthValue = FMath::Clamp(OldHealthValue - GetDamage(), 0.0f, GetMaxHealth());
  
 		if (OldHealthValue != NewHealthValue)
 		{
@@ -75,5 +74,18 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
  
 		// Clear the meta attribute that temporarily held damage
 		SetDamage(0.0f);
+	}
+
+	if (Data.EvaluatedData.Attribute == GetHealAttribute())
+	{
+		const float OldHealthValue = GetHealth();
+		const float NewHealthValue = FMath::Clamp(OldHealthValue + GetHeal(), 0.0f, GetMaxHealth());
+ 
+		if (OldHealthValue != NewHealthValue)
+		{
+			SetHealth(NewHealthValue);
+		}
+		
+		SetHeal(0.0f);
 	}
 }
