@@ -171,7 +171,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		CameraShake();
 
-		if (PlayerMovementComponent->IsMovingOnGround() && PlayerMovementComponent->IsRunning())
+		if (PlayerMovementComponent->IsRunning())
 		{
 			float Speed = GetVelocity().Size();
 			float TargetFOV = FMath::GetMappedRangeValueClamped(
@@ -201,7 +201,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 			FirstPersonCameraComponent->SetFOV(NewFOV);
 		}
-		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon)
+		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon && PlayerMovementComponent->IsMovingOnGround() && !PlayerMovementComponent->IsSliding())
 		{
 			float NewFOV = FMath::FInterpTo(
 				FirstPersonCameraComponent->GetFOVAngle(),

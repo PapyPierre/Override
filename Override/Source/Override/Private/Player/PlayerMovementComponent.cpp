@@ -450,8 +450,9 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 		return;
 	}
 
-	if (!CanSlide() && !bPendingCancelSlide)
+	if (!CanSlide() && !bPendingCancelSlide && !bIsSliding)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("CanSlide"));
 		SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime, Iterations);
 		return;
@@ -461,6 +462,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 	{
 		if (SlideLineTrace()) {
 			if (Impact.Z <= SlopeToleranceValue) {
+				UE_LOG(LogTemp, Warning, TEXT("SlideLineTrace"));
 				GroundFriction = 0.0;
 				BrakingDecelerationWalking = 1400;
 				MaxWalkSpeedCrouched = 0.0;
