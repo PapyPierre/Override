@@ -148,15 +148,15 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		{			
 			if (HitSecondWallActor && !bMontagePending)
 			{
-				AnimInstance->Montage_Play(VaultMontage);
-				HitSecondWallActor->SetActorEnableCollision(false);
+					AnimInstance->Montage_Play(VaultMontage);
 
-				FOnMontageEnded EndDelegate;
-				EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
-				AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
+					FOnMontageEnded EndDelegate;
+					EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
+					AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
 
-				bMontagePending = true;
+					bMontagePending = true;
 			}
+
 		}
 	
 #pragma endregion
@@ -259,7 +259,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-
 void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	bGrabbedLedge = false;
@@ -268,7 +267,21 @@ void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bo
 
 void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	HitSecondWallActor->SetActorEnableCollision(true);
+	// Only server should change world collision
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		if (IsValid(HitSecondWallActor))
+		{
+			HitSecondWallActor->SetActorEnableCollision(true);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Server OnMontageVaultEnded: HitSecondWallActor invalide"));
+		}
+	}
+
+	// Reset local flag anyway
+	bMontagePending = false;
 	bMontagePending = false;
 	HitSecondWallActor = nullptr;
 }
@@ -452,7 +465,6 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 	if (!CanSlide() && !bPendingCancelSlide && !bIsSliding)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CanSlide"));
 		SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime, Iterations);
 		return;
@@ -462,7 +474,6 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 	{
 		if (SlideLineTrace()) {
 			if (Impact.Z <= SlopeToleranceValue) {
-				UE_LOG(LogTemp, Warning, TEXT("SlideLineTrace"));
 				GroundFriction = 0.0;
 				BrakingDecelerationWalking = 1400;
 				MaxWalkSpeedCrouched = 0.0;
