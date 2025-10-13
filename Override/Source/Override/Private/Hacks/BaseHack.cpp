@@ -41,5 +41,7 @@ void UBaseHack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 {
 	if (TriggerEventData) CurrentEventData = *TriggerEventData;
 
+		UE_LOG(LogTemp, Warning, TEXT("SERVER:  %s Activate %s"), *CurrentEventData.Instigator.GetName(), *CurrentEventData.EventTag.ToString());
+	
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }

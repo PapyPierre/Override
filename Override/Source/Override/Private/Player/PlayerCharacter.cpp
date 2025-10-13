@@ -358,11 +358,14 @@ void APlayerCharacter::ActivateHack3()
 
 void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
+	
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
 	if (HasAuthority())
 	{
+		// Should not be read
 		UE_LOG(LogTemp, Warning, TEXT("SERVER : Send event %s"), *EventTag.ToString());
 	}
 	else
