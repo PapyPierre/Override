@@ -148,15 +148,22 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		{			
 			if (HitSecondWallActor && !bMontagePending)
 			{
-				AnimInstance->Montage_Play(VaultMontage);
-				HitSecondWallActor->SetActorEnableCollision(false);
+				// Joue instantanément localement (fluidité)
+				if (AnimInstance && VaultMontage)
+				{
+					AnimInstance->Montage_Play(VaultMontage);
 
-				FOnMontageEnded EndDelegate;
-				EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
-				AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
+					FOnMontageEnded EndDelegate;
+					EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
+					AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
 
-				bMontagePending = true;
+					bMontagePending = true;
+				}
+
+				// Demande au serveur de le propager
+				Server_PlayVaultMontage();
 			}
+
 		}
 	
 #pragma endregion
@@ -259,6 +266,49 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
+void UPlayerMovementComponent::Multicast_PlayVaultMontage_Implementation()
+{
+	// On évite de rejouer le montage sur le owning client (il l’a déjà lancé localement)
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (OwnerPawn && OwnerPawn->IsLocallyControlled())
+		return;
+
+	if (!AnimInstance || !VaultMontage) return;
+
+	AnimInstance->Montage_Play(VaultMontage);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
+
+	bMontagePending = true;
+}
+
+void UPlayerMovementComponent::Server_PlayVaultMontage_Implementation()
+{
+	if (!VaultMontage || !AnimInstance) return;
+
+	// On fait d’abord la logique serveur
+	if (HitSecondWallActor)
+	{
+		HitSecondWallActor->SetActorEnableCollision(false);
+	}
+
+	// Joue le montage côté serveur
+	if (!bMontagePending)
+	{
+		AnimInstance->Montage_Play(VaultMontage);
+
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
+
+		bMontagePending = true;
+	}
+
+	// Puis réplique visuellement aux autres clients
+	Multicast_PlayVaultMontage();
+}
 
 void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
 {
@@ -268,7 +318,21 @@ void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bo
 
 void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	HitSecondWallActor->SetActorEnableCollision(true);
+	// Only server should change world collision
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		if (IsValid(HitSecondWallActor))
+		{
+			HitSecondWallActor->SetActorEnableCollision(true);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Server OnMontageVaultEnded: HitSecondWallActor invalide"));
+		}
+	}
+
+	// Reset local flag anyway
+	bMontagePending = false;
 	bMontagePending = false;
 	HitSecondWallActor = nullptr;
 }
@@ -452,7 +516,6 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 	if (!CanSlide() && !bPendingCancelSlide && !bIsSliding)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CanSlide"));
 		SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime, Iterations);
 		return;
@@ -462,7 +525,6 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 	{
 		if (SlideLineTrace()) {
 			if (Impact.Z <= SlopeToleranceValue) {
-				UE_LOG(LogTemp, Warning, TEXT("SlideLineTrace"));
 				GroundFriction = 0.0;
 				BrakingDecelerationWalking = 1400;
 				MaxWalkSpeedCrouched = 0.0;
