@@ -51,6 +51,11 @@ void APlayerCharacter::Sprint()
 			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
 			RPC_SetSprint(bCan);
 		}
+		else
+		{
+			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
+			RPC_SetSprint(bCan);
+		}
 	}
 }
 
