@@ -173,12 +173,6 @@ public:
 
 	AActor* HitSecondWallActor;
 	bool bMontagePending = false;
-
-	UFUNCTION(Server, Reliable)
-	void Server_PlayVaultMontage();
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayVaultMontage();
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
 	UAnimMontage* EdgeClimbMontage;

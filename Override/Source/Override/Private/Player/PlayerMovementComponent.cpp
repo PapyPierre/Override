@@ -148,9 +148,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		{			
 			if (HitSecondWallActor && !bMontagePending)
 			{
-				// Joue instantanément localement (fluidité)
-				if (AnimInstance && VaultMontage)
-				{
 					AnimInstance->Montage_Play(VaultMontage);
 
 					FOnMontageEnded EndDelegate;
@@ -158,10 +155,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 					AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
 
 					bMontagePending = true;
-				}
-
-				// Demande au serveur de le propager
-				Server_PlayVaultMontage();
 			}
 
 		}
@@ -264,50 +257,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 #pragma endregion
 	
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
-
-void UPlayerMovementComponent::Multicast_PlayVaultMontage_Implementation()
-{
-	// On évite de rejouer le montage sur le owning client (il l’a déjà lancé localement)
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	if (OwnerPawn && OwnerPawn->IsLocallyControlled())
-		return;
-
-	if (!AnimInstance || !VaultMontage) return;
-
-	AnimInstance->Montage_Play(VaultMontage);
-
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
-	AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
-
-	bMontagePending = true;
-}
-
-void UPlayerMovementComponent::Server_PlayVaultMontage_Implementation()
-{
-	if (!VaultMontage || !AnimInstance) return;
-
-	// On fait d’abord la logique serveur
-	if (HitSecondWallActor)
-	{
-		HitSecondWallActor->SetActorEnableCollision(false);
-	}
-
-	// Joue le montage côté serveur
-	if (!bMontagePending)
-	{
-		AnimInstance->Montage_Play(VaultMontage);
-
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
-
-		bMontagePending = true;
-	}
-
-	// Puis réplique visuellement aux autres clients
-	Multicast_PlayVaultMontage();
 }
 
 void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
