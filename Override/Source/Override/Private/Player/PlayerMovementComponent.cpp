@@ -68,18 +68,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			FVector StartLocation = (CharaLocation + CharaForward * 45) + CharaUp * RaycastStartHeight;
 			FVector EndLocation   = (CharaLocation + CharaForward * 45) + CharaUp * RaycastEndHeight;
 
-			/*DrawDebugBox(
-				GetWorld(),
-				StartLocation,
-				Shape.GetBox(),
-				BoxRotation,
-				FColor::Red,
-				false,
-				2.0f
-			);*/
-
-			//DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 2.0f, 0, 2.0f);
-
 			bool bHit = GetWorld()->SweepSingleByChannel(
 				SweepResult,
 				StartLocation,
@@ -142,7 +130,8 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 							JumpDelayInfo.UUID = 1;
 						
 							UKismetSystemLibrary::MoveComponentTo(Capsule, TargetRelativeLocation, CharacterRef->GetActorRotation(), true, true, 1.0, false, EMoveComponentAction::Move,JumpDelayInfo);
-						
+							RPC_WallClimbMoveTo(Capsule,TargetRelativeLocation,JumpDelayInfo);
+							
 							AnimInstance->Montage_Play(EdgeClimbMontage);
 
 							FOnMontageEnded EndDelegate;
@@ -216,7 +205,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 	
 #pragma endregion
-	/*
+	
 #pragma region DEBUG
 	/////////GROSSE ZONE DE DEBUG
 	if (GEngine)
@@ -266,10 +255,10 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
 #pragma endregion
-*/
 	
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
+
 
 void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
 {
@@ -282,6 +271,13 @@ void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool b
 	HitSecondWallActor->SetActorEnableCollision(true);
 	bMontagePending = false;
 	HitSecondWallActor = nullptr;
+}
+
+void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(UCapsuleComponent* Capsule,
+	FVector TargetRelativeLocation, FLatentActionInfo JumpDelayInfo)
+{
+	if (CharacterRef->IsLocallyControlled())
+		UKismetSystemLibrary::MoveComponentTo(Capsule, TargetRelativeLocation, CharacterRef->GetActorRotation(), true, true, 1.0, false, EMoveComponentAction::Move, JumpDelayInfo);
 }
 
 bool UPlayerMovementComponent::CanVaultOrClimb()
@@ -535,7 +531,7 @@ bool UPlayerMovementComponent::CanSlide()
 
 bool UPlayerMovementComponent::IsSliding() const
 {
-	return IsCustomMovementModeOn(CMOVE_Slide);
+	return bIsSliding;
 }
 
 void UPlayerMovementComponent::ResetSlideValues()

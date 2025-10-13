@@ -60,7 +60,6 @@ public:
 #pragma region Slide
 
 	float TimeSliding = 0.f;
-	float MinimumSlideThreshold = -0.01f;
 	bool bIsSliding = false;
 	bool bPendingCancelSlide = false;
 
@@ -163,6 +162,9 @@ public:
 	void OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted);
 	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
 
+	UFUNCTION(Client, Reliable)
+	void RPC_WallClimbMoveTo(UCapsuleComponent* Capsule, FVector TargetRelativeLocation,FLatentActionInfo JumpDelayInfo);
+
 	bool CanVaultOrClimb();
 	
 	AActor* ParkourWallDetection(float &Thickness, float &Height);
@@ -188,7 +190,8 @@ private:
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
-
+	
+	
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 
 	virtual void PhysSprint(float DeltaTime, int32 Iterations);
