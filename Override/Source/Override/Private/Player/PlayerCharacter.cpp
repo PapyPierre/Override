@@ -46,14 +46,22 @@ void APlayerCharacter::Sprint()
 	{
 		bool bCan = PlayerMovementComponent->CanSprint();
 		PlayerMovementComponent->bWantsToSprint = bCan;
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
-		RPC_SetSprint(bCan);
+		if (bCan)
+		{
+			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
+			RPC_SetSprint(bCan);
+		}
+		else
+		{
+			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
+			RPC_SetSprint(bCan);
+		}
 	}
 }
 
 void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
 {
-	PlayerMovementComponent->bWantsToSprint = value && PlayerMovementComponent->CanSprint();
+	PlayerMovementComponent->bWantsToSprint = value;
 	if (PlayerMovementComponent->bWantsToSprint)
 		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
 	else
@@ -171,7 +179,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		CameraShake();
 
-		if (PlayerMovementComponent->IsMovingOnGround() && PlayerMovementComponent->IsRunning())
+		if (PlayerMovementComponent->IsRunning())
 		{
 			float Speed = GetVelocity().Size();
 			float TargetFOV = FMath::GetMappedRangeValueClamped(
@@ -201,7 +209,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 			FirstPersonCameraComponent->SetFOV(NewFOV);
 		}
-		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon)
+		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon && PlayerMovementComponent->IsMovingOnGround() && !PlayerMovementComponent->IsSliding())
 		{
 			float NewFOV = FMath::FInterpTo(
 				FirstPersonCameraComponent->GetFOVAngle(),
@@ -358,11 +366,14 @@ void APlayerCharacter::ActivateHack3()
 
 void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
+	
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
 	if (HasAuthority())
 	{
+		// Should not be read
 		UE_LOG(LogTemp, Warning, TEXT("SERVER : Send event %s"), *EventTag.ToString());
 	}
 	else

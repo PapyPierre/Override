@@ -23,6 +23,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Hack")
 	TArray<TSubclassOf<UBaseHack>> CharacterHacks;
 
+	bool GetCdRemainingForTag(FGameplayTagContainer CdTags, float & TimeRemaining, float & CdDuration) const;
+	
 #pragma region Attribute
 	
 	UPROPERTY()
