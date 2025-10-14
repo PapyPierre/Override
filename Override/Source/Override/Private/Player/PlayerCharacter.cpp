@@ -37,7 +37,7 @@ void APlayerCharacter::Target()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	if (PlayerMovementComponent->MovementData)
 	{
 		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
