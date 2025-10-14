@@ -229,16 +229,17 @@ void APlayerCharacter::CameraShake()
 {
 	if (PlayerMovementComponent->IsMovingOnGround())
 	{
-		if (GetVelocity() == FVector::ZeroVector)
+		if (GetVelocity().Size() == 0.0)
+		{
 			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
-			                                             FRotator::ZeroRotator);
+														 FRotator::ZeroRotator);
+		}
 		else
 		{
-			if (PlayerMovementComponent->IsRunning() && GetVelocity().Size() > PlayerMovementComponent->
-				DefaultSprintSpeed)
+			if (PlayerMovementComponent->IsRunning())
 				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal,
 				                                             FRotator::ZeroRotator);
-			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
+			else if (PlayerMovementComponent->IsWalking())
 				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
 				                                             FRotator::ZeroRotator);
 		}

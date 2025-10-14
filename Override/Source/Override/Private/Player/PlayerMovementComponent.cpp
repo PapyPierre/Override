@@ -202,6 +202,13 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	if (TimeToWaitBetweenSlide >= 0)
 	{
 		TimeToWaitBetweenSlide -= DeltaTime;
+		bCoolDownFinished = false;
+	}
+	else
+	{
+		if (!bCoolDownFinished)
+			VelocityAtCrouch = FVector::ZeroVector;
+		bCoolDownFinished = true;
 	}
 	
 #pragma endregion

@@ -62,6 +62,7 @@ public:
 	float TimeSliding = 0.f;
 	bool bIsSliding = false;
 	bool bPendingCancelSlide = false;
+	bool bCoolDownFinished = false;
 
 	UPROPERTY(Replicated)
 	FVector VelocityAtCrouch;
