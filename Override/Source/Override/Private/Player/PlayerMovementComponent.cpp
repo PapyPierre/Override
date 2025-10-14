@@ -4,10 +4,43 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/MovementStats.h"
 
 void UPlayerMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//INITIALIZE DATA ASSET
+	if (MovementData)
+	{
+		//Slide
+		SlidingCoolDown = MovementData->SlidingCoolDown;
+		BoostSlidingTime = MovementData->BoostSlidingTime;
+		EaseOutTime = MovementData->EaseOutTime;
+		SlideImpulse = MovementData->SlideImpulse;
+		SlopeToleranceValue = MovementData->SlopeToleranceValue;
+
+		//Sprint
+		SprintSpeed = MovementData->SprintSpeed;
+		SprintAcceleration = MovementData->SprintAcceleration;
+
+		//Jump
+		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
+		SecondJumpZVelocity = MovementData->SecondJumpZVelocity;
+		SecondJumpAirControl = MovementData->SecondJumpAirControl;
+		AirHorizontalRetainPercent = MovementData->AirHorizontalRetainPercent;
+		CoyoteTime = MovementData->CoyoteTime;
+
+		//Parkour
+		MaxVaultThickness = MovementData->MaxVaultThickness;
+		MaxVaultHeight = MovementData->MaxVaultHeight;
+		RaycastStartHeight = MovementData->RaycastStartHeight;
+		RaycastEndHeight = MovementData->RaycastEndHeight;
+
+		EdgeClimbMontage = MovementData->EdgeClimbMontage;
+		VaultMontage = MovementData->VaultMontage;
+		ParkourDistanceDetection = MovementData->ParkourDistanceDetection;
+	}
 
 	//SET DEFAULT VALUE TO KEEP ORIGINAL
 	DefaultGroundFriction = GroundFriction;

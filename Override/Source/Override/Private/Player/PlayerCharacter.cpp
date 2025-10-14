@@ -8,6 +8,7 @@
 #include "Hacks/GameplayHackTargetData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/MovementStats.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(
@@ -37,6 +38,19 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (PlayerMovementComponent->MovementData)
+	{
+		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
+		SprintFOV = PlayerMovementComponent->MovementData->SprintFOV;
+		FOVInterpSpeed = PlayerMovementComponent->MovementData->FOVInterpSpeed;
+
+		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
+		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
+		AimSpeed = PlayerMovementComponent->MovementData->AimSpeed;
+		MouseSensitivity = PlayerMovementComponent->MovementData->MouseSensitivity;
+		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
+	}
+	
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
 }
 
@@ -251,7 +265,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 	if (IsLocallyControlled())
 	{
-		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
 		                                             FRotator::ZeroRotator);
 	}
 	PlayerMovementComponent->ResetJumpValues();
