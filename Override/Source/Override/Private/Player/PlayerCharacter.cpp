@@ -168,6 +168,7 @@ void APlayerCharacter::OnRep_PlayerState()
 
 	// Client-side
 	SetControllerRef();
+	
 	InitAbilitySystem();
 }
 
@@ -366,7 +367,7 @@ void APlayerCharacter::ActivateHack3()
 
 void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
 	
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
