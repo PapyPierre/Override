@@ -8,6 +8,7 @@
 #include "Hacks/GameplayHackTargetData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/MovementStats.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(
@@ -36,7 +37,20 @@ void APlayerCharacter::Target()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (PlayerMovementComponent->MovementData)
+	{
+		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
+		SprintFOV = PlayerMovementComponent->MovementData->SprintFOV;
+		FOVInterpSpeed = PlayerMovementComponent->MovementData->FOVInterpSpeed;
 
+		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
+		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
+		AimSpeed = PlayerMovementComponent->MovementData->AimSpeed;
+		MouseSensitivity = PlayerMovementComponent->MovementData->MouseSensitivity;
+		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
+	}
+	
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
 }
 
@@ -230,16 +244,17 @@ void APlayerCharacter::CameraShake()
 {
 	if (PlayerMovementComponent->IsMovingOnGround())
 	{
-		if (GetVelocity() == FVector::ZeroVector)
+		if (GetVelocity().Size() == 0.0)
+		{
 			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
-			                                             FRotator::ZeroRotator);
+														 FRotator::ZeroRotator);
+		}
 		else
 		{
-			if (PlayerMovementComponent->IsRunning() && GetVelocity().Size() > PlayerMovementComponent->
-				DefaultSprintSpeed)
+			if (PlayerMovementComponent->IsRunning())
 				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal,
 				                                             FRotator::ZeroRotator);
-			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
+			else if (PlayerMovementComponent->IsWalking())
 				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
 				                                             FRotator::ZeroRotator);
 		}
@@ -251,7 +266,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 	if (IsLocallyControlled())
 	{
-		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
 		                                             FRotator::ZeroRotator);
 	}
 	PlayerMovementComponent->ResetJumpValues();

@@ -6,6 +6,7 @@
 #include "PlayerMovementComponent.generated.h"
 
 class APlayerCharacter;
+class UMovementStats;
 
 UENUM()
 enum ECustomMovementMode
@@ -23,11 +24,13 @@ class OVERRIDE_API UPlayerMovementComponent : public UCharacterMovementComponent
 	
 public:
 	APlayerCharacter* CharacterRef;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Config")
+	UMovementStats* MovementData;
+
 	int32 FrameCounter = 0;
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
-
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|Crouch")
 	float DefaultMaxWalkSpeedCrouched;
 	
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
@@ -37,24 +40,16 @@ public:
 	virtual bool IsMovingOnGround() const override;
 
 #pragma region Sprint
-
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
 	bool bWantsToSprint = false;
 
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
 	float DefaultMaxWalkSpeed = 0;
-	
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Sprint")
-	float SprintSpeed = 825.f;
-
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "CMC|Sprint")
-	float SprintAcceleration = 200.f;
-	
 	float DefaultSprintSpeed = 0;
 	float DefaultAcceleration = 0;
 	
+	float SprintSpeed;
+	float SprintAcceleration;
 	virtual bool CanSprint() const;
-	
 #pragma endregion
 
 #pragma region Slide
@@ -62,26 +57,18 @@ public:
 	float TimeSliding = 0.f;
 	bool bIsSliding = false;
 	bool bPendingCancelSlide = false;
+	bool bCoolDownFinished = false;
 
 	UPROPERTY(Replicated)
 	FVector VelocityAtCrouch;
 
+	float SlidingCoolDown;
+	float BoostSlidingTime;
+	float EaseOutTime;
+	float SlideImpulse;
+	float SlopeToleranceValue;
+	
 	float TimeToWaitBetweenSlide = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly,  Category = "CMC|Slide")
-	float SlidingCoolDown = 0.2;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly,  Category = "CMC|Slide", meta=(ToolTip="Le temps de Boost que va avoir le joueur, Si c'est 3 secondes, pendant 3sec il sera à la vitesse max du Slide"))
-	float BoostSlidingTime = 1.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide", meta=(ToolTip="Le temps de l'easing de la vitesse du joueur, en gros le transfert Slide->Crouch"))
-	float EaseOutTime = 0.2f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide")
-	float SlideImpulse = 600.0f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Slide")
-	float SlopeToleranceValue = 0.02;
 	
 	bool SlideLineTrace();
 
@@ -114,51 +101,35 @@ public:
 #pragma endregion
 
 #pragma region Jump
-	
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
-	float FirstJumpZVelocity = 800.f;
-	
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
-	float SecondJumpZVelocity = 1000.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
-	float SecondJumpAirControl = 0.05f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="CMC|Jump")
-	float AirHorizontalRetainPercent = 0.5f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|Jump")
-	float CoyoteTime= 0.5f;
+	float FirstJumpZVelocity;
+	float SecondJumpZVelocity;
+	float SecondJumpAirControl;
+	float AirHorizontalRetainPercent;
+	float CoyoteTime;
 	
 	FVector InitialHorizontalVelocity;
-	
 	int32 JumpCount;
 	
 	float DefaultAirControl = 0;
 	float DefaultBrakingDecelerationFalling = 0;
 	
 	void ResetJumpValues();
-	
 #pragma endregion
 
 #pragma region EdgeGrab
 	
 	bool bGrabbedLedge = false;
-
 	float GrabHeight = 0;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category= "CMC|Vaulting")
-	float MaxVaultThickness = 100.f;
+	float MaxVaultThickness;
+	float MaxVaultHeight;
+	float RaycastStartHeight;
+	float RaycastEndHeight;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category= "CMC|Vaulting")
-	float MaxVaultHeight = 50.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|EdgeGrab")
-	float RaycastStartHeight = 100.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "CMC|EdgeGrab")
-	float RaycastEndHeight = 50.f;
-
+	UAnimMontage* EdgeClimbMontage;
+	UAnimMontage* VaultMontage;
+	float ParkourDistanceDetection = 70.f;
+	
 	void OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted);
 	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
 
@@ -174,14 +145,6 @@ public:
 	AActor* HitSecondWallActor;
 	bool bMontagePending = false;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
-	UAnimMontage* EdgeClimbMontage;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
-	UAnimMontage* VaultMontage;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="CMC|EdgeGrab")
-	float ParkourDistanceDetection = 70.f;
 	
 #pragma endregion
 

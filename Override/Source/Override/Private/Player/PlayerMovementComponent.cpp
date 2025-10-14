@@ -4,10 +4,43 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/MovementStats.h"
 
 void UPlayerMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//INITIALIZE DATA ASSET
+	if (MovementData)
+	{
+		//Slide
+		SlidingCoolDown = MovementData->SlidingCoolDown;
+		BoostSlidingTime = MovementData->BoostSlidingTime;
+		EaseOutTime = MovementData->EaseOutTime;
+		SlideImpulse = MovementData->SlideImpulse;
+		SlopeToleranceValue = MovementData->SlopeToleranceValue;
+
+		//Sprint
+		SprintSpeed = MovementData->SprintSpeed;
+		SprintAcceleration = MovementData->SprintAcceleration;
+
+		//Jump
+		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
+		SecondJumpZVelocity = MovementData->SecondJumpZVelocity;
+		SecondJumpAirControl = MovementData->SecondJumpAirControl;
+		AirHorizontalRetainPercent = MovementData->AirHorizontalRetainPercent;
+		CoyoteTime = MovementData->CoyoteTime;
+
+		//Parkour
+		MaxVaultThickness = MovementData->MaxVaultThickness;
+		MaxVaultHeight = MovementData->MaxVaultHeight;
+		RaycastStartHeight = MovementData->RaycastStartHeight;
+		RaycastEndHeight = MovementData->RaycastEndHeight;
+
+		EdgeClimbMontage = MovementData->EdgeClimbMontage;
+		VaultMontage = MovementData->VaultMontage;
+		ParkourDistanceDetection = MovementData->ParkourDistanceDetection;
+	}
 
 	//SET DEFAULT VALUE TO KEEP ORIGINAL
 	DefaultGroundFriction = GroundFriction;
@@ -202,6 +235,13 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	if (TimeToWaitBetweenSlide >= 0)
 	{
 		TimeToWaitBetweenSlide -= DeltaTime;
+		bCoolDownFinished = false;
+	}
+	else
+	{
+		if (!bCoolDownFinished)
+			VelocityAtCrouch = FVector::ZeroVector;
+		bCoolDownFinished = true;
 	}
 	
 #pragma endregion
