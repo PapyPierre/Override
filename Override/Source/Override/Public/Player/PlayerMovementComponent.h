@@ -130,22 +130,25 @@ public:
 	UAnimMontage* VaultMontage;
 	float ParkourDistanceDetection = 70.f;
 	
-	void OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted);
-	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
-
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName);
+	
 	UFUNCTION(Client, Reliable)
 	void RPC_WallClimbMoveTo(UCapsuleComponent* Capsule, FVector TargetRelativeLocation,FLatentActionInfo JumpDelayInfo);
 
-	bool CanVaultOrClimb();
+	UFUNCTION(Server, Reliable)
+	void Server_CallVaultAnimation(AActor* Actor);
 	
-	AActor* ParkourWallDetection(float &Thickness, float &Height);
-	
-	FHitResult SweepResult;
+	UFUNCTION()
+	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
+	UFUNCTION()
+	void OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted);
 
+	bool CanVaultOrClimb();
+	AActor* ParkourWallDetection(float &Thickness, float &Height);
+	FHitResult SweepResult;
 	AActor* HitSecondWallActor;
-	bool bMontagePending = false;
-	
-	
+	bool bMontagePending = false;	
 #pragma endregion
 
 private:

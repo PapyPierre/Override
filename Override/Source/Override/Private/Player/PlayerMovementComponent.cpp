@@ -165,12 +165,8 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 							UKismetSystemLibrary::MoveComponentTo(Capsule, TargetRelativeLocation, CharacterRef->GetActorRotation(), true, true, 1.0, false, EMoveComponentAction::Move,JumpDelayInfo);
 							RPC_WallClimbMoveTo(Capsule,TargetRelativeLocation,JumpDelayInfo);
 							
-							AnimInstance->Montage_Play(EdgeClimbMontage);
-
-							FOnMontageEnded EndDelegate;
-							EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageWallClimbEnded);
-							AnimInstance->Montage_SetEndDelegate(EndDelegate, EdgeClimbMontage);
-						}
+							FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageWallClimbEnded);
+							Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName);						}
 					}
 				}
 			}
@@ -178,18 +174,13 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 #pragma endregion
 
 		else
-		{			
-			if (HitSecondWallActor && !bMontagePending)
+		{
+			if (HitSecondWallActor && !bMontagePending && CharacterRef->IsLocallyControlled())
 			{
-					AnimInstance->Montage_Play(VaultMontage);
-
-					FOnMontageEnded EndDelegate;
-					EndDelegate.BindUObject(this, &UPlayerMovementComponent::OnMontageVaultEnded);
-					AnimInstance->Montage_SetEndDelegate(EndDelegate, VaultMontage);
-
-					bMontagePending = true;
+				HitSecondWallActor->SetActorEnableCollision(false);
+				Server_CallVaultAnimation(HitSecondWallActor);
+				bMontagePending = true;
 			}
-
 		}
 	
 #pragma endregion
@@ -240,7 +231,10 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	else
 	{
 		if (!bCoolDownFinished)
-			VelocityAtCrouch = FVector::ZeroVector;
+		{
+			if (CharacterRef->HasAuthority())
+				VelocityAtCrouch = FVector::ZeroVector;
+		}
 		bCoolDownFinished = true;
 	}
 	
@@ -305,23 +299,43 @@ void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bo
 	SetMovementMode(MOVE_Walking);
 }
 
+void UPlayerMovementComponent::Multicast_PlayWallClimbMontage_Implementation(UAnimMontage* Montage, FName EndCallbackFunctionName)
+{
+	if (!CharacterRef) return;
+
+	AnimInstance = CharacterRef->GetMesh()->GetAnimInstance();
+	if (!AnimInstance || !Montage) return;
+
+	AnimInstance->Montage_Play(Montage);
+
+	if (!EndCallbackFunctionName.IsNone())
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUFunction(this, EndCallbackFunctionName);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
+	}
+}
+
+void UPlayerMovementComponent::Server_CallVaultAnimation_Implementation(AActor* Actor)
+{
+	Actor->SetActorEnableCollision(false);
+	HitSecondWallActor = Actor;
+	FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageVaultEnded);
+	Multicast_PlayWallClimbMontage(VaultMontage, EndFuncName);
+}
+
 void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	// Only server should change world collision
-	if (GetOwner() && GetOwner()->HasAuthority())
+	if (IsValid(HitSecondWallActor))
 	{
-		if (IsValid(HitSecondWallActor))
-		{
-			HitSecondWallActor->SetActorEnableCollision(true);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Server OnMontageVaultEnded: HitSecondWallActor invalide"));
-		}
+		UE_LOG(LogTemp, Warning, TEXT("Player Movement is already in use"));
+		HitSecondWallActor->SetActorEnableCollision(true);
 	}
-
-	// Reset local flag anyway
-	bMontagePending = false;
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Server OnMontageVaultEnded: HitSecondWallActor invalide"));
+	}
+	
 	bMontagePending = false;
 	HitSecondWallActor = nullptr;
 }
@@ -330,7 +344,9 @@ void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(UCapsuleCompon
 	FVector TargetRelativeLocation, FLatentActionInfo JumpDelayInfo)
 {
 	if (CharacterRef->IsLocallyControlled())
+	{
 		UKismetSystemLibrary::MoveComponentTo(Capsule, TargetRelativeLocation, CharacterRef->GetActorRotation(), true, true, 1.0, false, EMoveComponentAction::Move, JumpDelayInfo);
+	}
 }
 
 bool UPlayerMovementComponent::CanVaultOrClimb()
@@ -348,6 +364,7 @@ bool UPlayerMovementComponent::CanVaultOrClimb()
 	if (Thickness < MaxVaultThickness && Height < MaxVaultHeight)
 	{
 		HitSecondWallActor = HitWall;
+		UE_LOG(LogTemp, Warning, TEXT("Server OnVaultOrClimbMoveTo"));
 		return true;
 	}
 
@@ -577,7 +594,7 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	bResult &= VelocityAtCrouch.Size() >= DefaultMaxWalkSpeed;
+	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, 100);
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	return bResult;
 }
@@ -736,6 +753,10 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 
 void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 {
+	if (CharacterRef->HasAuthority())
+	{
+		VelocityAtCrouch = FVector::ZeroVector;
+	}
 	Super::UnCrouch(bClientSimulation);
 }
 
