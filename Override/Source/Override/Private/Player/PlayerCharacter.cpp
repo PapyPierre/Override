@@ -112,9 +112,6 @@ void APlayerCharacter::StopAimWeapon()
 
 void APlayerCharacter::SetAimingState(bool bNewAiming)
 {
-	if (bIsAimingWeapon == bNewAiming)
-		return;
-
 	bIsAimingWeapon = bNewAiming;
 	UpdateAimingSettings();
 }
