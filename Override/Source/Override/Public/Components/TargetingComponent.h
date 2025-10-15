@@ -63,5 +63,5 @@ private:
 
 	static AActor* GetClosestActorToCursor(APlayerController* PC, const TArray<AActor*> Actors);
 
-	static void GenerateTargetActorPoints(AActor* Actor);
+	static void RegenerateTargetActorPoints(AActor* Actor);
 };

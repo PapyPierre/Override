@@ -79,13 +79,12 @@ AActor* UTargetingComponent::FindActorWithLineTrace(float Range) const
 
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, QueryParams);
-
-	//DrawDebugLine(GetWorld(), Start, End, FColor(255, 255, 0), false, 0.1f);
-
+	
 	AActor* HitActor = Hit.GetActor();
 
 	if (HitActor && HitActor->Implements<UTargetable>())
 	{
+		//DrawDebugLine(GetWorld(), Start, HitActor->GetActorLocation(), FColor::Yellow, false, 0.1f);
 		return HitActor;
 	}
 
@@ -98,10 +97,7 @@ bool UTargetingComponent::IsActorInFrustumWithPadding(const APlayerController* P
 
 	const auto TargetActor = Cast<ITargetable>(Actor);
 
-	//if (!TargetActor->PointsGenerated)
-	{
-		GenerateTargetActorPoints(Actor);
-	}
+	RegenerateTargetActorPoints(Actor);
 
 	int32 ViewportX, ViewportY;
 	PC->GetViewportSize(ViewportX, ViewportY);
@@ -122,7 +118,7 @@ bool UTargetingComponent::IsActorInFrustumWithPadding(const APlayerController* P
 		}
 
 		//DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), PC->GetPawn()->GetActorLocation(), FColor::Green, false, 0.1f);
-		
+
 
 		FVector2D ScreenPos;
 
@@ -236,8 +232,7 @@ AActor* UTargetingComponent::GetClosestActorToCursor(APlayerController* PC, cons
 
 		const auto TargetActor = Cast<ITargetable>(Actor);
 
-		//if (!TargetActor->PointsGenerated)
-			GenerateTargetActorPoints(Actor);
+		RegenerateTargetActorPoints(Actor);
 
 		for (FVector Point : TargetActor->Points)
 		{
@@ -256,7 +251,7 @@ AActor* UTargetingComponent::GetClosestActorToCursor(APlayerController* PC, cons
 	return ClosestActor;
 }
 
-void UTargetingComponent::GenerateTargetActorPoints(AActor* Actor)
+void UTargetingComponent::RegenerateTargetActorPoints(AActor* Actor)
 {
 	FVector Origin;
 	FVector Extent;
@@ -266,7 +261,7 @@ void UTargetingComponent::GenerateTargetActorPoints(AActor* Actor)
 	auto TargetActor = Cast<ITargetable>(Actor);
 
 	TargetActor->Points.Empty();
-	
+
 	TargetActor->Points.Add(Origin);
 	TargetActor->Points.Add(Origin + FVector(Extent.X, Extent.Y, Extent.Z));
 	TargetActor->Points.Add(Origin + FVector(Extent.X, Extent.Y, -Extent.Z));
