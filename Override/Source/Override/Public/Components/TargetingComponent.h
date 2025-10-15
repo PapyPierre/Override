@@ -23,7 +23,7 @@ public:
 	AActor* ActorInSight;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float ScreenPadding = 10;
+	float ScreenPadding = -100;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -50,12 +50,18 @@ private:
 
 	void LookForTarget(float TargetingRange);
 
+	AActor* FindActorWithLineTrace(float Range) const;
+
 	//	Check if is in the viewport rectangle expanded by Padding.
 	//	Positive Padding lets you count actors slightly outside the screen as still “in view”.
 	//	Negative Padding forces the actor to be deeper inside the screen to count.
-	static bool IsActorInFrustumWithPadding(APlayerController* PC, AActor* Actor, float Padding);
+	static bool IsActorInFrustumWithPadding(const APlayerController* PC, AActor* Actor, float Padding);
+
+	static bool IsPointVisiblePhysically(const FVector Point, AActor* Actor, const APlayerController* PlayerController);
 
 	TArray<AActor*> FindTargetablesInRange(float Range) const;
 
-	static AActor* GetClosestActorToCursor(APlayerController* PC, const TArray<AActor*>& Actors);
+	static AActor* GetClosestActorToCursor(APlayerController* PC, const TArray<AActor*> Actors);
+
+	static void RegenerateTargetActorPoints(AActor* Actor);
 };
