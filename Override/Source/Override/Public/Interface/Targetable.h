@@ -15,6 +15,9 @@ class OVERRIDE_API ITargetable
 	GENERATED_BODY()
 
 public:
+	bool PointsGenerated;
+	TArray<FVector> Points;
+	
 	virtual void Target() = 0;
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")

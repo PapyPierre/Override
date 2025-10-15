@@ -31,8 +31,10 @@ void ACustomHUD::DrawHUD()
 		return;
 	}
 
-	float Padding = TargetingComp->ScreenPadding;
-
+	/*
+	
+	float Padding = TargetingComp->ScreenPadding;;
+	
 	const float MinX = -Padding;
 	const float MinY = -Padding;
 	const float MaxX = ViewportX + Padding;
@@ -51,5 +53,7 @@ void ACustomHUD::DrawHUD()
 
 	// Right
 	DrawRect(MaskColor, MaxX, MinY, ViewportX - MaxX, MaxY - MinY);
+
+	*/
 }
 
