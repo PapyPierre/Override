@@ -162,9 +162,17 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 							JumpDelayInfo.Linkage = 0;
 							JumpDelayInfo.UUID = 1;
 						
-							UKismetSystemLibrary::MoveComponentTo(Capsule, TargetRelativeLocation, CharacterRef->GetActorRotation(), true, true, 1.0, false, EMoveComponentAction::Move,JumpDelayInfo);
-							RPC_WallClimbMoveTo(Capsule,TargetRelativeLocation,JumpDelayInfo);
-							
+							UKismetSystemLibrary::MoveComponentTo(
+								Capsule,
+								TargetRelativeLocation,
+								CharacterRef->GetActorRotation(),
+								true, true, 1.0, false,
+								EMoveComponentAction::Move,
+								JumpDelayInfo
+							);
+
+							RPC_WallClimbMoveTo(TargetRelativeLocation, CharacterRef->GetActorRotation(), JumpDelayInfo);							
+
 							FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageWallClimbEnded);
 							Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName);						}
 					}
@@ -177,7 +185,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		{
 			if (HitSecondWallActor && !bMontagePending && CharacterRef->IsLocallyControlled())
 			{
-				HitSecondWallActor->SetActorEnableCollision(false);
 				Server_CallVaultAnimation(HitSecondWallActor);
 				bMontagePending = true;
 			}
@@ -318,34 +325,29 @@ void UPlayerMovementComponent::Multicast_PlayWallClimbMontage_Implementation(UAn
 
 void UPlayerMovementComponent::Server_CallVaultAnimation_Implementation(AActor* Actor)
 {
-	Actor->SetActorEnableCollision(false);
 	HitSecondWallActor = Actor;
 	FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageVaultEnded);
 	Multicast_PlayWallClimbMontage(VaultMontage, EndFuncName);
 }
 
 void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (IsValid(HitSecondWallActor))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Player Movement is already in use"));
-		HitSecondWallActor->SetActorEnableCollision(true);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Server OnMontageVaultEnded: HitSecondWallActor invalide"));
-	}
-	
+{	
 	bMontagePending = false;
 	HitSecondWallActor = nullptr;
 }
 
-void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(UCapsuleComponent* Capsule,
-	FVector TargetRelativeLocation, FLatentActionInfo JumpDelayInfo)
+void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(FVector TargetRelativeLocation, FRotator TargetRotation, FLatentActionInfo JumpDelayInfo)
 {
-	if (CharacterRef->IsLocallyControlled())
+	if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
 	{
-		UKismetSystemLibrary::MoveComponentTo(Capsule, TargetRelativeLocation, CharacterRef->GetActorRotation(), true, true, 1.0, false, EMoveComponentAction::Move, JumpDelayInfo);
+		UKismetSystemLibrary::MoveComponentTo(
+			Capsule,
+			TargetRelativeLocation,
+			TargetRotation,
+			true, true, 1.0, false,
+			EMoveComponentAction::Move,
+			JumpDelayInfo
+		);
 	}
 }
 

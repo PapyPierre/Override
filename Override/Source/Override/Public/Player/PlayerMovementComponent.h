@@ -134,7 +134,7 @@ public:
 	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName);
 	
 	UFUNCTION(Client, Reliable)
-	void RPC_WallClimbMoveTo(UCapsuleComponent* Capsule, FVector TargetRelativeLocation,FLatentActionInfo JumpDelayInfo);
+	void RPC_WallClimbMoveTo(FVector TargetRelativeLocation, FRotator TargetRotation, FLatentActionInfo JumpDelayInfo);
 
 	UFUNCTION(Server, Reliable)
 	void Server_CallVaultAnimation(AActor* Actor);
