@@ -1,5 +1,4 @@
 using UnrealBuildTool;
-using System.Collections.Generic;
 
 public class OverrideClientTarget : TargetRules
 {
@@ -8,6 +7,7 @@ public class OverrideClientTarget : TargetRules
         Type = TargetType.Client;
         DefaultBuildSettings = BuildSettingsVersion.V5;
         ExtraModuleNames.AddRange( new string[] { "Override" } );
-        CppStandard = CppStandardVersion.Cpp20;
+        CppStandard = CppStandardVersion.Latest;
+
     }
 }
