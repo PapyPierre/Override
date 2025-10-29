@@ -22,9 +22,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          lfs: true  # Si vous utilisez des assets volumineux
+          lfs: true
 
-      # 2. Configuration du cache (optionnel mais recommandé)
+      # 2. Configuration du cache (DDC)
       - name: Cache Unreal DerivedDataCache
         uses: actions/cache@v4
         with:
@@ -57,7 +57,7 @@ jobs:
               Write-Host 'Zipped:' $zipPath }"
         shell: cmd
 
-      # 6. Upload des artefacts (consultables dans l’interface GitHub Actions)
+      # 6. Upload des artefacts
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
