@@ -17,7 +17,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-
+	
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -152,9 +152,7 @@ void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
 void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("PossessedBy"));
-
+	
 	// Server-side
 	SetControllerRef();
 
@@ -174,9 +172,7 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 void APlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("OnRep_PlayerState"));
-
+	
 	// Client-side
 	SetControllerRef();
 	
@@ -189,73 +185,10 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	if (IsLocallyControlled())
 	{
-		CameraShake();
-
-		if (PlayerMovementComponent->IsRunning())
-		{
-			float Speed = GetVelocity().Size();
-			float TargetFOV = FMath::GetMappedRangeValueClamped(
-				FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
-				FVector2D(DefaultFOV, SprintFOV),
-				Speed
-			);
-
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				TargetFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
-
-		if (bIsAimingWeapon)
-		{
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				AimFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
-		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon && PlayerMovementComponent->IsMovingOnGround() && !PlayerMovementComponent->IsSliding())
-		{
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				DefaultFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
+		CameraManager.SetFov(this, PlayerMovementComponent, DeltaTime);
 	}
 
 	Super::Tick(DeltaTime);
-}
-
-void APlayerCharacter::CameraShake()
-{
-	if (PlayerMovementComponent->IsMovingOnGround())
-	{
-		if (GetVelocity().Size() == 0.0)
-		{
-			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
-														 FRotator::ZeroRotator);
-		}
-		else
-		{
-			if (PlayerMovementComponent->IsRunning())
-				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal,
-				                                             FRotator::ZeroRotator);
-			else if (PlayerMovementComponent->IsWalking())
-				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
-				                                             FRotator::ZeroRotator);
-		}
-	}
 }
 
 void APlayerCharacter::Landed(const FHitResult& Hit)

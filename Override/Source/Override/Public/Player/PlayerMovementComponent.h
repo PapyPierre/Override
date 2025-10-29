@@ -117,8 +117,10 @@ public:
 #pragma endregion
 
 #pragma region EdgeGrab
-	
+
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "CMC|EdgeGrab")
 	bool bGrabbedLedge = false;
+	
 	float GrabHeight = 0;
 
 	float MaxVaultThickness;
