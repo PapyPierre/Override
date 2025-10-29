@@ -1,0 +1,65 @@
+name: Build Override - Client & Server
+
+on:
+  push:
+    branches:
+      - main
+      - testing
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      PROJECT_NAME: Override
+      UE_ENGINE_PATH: D:\Work\Repo\UnrealEngine
+      BUILD_SCRIPT: D:\Work\Repo\Override\Override\Build_Override_Auto.bat
+      OUTPUT_DIR: D:\Work\Build\Override\Build
+      ZIP_OUTPUT: D:\Work\Build\Override\Zip
+
+    steps:
+      # 1. Checkout du code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true  # Si vous utilisez des assets volumineux
+
+      # 2. Configuration du cache (optionnel mais recommandé)
+      - name: Cache Unreal DerivedDataCache
+        uses: actions/cache@v4
+        with:
+          path: |
+            D:\Work\Repo\Override\Override\Saved\DerivedDataCache
+          key: ${{ runner.os }}-ddc-${{ github.ref }}
+          restore-keys: |
+            ${{ runner.os }}-ddc-
+
+      # 3. Build du client
+      - name: Build Client (Iterate)
+        run: |
+          call "${{ env.BUILD_SCRIPT }}" client iterate
+        shell: cmd
+
+      # 4. Build du serveur
+      - name: Build Server (Full)
+        run: |
+          call "${{ env.BUILD_SCRIPT }}" server full
+        shell: cmd
+
+      # 5. Compression (zip)
+      - name: Create ZIP archives
+        run: |
+          powershell -Command ^
+            "New-Item -ItemType Directory -Force -Path '${{ env.ZIP_OUTPUT }}'; ^
+            Get-ChildItem '${{ env.OUTPUT_DIR }}' -Directory | ForEach-Object { ^
+              $zipPath = Join-Path '${{ env.ZIP_OUTPUT }}' ($_.Name + '.zip'); ^
+              Compress-Archive -Path $_.FullName -DestinationPath $zipPath -Force; ^
+              Write-Host 'Zipped:' $zipPath }"
+        shell: cmd
+
+      # 6. Upload des artefacts (consultables dans l’interface GitHub Actions)
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Override-Builds
+          path: ${{ env.ZIP_OUTPUT }}
