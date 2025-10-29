@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
+#include "CameraManager.h"
 #include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
 #include "PlayerCharacter.generated.h"
@@ -22,6 +23,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
+	CameraManager CameraManager;
+
+	UPROPERTY(VisibleAnywhere, Category = Camera)
+	APlayerCameraManager* FirstPersonCameraComponent;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* InputMappingContext;
@@ -77,8 +82,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeLanding;
-
-	void CameraShake();
 #pragma endregion
 	
 #pragma region WallRun
@@ -142,10 +145,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	ACustomPlayerState* GetCustomPlayerState() const;
 	
-protected:
-	UPROPERTY(VisibleAnywhere, Category = Camera)
-	APlayerCameraManager* FirstPersonCameraComponent;
-	
+protected:	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;
