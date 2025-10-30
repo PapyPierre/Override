@@ -35,7 +35,7 @@ jobs:
       - name: Update version number
         shell: cmd
         run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & '%GITHUB_WORKSPACE%\UpdateVersion.ps1' }"
+          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & 'D:\Work\Repo\Override\Override\UpdateVersion.ps1' }"
 
       - name: Build Client (Iterate)
         run: |
