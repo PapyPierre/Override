@@ -48,14 +48,14 @@ jobs:
 
       # 5. Compression (zip)
       - name: Create ZIP archives
-       shell: pwsh
-  run: |
-    New-Item -ItemType Directory -Force -Path "${{ env.ZIP_OUTPUT }}"
-    Get-ChildItem "${{ env.OUTPUT_DIR }}" -Directory | ForEach-Object {
-      $zipPath = Join-Path "${{ env.ZIP_OUTPUT }}" ($_.Name + '.zip')
-      Compress-Archive -Path $_.FullName -DestinationPath $zipPath -Force
-      Write-Host "Zipped: $zipPath"
-    }
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "${{ env.ZIP_OUTPUT }}"
+          Get-ChildItem "${{ env.OUTPUT_DIR }}" -Directory | ForEach-Object {
+            $zipPath = Join-Path "${{ env.ZIP_OUTPUT }}" ($_.Name + '.zip')
+            Compress-Archive -Path $_.FullName -DestinationPath $zipPath -Force
+            Write-Host "Zipped: $zipPath"
+          }
 
       # 6. Upload des artefacts
       - name: Upload build artifacts
