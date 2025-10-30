@@ -52,7 +52,7 @@ jobs:
         run: |
           if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
           for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
-            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=5 -mmt=on
+            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=2 -mmt=on
             echo Zipped: %%~nD
           )
 
