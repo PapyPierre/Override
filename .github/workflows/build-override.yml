@@ -18,13 +18,11 @@ jobs:
       ZIP_OUTPUT: D:\Work\Build\Override\Zip
 
     steps:
-      # 1. Checkout du code
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      # 2. Configuration du cache (DDC)
       - name: Cache Unreal DerivedDataCache
         uses: actions/cache@v4
         with:
@@ -33,32 +31,33 @@ jobs:
           key: ${{ runner.os }}-ddc-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-ddc-
+            
+      - name: Update version number
+        shell: powershell
+        run: |
+          D:\Work\Repo\Override\Override\Build\UpdateVersion.ps1
 
-      # 3. Build du client
       - name: Build Client (Iterate)
         run: |
-          call "${{ env.BUILD_SCRIPT }}" client iterate
+          call "${{ env.BUILD_SCRIPT }}" client iterate ${{ env.FULL_VERSION }}
         shell: cmd
 
-      # 4. Build du serveur
       - name: Build Server (Full)
         run: |
           call "${{ env.BUILD_SCRIPT }}" server full
         shell: cmd
 
-      # 5. Compression (zip)
       - name: Create ZIP archives
         shell: cmd
         run: |
           if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
           for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
-            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=2 -mmt=on
+            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=1 -mmt=on
             echo Zipped: %%~nD
           )
 
-      # 6. Upload des artefacts
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Override-Builds
+          name: Override-${{ env.FULL_VERSION }}
           path: ${{ env.ZIP_OUTPUT }}
