@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
 #include "PlayerMovementComponent.h"
+#include "CameraManager.h"
 #include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
 #include "PlayerCharacter.generated.h"
@@ -22,13 +23,16 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
+	CameraManager CameraManager;
+
+	UPROPERTY(VisibleAnywhere, Category = Camera)
+	APlayerCameraManager* FirstPersonCameraComponent;
 	
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void Target() override;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* InputMappingContext;
+	
+	virtual void Tick(float DeltaTime) override;
+	virtual void Target() override;
 
 #pragma region Hack
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
@@ -63,14 +67,9 @@ public:
     #pragma endregion
 
 #pragma region FOV
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
-	float DefaultFOV = 90.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
-	float SprintFOV = 100.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
-	float FOVInterpSpeed = 10.f;
+	float DefaultFOV;
+	float SprintFOV;
+	float FOVInterpSpeed;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
@@ -82,9 +81,7 @@ public:
 	TSubclassOf<UCameraShakeBase> ShakeWalk;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
-	TSubclassOf<UCameraShakeBase> ShakeJump;
-
-	void CameraShake();
+	TSubclassOf<UCameraShakeBase> ShakeLanding;
 #pragma endregion
 	
 #pragma region WallRun
@@ -97,20 +94,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
 	void StopSprint();
-#pragma endregion
 
-	float DefaultCoyoteTime = 0.5f;
+	UFUNCTION(Server, Reliable)
+	void RPC_SetSprint(bool value);	
+#pragma endregion
 
 #pragma region Jump
 	FTimerHandle JumpDelayHandle;
-
+	
+	float DefaultCoyoteTime = 0.5f;
+	
 	UFUNCTION()
 	void OnJumpDelayFinished();
-#pragma endregion
-	
-	UFUNCTION(Server, Reliable)
-	void RPC_SetSprint(bool value);	
-
 #pragma endregion
 
 #pragma region Aim
@@ -129,39 +124,28 @@ public:
 	void SetAimingState(bool bNewAiming);
 	void UpdateAimingSettings();
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
-	float AimFOV = 70.f;
+	float AimFOV;
+	float AimCrouchedSpeed;
+	float AimSpeed;
+	UPROPERTY(BlueprintReadOnly)
+	float MouseSensitivity = 1.0f;
+	UPROPERTY(BlueprintReadOnly)
+	float MouseAimSensitivity;
 
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_IsAimingWeapon, Category = "Aim")
 	bool bIsAimingWeapon = false;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
-	float AimCrouchedSpeed = 100.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
-	float AimSpeed = 300.f;
-
 	UFUNCTION(BlueprintCallable)
 	void OnRep_IsAimingWeapon();
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
-	float MouseSensitivity = 1.f;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Aim")
-	float MouseAimSensitivity = 0.4f;
-
+	
 	UFUNCTION(BlueprintImplementableEvent, Category="Replication")
 	void OnRep_IsAimingWeapon_BP();
-
 #pragma endregion
 
 	UFUNCTION(BlueprintCallable)
 	ACustomPlayerState* GetCustomPlayerState() const;
 	
-protected:
-	UPROPERTY(VisibleAnywhere, Category = Camera)
-	APlayerCameraManager* FirstPersonCameraComponent;
-	
+protected:	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;

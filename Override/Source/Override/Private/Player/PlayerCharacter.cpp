@@ -8,6 +8,7 @@
 #include "Hacks/GameplayHackTargetData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/MovementStats.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(
@@ -16,7 +17,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-
+	
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -36,7 +37,20 @@ void APlayerCharacter::Target()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (PlayerMovementComponent->MovementData)
+	{
+		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
+		SprintFOV = PlayerMovementComponent->MovementData->SprintFOV;
+		FOVInterpSpeed = PlayerMovementComponent->MovementData->FOVInterpSpeed;
 
+		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
+		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
+		AimSpeed = PlayerMovementComponent->MovementData->AimSpeed;
+		MouseSensitivity = PlayerMovementComponent->MovementData->MouseSensitivity;
+		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
+	}
+	
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
 }
 
@@ -98,9 +112,6 @@ void APlayerCharacter::StopAimWeapon()
 
 void APlayerCharacter::SetAimingState(bool bNewAiming)
 {
-	if (bIsAimingWeapon == bNewAiming)
-		return;
-
 	bIsAimingWeapon = bNewAiming;
 	UpdateAimingSettings();
 }
@@ -141,9 +152,7 @@ void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
 void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("PossessedBy"));
-
+	
 	// Server-side
 	SetControllerRef();
 
@@ -163,11 +172,10 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 void APlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("OnRep_PlayerState"));
-
+	
 	// Client-side
 	SetControllerRef();
+	
 	InitAbilitySystem();
 }
 
@@ -177,72 +185,10 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	if (IsLocallyControlled())
 	{
-		CameraShake();
-
-		if (PlayerMovementComponent->IsRunning())
-		{
-			float Speed = GetVelocity().Size();
-			float TargetFOV = FMath::GetMappedRangeValueClamped(
-				FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
-				FVector2D(DefaultFOV, SprintFOV),
-				Speed
-			);
-
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				TargetFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
-
-		if (bIsAimingWeapon)
-		{
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				AimFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
-		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon && PlayerMovementComponent->IsMovingOnGround() && !PlayerMovementComponent->IsSliding())
-		{
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				DefaultFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
+		CameraManager.SetFov(this, PlayerMovementComponent, DeltaTime);
 	}
 
 	Super::Tick(DeltaTime);
-}
-
-void APlayerCharacter::CameraShake()
-{
-	if (PlayerMovementComponent->IsMovingOnGround())
-	{
-		if (GetVelocity() == FVector::ZeroVector)
-			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
-			                                             FRotator::ZeroRotator);
-		else
-		{
-			if (PlayerMovementComponent->IsRunning() && GetVelocity().Size() > PlayerMovementComponent->
-				DefaultSprintSpeed)
-				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal,
-				                                             FRotator::ZeroRotator);
-			else if (!PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->IsCrouching())
-				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
-				                                             FRotator::ZeroRotator);
-		}
-	}
 }
 
 void APlayerCharacter::Landed(const FHitResult& Hit)
@@ -250,7 +196,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 	if (IsLocallyControlled())
 	{
-		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
 		                                             FRotator::ZeroRotator);
 	}
 	PlayerMovementComponent->ResetJumpValues();
@@ -366,7 +312,7 @@ void APlayerCharacter::ActivateHack3()
 
 void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
 	
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
