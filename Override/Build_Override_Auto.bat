@@ -92,7 +92,6 @@ echo ==========================================================
 rem ---------- EXECUTION ----------
 pushd "%ENGINE_PATH%\Engine\Build\BatchFiles"
 
-echo === Etape : BuildCookRun ===
 RunUAT.bat BuildCookRun ^
  -project="%PROJECT_PATH%\%PROJECT_NAME%.uproject" ^
  -noP4 ^
