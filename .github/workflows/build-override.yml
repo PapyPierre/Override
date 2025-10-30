@@ -33,9 +33,9 @@ jobs:
             ${{ runner.os }}-ddc-
             
       - name: Update version number
-        shell: powershell
+        shell: cmd
         run: |
-          powershell -ExecutionPolicy Bypass -File "D:\Work\Repo\Override\Override\Build\UpdateVersion.ps1"
+          powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Work\Repo\Override\Override\Build\UpdateVersion.ps1"
 
       - name: Build Client (Iterate)
         run: |
