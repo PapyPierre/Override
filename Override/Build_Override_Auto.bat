@@ -17,7 +17,7 @@ set PROJECT_PATH=D:\Work\Repo\Override\Override
 set ENGINE_PATH=D:\Work\Repo\UnrealEngine
 set PLATFORM=Win64
 set CONFIG=Development
-set ARCHIVE_BASE=D:\Work\Build\Override
+set ARCHIVE_BASE=D:\Work\Build\Override\Build
 set LOG_DIR=%PROJECT_PATH%\Saved\Logs
 
 rem ---------- PARAMETRES ----------
@@ -63,6 +63,7 @@ if /I "%COOK_INPUT%"=="iterate" (
 )
 
 rem ---------- CONFIGURATION DYNAMIQUE ----------
+
 for /f "tokens=1-4 delims=/ " %%a in ("%date%") do (
     set YYYY=%%d
     set MM=%%b
@@ -74,7 +75,14 @@ for /f "tokens=1-2 delims=: " %%a in ("%time%") do (
 )
 set DATETIME=%YYYY%-%MM%-%DD%_%HH%h%MN%m
 
-set ARCHIVE_DIR=%ARCHIVE_BASE%\%PLATFORM%_%CONFIG%_%TARGET%_%DATETIME%
+if /I "%TARGET%"=="Client" (
+    set TARGET_SUBFOLDER=Client
+) else (
+    set TARGET_SUBFOLDER=Server
+)
+
+set ARCHIVE_DIR=%ARCHIVE_BASE%\%TARGET_SUBFOLDER%\%PLATFORM%_%CONFIG%_%DATETIME%
+
 set LOG_FILE=%LOG_DIR%\Build_%TARGET%_%DATETIME%.log
 
 echo ==========================================================
