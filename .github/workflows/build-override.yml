@@ -1,0 +1,63 @@
+name: Build Override - Client & Server
+
+on:
+  push:
+    branches:
+      - main
+      - testing
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    env:
+      PROJECT_NAME: Override
+      UE_ENGINE_PATH: D:\Work\Repo\UnrealEngine
+      BUILD_SCRIPT: D:\Work\Repo\Override\Override\Build_Override_Auto.bat
+      OUTPUT_DIR: D:\Work\Build\Override\Build
+      ZIP_OUTPUT: D:\Work\Build\Override\Zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unreal DerivedDataCache
+        uses: actions/cache@v4
+        with:
+          path: |
+            D:\Work\Repo\Override\Override\Saved\DerivedDataCache
+          key: ${{ runner.os }}-ddc-${{ github.ref }}
+          restore-keys: |
+            ${{ runner.os }}-ddc-
+            
+      - name: Update version number
+        shell: cmd
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & 'D:\Work\Repo\Override\Override\UpdateVersion.ps1' }"
+
+      - name: Build Client (Iterate)
+        run: |
+          call "${{ env.BUILD_SCRIPT }}" client iterate ${{ env.FULL_VERSION }}
+        shell: cmd
+
+      - name: Build Server (Full)
+        run: |
+          call "${{ env.BUILD_SCRIPT }}" server full
+        shell: cmd
+
+      - name: Create ZIP archives
+        shell: cmd
+        run: |
+          if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
+          for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
+            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=1 -mmt=on
+            echo Zipped: %%~nD
+          )
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Override-${{ env.FULL_VERSION }}
+          path: ${{ env.ZIP_OUTPUT }}
