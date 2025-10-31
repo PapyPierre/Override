@@ -32,4 +32,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
 	int DataPourcentOnTeamKill = 45;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
+	int GameTime = 480;
 };
