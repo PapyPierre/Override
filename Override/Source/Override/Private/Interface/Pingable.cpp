@@ -1,8 +1,2 @@
-// 
-
-
 #include "Interface/Pingable.h"
-
-void IPingable::Ping()
-{
-}
+#include "Engine/Engine.h"
