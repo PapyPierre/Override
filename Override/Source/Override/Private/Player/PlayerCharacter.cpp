@@ -17,11 +17,11 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
-	
+
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
-	
+
 	TargetingComponent = CreateDefaultSubobject<UTargetingComponent>(TEXT("Targeting Component"));
 }
 
@@ -37,7 +37,7 @@ void APlayerCharacter::Target()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (PlayerMovementComponent->MovementData)
 	{
 		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
@@ -50,7 +50,7 @@ void APlayerCharacter::BeginPlay()
 		MouseSensitivity = PlayerMovementComponent->MovementData->MouseSensitivity;
 		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
 	}
-	
+
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
 }
 
@@ -152,7 +152,7 @@ void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
 void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	
+
 	// Server-side
 	SetControllerRef();
 
@@ -172,10 +172,10 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 void APlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-	
+
 	// Client-side
 	SetControllerRef();
-	
+
 	InitAbilitySystem();
 }
 
@@ -256,19 +256,19 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		if (Hack1Action)
-			EnhancedInput->BindAction(Hack1Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::ActivateHack1);
+		if (SelectHack1Action) EnhancedInput->BindAction(SelectHack1Action, ETriggerEvent::Started, this, &APlayerCharacter::SelectHack1);
 
-		if (Hack2Action)
-			EnhancedInput->BindAction(Hack2Action, ETriggerEvent::Started,
-			                          this, &APlayerCharacter::ActivateHack2);
+		if (SelectHack2Action) EnhancedInput->BindAction(SelectHack2Action, ETriggerEvent::Started, this, &APlayerCharacter::SelectHack2);
 
-		if (Hack3Action)
+		if (SelectHack3Action) EnhancedInput->BindAction(SelectHack3Action, ETriggerEvent::Started, this, &APlayerCharacter::SelectHack3);
 
-			EnhancedInput->BindAction(Hack3Action, ETriggerEvent::Started,
-			                          this, &APlayerCharacter::ActivateHack3);
+		if (HackAction) EnhancedInput->BindAction(HackAction, ETriggerEvent::Started, this, &APlayerCharacter::LaunchSelectedHack);
 	}
+}
+
+bool APlayerCharacter::IsHackSelected() const
+{
+	return SelectedHackIndex != 0;
 }
 
 void APlayerCharacter::SetControllerRef()
@@ -288,6 +288,44 @@ void APlayerCharacter::InitAbilitySystem()
 	}
 
 	OnPostAbilitySystemInit();
+}
+
+void APlayerCharacter::LaunchSelectedHack()
+{
+	switch (SelectedHackIndex)
+	{
+	case 1:
+		ActivateHack1();
+		break;
+	case 2:
+		ActivateHack2();
+		break;
+	case 3:
+		ActivateHack3();
+		break;
+	default:
+		return;
+	}
+}
+
+void APlayerCharacter::SelectHack1()
+{
+	SelectedHackIndex = 1;
+}
+
+void APlayerCharacter::SelectHack2()
+{
+	SelectedHackIndex = 2;
+}
+
+void APlayerCharacter::SelectHack3()
+{
+	SelectedHackIndex = 3;
+}
+
+void APlayerCharacter::UnselectHack()
+{
+	SelectedHackIndex = 0;
 }
 
 ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
@@ -313,7 +351,7 @@ void APlayerCharacter::ActivateHack3()
 void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
-	
+
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 

@@ -34,16 +34,21 @@ public:
 	virtual void Target() override;
 
 #pragma region Hack
+	int SelectedHackIndex;
+	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* Hack1Action;
+	UInputAction* HackAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* SelectHack1Action;
     
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* Hack2Action;
+	UInputAction* SelectHack2Action;
     
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* Hack3Action;
+	UInputAction* SelectHack3Action;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Hack")
 	FGameplayTag Hack1Tag;
@@ -169,10 +174,22 @@ protected:
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	UFUNCTION(BlueprintCallable)
+	bool IsHackSelected() const;
+
+	UFUNCTION(BlueprintCallable)
+	void UnselectHack();
+
 private:
 	void SetControllerRef();
 	
 	void InitAbilitySystem();
+
+	void LaunchSelectedHack();
+	
+	void SelectHack1();
+	void SelectHack2();
+	void SelectHack3();
 	
 	void ActivateHack1();
 	void ActivateHack2();
