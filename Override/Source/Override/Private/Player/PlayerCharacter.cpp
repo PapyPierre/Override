@@ -256,6 +256,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
+		if (SelectWeaponAction) EnhancedInput->BindAction(SelectWeaponAction, ETriggerEvent::Started, this, &APlayerCharacter::UnselectHack);
+		
 		if (SelectHack1Action) EnhancedInput->BindAction(SelectHack1Action, ETriggerEvent::Started, this, &APlayerCharacter::SelectHack1);
 
 		if (SelectHack2Action) EnhancedInput->BindAction(SelectHack2Action, ETriggerEvent::Started, this, &APlayerCharacter::SelectHack2);
@@ -310,21 +312,37 @@ void APlayerCharacter::LaunchSelectedHack()
 
 void APlayerCharacter::SelectHack1()
 {
+	if (SelectedHackIndex == 1) return;
+	
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 1"));
+	
 	SelectedHackIndex = 1;
 }
 
 void APlayerCharacter::SelectHack2()
 {
+	if (SelectedHackIndex == 2) return;
+	
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 2"));
+	
 	SelectedHackIndex = 2;
 }
 
 void APlayerCharacter::SelectHack3()
 {
+	if (SelectedHackIndex == 3) return;
+	
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 3"));
+	
 	SelectedHackIndex = 3;
 }
 
 void APlayerCharacter::UnselectHack()
 {
+	if (SelectedHackIndex == 0) return;
+	
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Unselect"));
+	
 	SelectedHackIndex = 0;
 }
 
@@ -335,16 +353,22 @@ ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 
 void APlayerCharacter::ActivateHack1()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 1"));
+	
 	SendHackEventWithData(Hack1Tag);
 }
 
 void APlayerCharacter::ActivateHack2()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 2"));
+	
 	SendHackEventWithData(Hack2Tag);
 }
 
 void APlayerCharacter::ActivateHack3()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 3"));
+	
 	SendHackEventWithData(Hack3Tag);
 }
 
@@ -369,10 +393,10 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 	EventData.Instigator = this;
 	EventData.Target = this;
 	EventData.EventTag = EventTag;
-
+	
 	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
 
-	if (TargetingComponent && TargetingComponent->CurrentTargets.Num() > 0)
+	if (TargetingComponent->CurrentTargets.Num() > 0)
 	{
 		for (AActor* Target : TargetingComponent->CurrentTargets)
 		{
@@ -385,6 +409,7 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 
 	FGameplayAbilityTargetDataHandle Handle;
 	Handle.Add(HackTargetData);
+	
 	EventData.TargetData = Handle;
 
 	ASC->HandleGameplayEvent(EventTag, &EventData);

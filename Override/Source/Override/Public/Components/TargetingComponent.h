@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "EViews.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Components/ActorComponent.h"
 #include "TargetingComponent.generated.h"
 
@@ -19,8 +20,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	TArray<AActor*> CurrentTargets;
 
-	UPROPERTY()
-	AActor* ActorInSight;
+	UPROPERTY(BlueprintReadOnly)
+	FVector PointInSight;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float ScreenPadding = -100;
@@ -57,7 +58,7 @@ private:
 
 	TArray<FVector> ComputeTraceDirections(const float AngleDegrees) const;
 
-	TArray<AActor*> FindActorsWithLineTraces(float Range) const;
+	TArray<AActor*> FindActorsWithLineTraces(float Range);
 
 	//	Check if is in the viewport rectangle expanded by Padding.
 	//	Positive Padding lets you count actors slightly outside the screen as still “in view”.

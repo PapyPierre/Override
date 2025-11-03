@@ -69,7 +69,7 @@ void ACustomPlayerState::GiveCharacterHacks()
 {
 	if (!GetAbilitySystemComponent()) return;
 
-	for (TSubclassOf<UBaseHack>& Hack : CharacterHacks)
+	for (TSubclassOf<UGA_BaseHack>& Hack : CharacterHacks)
 	{
 		FGameplayAbilitySpec HackSpec(Hack, 1, INDEX_NONE, this);
 		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(HackSpec);

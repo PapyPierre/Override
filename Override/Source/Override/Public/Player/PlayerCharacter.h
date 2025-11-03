@@ -23,7 +23,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
+	
 	CameraManager CameraManager;
+	
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
 	
@@ -34,6 +36,7 @@ public:
 	virtual void Target() override;
 
 #pragma region Hack
+	UPROPERTY(BlueprintReadOnly, Category="Hack")
 	int SelectedHackIndex;
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
@@ -49,6 +52,9 @@ public:
     
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* SelectHack3Action;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* SelectWeaponAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Hack")
 	FGameplayTag Hack1Tag;
