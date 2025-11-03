@@ -103,7 +103,7 @@ TArray<FVector> UTargetingComponent::ComputeTraceDirections(const float AngleDeg
 	return Directions;
 }
 
-TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range) const
+TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range)
 {
 	TArray<AActor*> HitActors;
 
@@ -119,7 +119,8 @@ TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range)
 		const FVector End = Start + (Dir * Range);
 
 		FHitResult Hit;
-		if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1, QueryParams))
+		
+		if (GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ECC_GameTraceChannel1, QueryParams))
 		{
 			AActor* HitActor = Hit.GetActor();
 
@@ -128,6 +129,7 @@ TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range)
 				// Foward Trace Gets Priority
 				if (Dir == CamPos->GetForwardVector())
 				{
+					PointInSight = Hit.ImpactPoint;
 					HitActors.Empty();
 					HitActors.Add(HitActor);
 					return HitActors; 
