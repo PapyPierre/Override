@@ -1,12 +1,9 @@
-// 
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "Pingable.generated.h"
 
-// This class does not need to be modified.
 UINTERFACE(MinimalAPI, Blueprintable)
 class UPingable : public UInterface
 {
@@ -17,7 +14,10 @@ class OVERRIDE_API IPingable
 {
 	GENERATED_BODY()
 
-	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual void Ping();
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Pingable")
+	void Ping(float LifeTime);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Pingable")
+	void StopPing();
 };
