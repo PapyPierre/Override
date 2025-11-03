@@ -86,4 +86,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
 	float ParkourDistanceDetection = 70.f;
 #pragma endregion
+
+#pragma region Ping
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ping")
+	float PingTime = 5.f;
+#pragma endregion
 };

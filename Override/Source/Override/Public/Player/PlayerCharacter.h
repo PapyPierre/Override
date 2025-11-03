@@ -24,7 +24,6 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
 	CameraManager CameraManager;
-
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
 	
