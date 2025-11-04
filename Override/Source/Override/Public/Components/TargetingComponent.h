@@ -20,7 +20,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	TArray<AActor*> CurrentTargets;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FVector PointInSight;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
@@ -55,6 +55,8 @@ private:
 	EViews CurrentViewMod;
 
 	void LookForTarget(float TargetingRange);
+
+	void FindPointInSight(float range);
 
 	TArray<FVector> ComputeTraceDirections(const float AngleDegrees) const;
 

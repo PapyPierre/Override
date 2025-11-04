@@ -15,6 +15,7 @@ void UTargetingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UTargetingComponent, CurrentTargets);
+	DOREPLIFETIME(UTargetingComponent, PointInSight);
 }
 
 void UTargetingComponent::BeginPlay()
@@ -52,6 +53,20 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 	}
 
 	TargetActor(Target);
+}
+
+void UTargetingComponent::FindPointInSight(float range)
+{
+	const auto* CamPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransformComponent();
+	const FVector Start = CamPos->GetComponentLocation();
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(GetOwner());
+	
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByObjectType(Hit, Start,  Start + CamPos->GetForwardVector() * range, ECC_WorldStatic, QueryParams);
+	PointInSight = Hit.ImpactPoint;
+	DrawDebugSphere(GetWorld(), PointInSight, 5.0f, 24, FColor::Blue, false);
 }
 
 TArray<FVector> UTargetingComponent::ComputeTraceDirections(const float AngleDegrees) const
@@ -114,13 +129,8 @@ TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range)
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
 
-	// Find Point In Sight for Free Placement
 	FHitResult Hit;
-	GetWorld()->LineTraceSingleByObjectType(Hit, Start,  Start + CamPos->GetForwardVector() * Range, ECC_WorldStatic, QueryParams);
-	PointInSight = Hit.ImpactPoint;
-	DrawDebugSphere(GetWorld(), PointInSight, 5.0f, 24, FColor::Blue, false);
-
-	// Traces for targeting 
+	
 	for (const FVector& Dir : ComputeTraceDirections(Angle))
 	{
 		const FVector End = Start + (Dir * Range);
@@ -369,6 +379,8 @@ void UTargetingComponent::ClearCurrentTargets()
 void UTargetingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)
 {
+	FindPointInSight(MaxTargetingDistance);
+	
 	LookForTarget(MaxTargetingDistance);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
