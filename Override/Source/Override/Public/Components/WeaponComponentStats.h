@@ -33,4 +33,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	int MaxMunition = 30;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
+	int StockMunition = 200;
 };
