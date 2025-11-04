@@ -15,6 +15,7 @@ void UTargetingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UTargetingComponent, CurrentTargets);
+	DOREPLIFETIME(UTargetingComponent, PointInSight);
 }
 
 void UTargetingComponent::BeginPlay()
@@ -52,6 +53,20 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 	}
 
 	TargetActor(Target);
+}
+
+void UTargetingComponent::FindPointInSight(float range)
+{
+	const auto* CamPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransformComponent();
+	const FVector Start = CamPos->GetComponentLocation();
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(GetOwner());
+	
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByObjectType(Hit, Start,  Start + CamPos->GetForwardVector() * range, ECC_WorldStatic, QueryParams);
+	PointInSight = Hit.ImpactPoint;
+	DrawDebugSphere(GetWorld(), PointInSight, 5.0f, 24, FColor::Blue, false);
 }
 
 TArray<FVector> UTargetingComponent::ComputeTraceDirections(const float AngleDegrees) const
@@ -114,12 +129,12 @@ TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range)
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
 
+	FHitResult Hit;
+	
 	for (const FVector& Dir : ComputeTraceDirections(Angle))
 	{
 		const FVector End = Start + (Dir * Range);
 
-		FHitResult Hit;
-		
 		if (GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ECC_GameTraceChannel1, QueryParams))
 		{
 			AActor* HitActor = Hit.GetActor();
@@ -129,12 +144,11 @@ TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range)
 				// Foward Trace Gets Priority
 				if (Dir == CamPos->GetForwardVector())
 				{
-					PointInSight = Hit.ImpactPoint;
 					HitActors.Empty();
 					HitActors.Add(HitActor);
-					return HitActors; 
+					return HitActors;
 				}
-				
+
 				HitActors.Add(HitActor);
 			}
 
@@ -292,7 +306,7 @@ AActor* UTargetingComponent::GetClosestActorToCursor(APlayerController* PC, cons
 	for (AActor* Actor : Actors)
 	{
 		if (!Actor) continue;
-		
+
 		const auto TargetActor = Cast<ITargetable>(Actor);
 
 		RegenerateTargetActorPoints(Actor);
@@ -300,7 +314,7 @@ AActor* UTargetingComponent::GetClosestActorToCursor(APlayerController* PC, cons
 		for (const FVector Point : TargetActor->Points)
 		{
 			if (!IsPointVisiblePhysically(Point, Actor, PC)) continue;
-			
+
 			if (FVector2D ScreenPos; PC->ProjectWorldLocationToScreen(Point, ScreenPos))
 			{
 				if (const float Dist = FVector2D::Distance(ScreenCenter, ScreenPos); Dist < ClosestDist)
@@ -365,6 +379,8 @@ void UTargetingComponent::ClearCurrentTargets()
 void UTargetingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)
 {
+	FindPointInSight(MaxTargetingDistance);
+	
 	LookForTarget(MaxTargetingDistance);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
