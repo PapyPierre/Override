@@ -88,6 +88,15 @@ void AModulation::ChangeState(ModState newState)
 	OnStateChanged(newState);
 }
 
+void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration)
+{
+	if (HackCastingDuration != 0) return; // Already casting an ability
+	
+	CastingTime = 0;
+	CurrentlyCastedGE = GameplayEffect;
+	HackCastingDuration = CastDuration;
+}
+
 void AModulation::StopMovement()
 {
 	LerpTime = 0;
@@ -106,47 +115,16 @@ void AModulation::ApplyImpulseOnPlayer(FVector Dir)
 
 void AModulation::ManageHackCastingCooldown(float DeltaTime)
 {
-	if (!CurrentlyAppliedHack.IsValid()) return;
+	if (HackCastingDuration == 0) return; // Is not currently casting an ability
 	
 	CastingTime += DeltaTime;
 
 	if (CastingTime >= HackCastingDuration)
 	{
-		
+		CurrentlyCastedGE = nullptr;
 		CastingTime = 0;
+		HackCastingDuration = 0;
 	}
-	
-}
-
-void AModulation::CastHackEventWithData(FGameplayTag EventTag, AActor* Target)
-{
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-
-	if (HasAuthority())
-	{
-		// Should not be read
-		UE_LOG(LogTemp, Warning, TEXT("SERVER : Mod Send event %s"), *EventTag.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CLIENT : Mod Send event %s"), *EventTag.ToString());
-	}
-
-	FGameplayEventData EventData;
-	EventData.Instigator = this;
-	EventData.Target = this;
-	EventData.EventTag = EventTag;
-	
-	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
-
-	HackTargetData->Targets.Add(Target);
-	
-	FGameplayAbilityTargetDataHandle Handle;
-	Handle.Add(HackTargetData);
-	EventData.TargetData = Handle;
-
-	ASC->HandleGameplayEvent(EventTag, &EventData);
 }
 
 void AModulation::Tick(float DeltaTime)
