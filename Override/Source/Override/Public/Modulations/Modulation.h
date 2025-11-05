@@ -2,8 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayEffect.h"
+#include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbility.h"
 #include "GameFramework/Actor.h"
 #include "Interface/Interactable.h"
+#include "Player/PlayerCharacter.h"
 #include "Modulation.generated.h"
 
 class AModulationGroup;
@@ -63,6 +67,12 @@ public:
 	UPROPERTY(EditAnywhere, Category="Default")
 	float ImpulseForce = 5;
 
+	UPROPERTY(BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> CurrentlyCastedGE;
+
+	UFUNCTION(BlueprintCallable)
+	void StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration);
+
 #pragma region Attribute
 	
 	UPROPERTY()
@@ -87,7 +97,12 @@ private:
 
 	float CdTime;
 	
+	float HackCastingDuration = 0;
+	float CastingTime;
+	
 	void StopMovement();
 	
 	void ApplyImpulseOnPlayer(FVector Dir);
+
+	void ManageHackCastingCooldown(float DeltaTime);
 };

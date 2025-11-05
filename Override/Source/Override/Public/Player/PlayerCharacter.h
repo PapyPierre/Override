@@ -65,6 +65,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Hack")
 	FGameplayTag Hack3Tag;
 
+	UFUNCTION(BlueprintCallable)
+	void SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh,  TArray<AActor*> Targets);
 	
 #pragma endregion
 
@@ -200,8 +202,6 @@ private:
 	void ActivateHack1();
 	void ActivateHack2();
 	void ActivateHack3();
-    
-	void SendHackEventWithData(FGameplayTag EventTag);
-
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

@@ -1,8 +1,11 @@
 #include "Modulations/Modulation.h"
 #include "AbilitySystemComponent.h"
 #include "Attribute/UHealthAttributeSet.h"
+#include "Hacks/GameplayHackTargetData.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Modulations/ModulationGroup.h"
+
+struct FGameplayHackTargetData;
 
 AModulation::AModulation()
 {
@@ -85,6 +88,15 @@ void AModulation::ChangeState(ModState newState)
 	OnStateChanged(newState);
 }
 
+void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration)
+{
+	if (HackCastingDuration != 0) return; // Already casting an ability
+	
+	CastingTime = 0;
+	CurrentlyCastedGE = GameplayEffect;
+	HackCastingDuration = CastDuration;
+}
+
 void AModulation::StopMovement()
 {
 	LerpTime = 0;
@@ -101,12 +113,27 @@ void AModulation::ApplyImpulseOnPlayer(FVector Dir)
 	//TODO Character.AddImpulse(dir, VelocityChange: true)
 }
 
+void AModulation::ManageHackCastingCooldown(float DeltaTime)
+{
+	if (HackCastingDuration == 0) return; // Is not currently casting an ability
+	
+	CastingTime += DeltaTime;
+
+	if (CastingTime >= HackCastingDuration)
+	{
+		CurrentlyCastedGE = nullptr;
+		CastingTime = 0;
+		HackCastingDuration = 0;
+	}
+}
+
 void AModulation::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	HandleMovement(DeltaTime);
 	HandleCooldown(DeltaTime);
+	ManageHackCastingCooldown(DeltaTime);
 }
 
 void AModulation::Target()
