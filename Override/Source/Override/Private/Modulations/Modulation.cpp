@@ -1,8 +1,11 @@
 #include "Modulations/Modulation.h"
 #include "AbilitySystemComponent.h"
 #include "Attribute/UHealthAttributeSet.h"
+#include "Hacks/GameplayHackTargetData.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Modulations/ModulationGroup.h"
+
+struct FGameplayHackTargetData;
 
 AModulation::AModulation()
 {
@@ -101,12 +104,58 @@ void AModulation::ApplyImpulseOnPlayer(FVector Dir)
 	//TODO Character.AddImpulse(dir, VelocityChange: true)
 }
 
+void AModulation::ManageHackCastingCooldown(float DeltaTime)
+{
+	if (!CurrentlyAppliedHack.IsValid()) return;
+	
+	CastingTime += DeltaTime;
+
+	if (CastingTime >= HackCastingDuration)
+	{
+		
+		CastingTime = 0;
+	}
+	
+}
+
+void AModulation::CastHackEventWithData(FGameplayTag EventTag, AActor* Target)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	if (HasAuthority())
+	{
+		// Should not be read
+		UE_LOG(LogTemp, Warning, TEXT("SERVER : Mod Send event %s"), *EventTag.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CLIENT : Mod Send event %s"), *EventTag.ToString());
+	}
+
+	FGameplayEventData EventData;
+	EventData.Instigator = this;
+	EventData.Target = this;
+	EventData.EventTag = EventTag;
+	
+	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
+
+	HackTargetData->Targets.Add(Target);
+	
+	FGameplayAbilityTargetDataHandle Handle;
+	Handle.Add(HackTargetData);
+	EventData.TargetData = Handle;
+
+	ASC->HandleGameplayEvent(EventTag, &EventData);
+}
+
 void AModulation::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	HandleMovement(DeltaTime);
 	HandleCooldown(DeltaTime);
+	ManageHackCastingCooldown(DeltaTime);
 }
 
 void AModulation::Target()

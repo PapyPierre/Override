@@ -360,24 +360,24 @@ void APlayerCharacter::ActivateHack1()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 1"));
 
-	SendHackEventWithData(Hack1Tag);
+	SendHackEventWithData(Hack1Tag, TargetingComponent->PointInSight);
 }
 
 void APlayerCharacter::ActivateHack2()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 2"));
 
-	SendHackEventWithData(Hack2Tag);
+	SendHackEventWithData(Hack2Tag, TargetingComponent->PointInSight);
 }
 
 void APlayerCharacter::ActivateHack3()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 3"));
 
-	SendHackEventWithData(Hack3Tag);
+	SendHackEventWithData(Hack3Tag, TargetingComponent->PointInSight);
 }
 
-void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
+void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
 
@@ -400,7 +400,7 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
 	EventData.EventTag = EventTag;
 
 	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-	ContextHandle.AddOrigin(TargetingComponent->PointInSight);
+	ContextHandle.AddOrigin(CurrentPointInSight);
 	EventData.ContextHandle = ContextHandle;
 	
 	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();

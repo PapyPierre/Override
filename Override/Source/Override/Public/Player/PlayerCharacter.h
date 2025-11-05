@@ -201,7 +201,7 @@ private:
 	void ActivateHack2();
 	void ActivateHack3();
     
-	void SendHackEventWithData(FGameplayTag EventTag);
+	void SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

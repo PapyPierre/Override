@@ -66,7 +66,7 @@ void UTargetingComponent::FindPointInSight(float range)
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByObjectType(Hit, Start,  Start + CamPos->GetForwardVector() * range, ECC_WorldStatic, QueryParams);
 	PointInSight = Hit.ImpactPoint;
-	DrawDebugSphere(GetWorld(), PointInSight, 5.0f, 24, FColor::Blue, false);
+	//DrawDebugSphere(GetWorld(), PointInSight, 5.0f, 24, FColor::Blue, false);
 }
 
 TArray<FVector> UTargetingComponent::ComputeTraceDirections(const float AngleDegrees) const
