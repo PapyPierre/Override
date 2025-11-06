@@ -2,9 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayEffect.h"
 #include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbility.h"
 #include "GameFramework/Actor.h"
 #include "Interface/Interactable.h"
+#include "Player/PlayerCharacter.h"
 #include "Modulation.generated.h"
 
 class AModulationGroup;
@@ -64,11 +67,11 @@ public:
 	UPROPERTY(EditAnywhere, Category="Default")
 	float ImpulseForce = 5;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
-	FGameplayTag CurrentlyAppliedHack;
+	UPROPERTY(BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> CurrentlyCastedGE;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Hack")
-	float HackCastingDuration = 0;
+	UFUNCTION(BlueprintCallable)
+	void StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration);
 
 #pragma region Attribute
 	
@@ -89,14 +92,12 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnStateChanged(ModState newState);
 
-	UFUNCTION(BlueprintCallable)
-	void CastHackEventWithData(FGameplayTag EventTag, AActor* Target);
-	
 private:
 	float LerpTime;
 
 	float CdTime;
-
+	
+	float HackCastingDuration = 0;
 	float CastingTime;
 	
 	void StopMovement();

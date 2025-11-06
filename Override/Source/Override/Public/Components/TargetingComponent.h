@@ -1,8 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EViews.h"
-#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Components/ActorComponent.h"
 #include "TargetingComponent.generated.h"
 
@@ -13,7 +11,7 @@ class OVERRIDE_API UTargetingComponent : public UActorComponent
 
 public:
 	UTargetingComponent();
-	
+
 	UPROPERTY(BlueprintReadWrite)
 	APlayerController* PlayerController;
 
@@ -28,7 +26,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float MaxDistFromCursor = 50; // In Screen Space
-	
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
@@ -46,13 +44,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float SimulationDetectionDistance = 800;
-	
+
 	virtual void BeginPlay() override;
 
 private:
-	 float Angle;
-	
-	EViews CurrentViewMod;
+	float Angle;
 
 	void LookForTarget(float TargetingRange);
 
