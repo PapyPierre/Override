@@ -80,13 +80,17 @@ void AModulation::HandleCooldown(float DeltaTime)
 	if (CdTime > CooldownDuration)
 	{
 		CdTime = 0;
-		ChangeState(ModState::Stopped);
+		ChangeState(PreviousState);
 	}
 }
 
 void AModulation::ChangeState(ModState newState)
 {
+	PreviousState = CurrentState;
 	CurrentState = newState;
+	
+	if (newState == ModState::InCD) CdTime = 0;
+	
 	OnStateChanged(newState);
 }
 
