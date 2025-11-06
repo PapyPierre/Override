@@ -43,6 +43,8 @@ void AModulation::HandleMovement(float DeltaTime)
 {
 	if (CurrentState != ModState::Moving) return;
 
+	if (ModSpeedCurve == nullptr) return;
+
 	LerpTime += DeltaTime * ModSpeedCurve->FloatCurve.Eval(LerpTime);
 
 	if (LerpTime >= 1.0f) LerpTime = 1;
