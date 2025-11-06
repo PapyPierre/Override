@@ -418,6 +418,8 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector Curr
 	EventData.TargetData = Handle;
 
 	ASC->HandleGameplayEvent(EventTag, &EventData);
+
+	if (AutoUnselectHack) UnselectHack();
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
