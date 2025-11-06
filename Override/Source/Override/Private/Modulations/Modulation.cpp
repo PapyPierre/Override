@@ -80,7 +80,9 @@ void AModulation::HandleCooldown(float DeltaTime)
 	if (CdTime > CooldownDuration)
 	{
 		CdTime = 0;
-		ChangeState(PreviousState);
+
+		if (PreviousState == ModState::Moving)ChangeState(ModState::Moving);
+		else ChangeState(ModState::Stopped);
 	}
 }
 
@@ -88,16 +90,16 @@ void AModulation::ChangeState(ModState newState)
 {
 	PreviousState = CurrentState;
 	CurrentState = newState;
-	
+
 	if (newState == ModState::InCD) CdTime = 0;
-	
+
 	OnStateChanged(newState);
 }
 
 void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration)
 {
 	if (HackCastingDuration != 0) return; // Already casting an ability
-	
+
 	CastingTime = 0;
 	CurrentlyCastedGE = GameplayEffect;
 	HackCastingDuration = CastDuration;
@@ -106,23 +108,61 @@ void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, fl
 void AModulation::StopMovement()
 {
 	LerpTime = 0;
-	ChangeState(ModState::InCD);
 
 	if (ApplyImpulseOnEndReach)
 	{
-		ApplyImpulseOnPlayer(CurrentEnd.GetLocation() - CurrentStart.GetLocation() * ImpulseForce);
+		ApplyImpulseOnPlayer();
 	}
+
+	ChangeState(ModState::InCD);
 }
 
-void AModulation::ApplyImpulseOnPlayer(FVector Dir)
+void AModulation::ApplyImpulseOnPlayer() const
 {
-	//TODO Character.AddImpulse(dir, VelocityChange: true)
+	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("ApplyImpulseOnPlayer"));
+	
+	const FVector Dir = (CurrentEnd.GetLocation() - CurrentStart.GetLocation()).GetSafeNormal();
+
+	//DrawDebugLine(GetWorld(), CurrentStart.GetLocation(), CurrentEnd.GetLocation(), FColor::Red, false, 2);
+
+	FVector Origin;
+	FVector Extent;
+
+	GetActorBounds(true, Origin, Extent, false);
+
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1); // equal to ECC_Targetable (custom obj type)
+	const FCollisionShape Shape = FCollisionShape::MakeBox(Extent);
+
+	bool bHasOverlap = GetWorld()->OverlapMultiByObjectType(OverlapResults, GetActorLocation() + Dir * Extent.Length(),
+	                                                        FQuat::Identity, ObjectQueryParams, Shape);
+
+	//DrawDebugBox(GetWorld(), GetActorLocation() + Dir * Extent.Length(), Extent, FColor::Yellow, false, 10);
+
+	if (bHasOverlap)
+	{
+		TArray<APlayerCharacter*> LaunchedPlayers;
+		
+		for (const FOverlapResult& Result : OverlapResults)
+		{
+			if (const auto Player = Cast<APlayerCharacter>(Result.GetActor()))
+			{
+				if (LaunchedPlayers.Contains(Player)) return;
+				
+				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("Player"));
+
+				Player->LaunchCharacter(Dir * ImpulseForce * 100, true, true);
+				LaunchedPlayers.Add(Player);
+			}
+		}
+	}
 }
 
 void AModulation::ManageHackCastingCooldown(float DeltaTime)
 {
 	if (HackCastingDuration == 0) return; // Is not currently casting an ability
-	
+
 	CastingTime += DeltaTime;
 
 	if (CastingTime >= HackCastingDuration)

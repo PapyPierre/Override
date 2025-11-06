@@ -105,7 +105,7 @@ private:
 	
 	void StopMovement();
 	
-	void ApplyImpulseOnPlayer(FVector Dir);
+	void ApplyImpulseOnPlayer() const;
 
 	void ManageHackCastingCooldown(float DeltaTime);
 };
