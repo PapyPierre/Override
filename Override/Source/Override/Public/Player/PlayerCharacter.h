@@ -65,6 +65,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Hack")
 	FGameplayTag Hack3Tag;
 
+	UPROPERTY(EditAnywhere, Category = "Hack")
+	bool AutoUnselectHack = true;
+
 	UFUNCTION(BlueprintCallable)
 	void SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh,  TArray<AActor*> Targets);
 	

@@ -87,6 +87,7 @@ protected:
 
 	void HandleCooldown(float DeltaTime);
 
+	UFUNCTION(BlueprintCallable)
 	void ChangeState(ModState newState);
 
 	UFUNCTION(BlueprintImplementableEvent)
@@ -99,10 +100,12 @@ private:
 	
 	float HackCastingDuration = 0;
 	float CastingTime;
+
+	ModState PreviousState;
 	
 	void StopMovement();
 	
-	void ApplyImpulseOnPlayer(FVector Dir);
+	void ApplyImpulseOnPlayer() const;
 
 	void ManageHackCastingCooldown(float DeltaTime);
 };
