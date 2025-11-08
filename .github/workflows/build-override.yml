@@ -18,6 +18,12 @@ jobs:
       ZIP_OUTPUT: D:\Work\Build\Override\Zip
 
     steps:
+      - name: Set start time
+        shell: pwsh
+        run: |
+          $start = Get-Date
+          echo "BUILD_START=$($start.ToUniversalTime().ToString('o'))" | Out-File -FilePath $env:GITHUB_ENV -Append
+        
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -66,6 +72,11 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          $startTime = [DateTime]::Parse($env:BUILD_START)
+          $endTime = Get-Date
+          $duration = $endTime - $startTime
+          $durationFormatted = "{0:D2}h:{1:D2}m:{2:D2}s" -f $duration.Hours, $duration.Minutes, $duration.Seconds
+          
           $status = '${{ job.status }}'
           $color = 0x00ff00
           if ($status -eq 'failure') { $color = 0xff0000 }
@@ -81,7 +92,9 @@ jobs:
               fields = @(
                 @{ name = 'Repository'; value = '${{ github.repository }}' },
                 @{ name = 'Branch'; value = '${{ github.ref_name }}' }
-                @{ name = 'Version'; value = '$version' }
+                @{ name = 'Version'; value = '$version' },
+                @{ name = 'Durée'; value = "$durationFormatted" },
+                @{ name = 'Logs'; value = "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
               )
             })
           } | ConvertTo-Json -Depth 5
