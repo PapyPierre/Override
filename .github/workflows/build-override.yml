@@ -47,20 +47,20 @@ jobs:
           call "${{ env.BUILD_SCRIPT }}" server full
         shell: cmd
 
-      - name: Create ZIP archives
-        shell: cmd
-        run: |
-          if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
-          for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
-            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=1 -mmt=on
-            echo Zipped: %%~nD
-          )
+#      - name: Create ZIP archives
+#        shell: cmd
+#        run: |
+#          if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
+#          for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
+#            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=1 -mmt=on
+#            echo Zipped: %%~nD
+#          )
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Override-${{ env.FULL_VERSION }}
-          path: ${{ env.ZIP_OUTPUT }}
+#      - name: Upload Build Artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: Override-${{ env.FULL_VERSION }}
+#          path: ${{ env.ZIP_OUTPUT }}
 
       - name: Send Discord Notification
         if: always()
@@ -71,6 +71,8 @@ jobs:
           if ($status -eq 'failure') { $color = 0xff0000 }
           elseif ($status -eq 'cancelled') { $color = 0x808080 }
           
+          $version = $env:FULL_VERSION
+          
           $payload = @{
             embeds = @(@{
               title = '${{ github.workflow }}'
@@ -79,6 +81,7 @@ jobs:
               fields = @(
                 @{ name = 'Repository'; value = '${{ github.repository }}' },
                 @{ name = 'Branch'; value = '${{ github.ref_name }}' }
+                @{ name = 'Version'; value = '$version' }
               )
             })
           } | ConvertTo-Json -Depth 5
