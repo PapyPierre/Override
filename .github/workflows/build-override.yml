@@ -82,17 +82,14 @@ jobs:
           if ($status -eq 'failure') { $color = 0xff0000 }
           elseif ($status -eq 'cancelled') { $color = 0x808080 }
           
-          $version = $env:FULL_VERSION
-          
           $payload = @{
             embeds = @(@{
               title = '${{ github.workflow }}'
               description = "Build terminé avec le statut **$status**"
               color = $color
               fields = @(
-                @{ name = 'Repository'; value = '${{ github.repository }}' },
                 @{ name = 'Branch'; value = '${{ github.ref_name }}' }
-                @{ name = 'Version'; value = '$version' },
+                @{ name = 'Version'; value = "$($env:FULL_VERSION)" },
                 @{ name = 'Durée'; value = "$durationFormatted" },
                 @{ name = 'Logs'; value = "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
               )
