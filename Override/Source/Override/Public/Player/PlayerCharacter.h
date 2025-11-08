@@ -157,6 +157,8 @@ public:
 	void OnRep_IsAimingWeapon_BP();
 #pragma endregion
 
+	void Launch(const FVector& Force);
+
 	UFUNCTION(BlueprintCallable)
 	ACustomPlayerState* GetCustomPlayerState() const;
 	

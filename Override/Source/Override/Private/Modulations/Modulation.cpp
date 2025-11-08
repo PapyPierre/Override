@@ -134,7 +134,7 @@ void AModulation::StopMovement()
 
 void AModulation::ApplyImpulseOnPlayer() const
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("ApplyImpulseOnPlayer"));
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("ApplyImpulseOnPlayer"));
 
 	const FVector Dir = (CurrentEnd.GetLocation() - CurrentStart.GetLocation()).GetSafeNormal();
 
@@ -157,18 +157,18 @@ void AModulation::ApplyImpulseOnPlayer() const
 
 	if (bHasOverlap)
 	{
-		TArray<APlayerCharacter*> LaunchedPlayers;
+		//TArray<APlayerCharacter*> LaunchedPlayers;
 
 		for (const FOverlapResult& Result : OverlapResults)
 		{
 			if (const auto Player = Cast<APlayerCharacter>(Result.GetActor()))
 			{
-				if (LaunchedPlayers.Contains(Player)) return;
+				//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Player"));
+				
+				//if (LaunchedPlayers.Contains(Player)) return;
 
-				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("Player"));
-
-				Player->LaunchCharacter(Dir * ImpulseForce * 100, true, true);
-				LaunchedPlayers.Add(Player);
+				Player->Launch(Dir * ImpulseForce * 10);
+				//LaunchedPlayers.Add(Player);
 			}
 		}
 	}
