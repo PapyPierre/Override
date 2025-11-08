@@ -18,6 +18,7 @@ enum class ModState : uint8
 	Stopped UMETA(DisplayName = "Stopped"),
 	Moving UMETA(DisplayName = "Moving"),
 	InCD UMETA(DisplayName = "In Cooldown"),
+	Locked UMETA(DisplayName = "Locked"),
 };
 
 UCLASS()
@@ -62,6 +63,9 @@ public:
 	float CooldownDuration = 2;
 
 	UPROPERTY(EditAnywhere, Category="Default")
+	float LockDuration = 2;
+
+	UPROPERTY(EditAnywhere, Category="Default")
 	bool ApplyImpulseOnEndReach = false;
 
 	UPROPERTY(EditAnywhere, Category="Default")
@@ -87,6 +91,9 @@ protected:
 
 	void HandleCooldown(float DeltaTime);
 
+	void HandleLock(float DeltaTime);
+	
+
 	UFUNCTION(BlueprintCallable)
 	void ChangeState(ModState newState);
 
@@ -97,6 +104,8 @@ private:
 	float LerpTime;
 
 	float CdTime;
+
+	float LockTime;
 	
 	float HackCastingDuration = 0;
 	float CastingTime;

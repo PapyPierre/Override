@@ -81,7 +81,21 @@ void AModulation::HandleCooldown(float DeltaTime)
 	{
 		CdTime = 0;
 
-		if (PreviousState == ModState::Moving)ChangeState(ModState::Moving);
+		ChangeState(ModState::Stopped);
+	}
+}
+
+void AModulation::HandleLock(float DeltaTime)
+{
+	if (CurrentState != ModState::Locked) return;
+
+	LockTime += DeltaTime;
+
+	if (LockTime > LockDuration)
+	{
+		LockTime = 0;
+
+		if (PreviousState == ModState::Moving) ChangeState(ModState::Moving);
 		else ChangeState(ModState::Stopped);
 	}
 }
@@ -92,6 +106,7 @@ void AModulation::ChangeState(ModState newState)
 	CurrentState = newState;
 
 	if (newState == ModState::InCD) CdTime = 0;
+	if (newState == ModState::Locked) LockTime = 0;
 
 	OnStateChanged(newState);
 }
@@ -120,7 +135,7 @@ void AModulation::StopMovement()
 void AModulation::ApplyImpulseOnPlayer() const
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("ApplyImpulseOnPlayer"));
-	
+
 	const FVector Dir = (CurrentEnd.GetLocation() - CurrentStart.GetLocation()).GetSafeNormal();
 
 	//DrawDebugLine(GetWorld(), CurrentStart.GetLocation(), CurrentEnd.GetLocation(), FColor::Red, false, 2);
@@ -143,13 +158,13 @@ void AModulation::ApplyImpulseOnPlayer() const
 	if (bHasOverlap)
 	{
 		TArray<APlayerCharacter*> LaunchedPlayers;
-		
+
 		for (const FOverlapResult& Result : OverlapResults)
 		{
 			if (const auto Player = Cast<APlayerCharacter>(Result.GetActor()))
 			{
 				if (LaunchedPlayers.Contains(Player)) return;
-				
+
 				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("Player"));
 
 				Player->LaunchCharacter(Dir * ImpulseForce * 100, true, true);
@@ -179,6 +194,7 @@ void AModulation::Tick(float DeltaTime)
 
 	HandleMovement(DeltaTime);
 	HandleCooldown(DeltaTime);
+	HandleLock(DeltaTime);
 	ManageHackCastingCooldown(DeltaTime);
 }
 
