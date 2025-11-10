@@ -1,17 +1,13 @@
 @echo off
 setlocal enabledelayedexpansion
-title Tchoupi Engine Auto Build - Override
+title Tchoupi Builder - Override
 
 rem ==========================================================
-rem  Tchoupi Engine - Auto Build Launcher
+rem  Tchoupi Builder
 rem  Projet : Override
 rem  Auteur : Pierre Ferrari
-rem  Description :
-rem    Script automatisé pour les builds Client / Serveur
-rem    utilisable en CI (GitHub Actions, Jenkins, etc.)
 rem ==========================================================
 
-rem ---------- CONFIGURATION ----------
 set PROJECT_NAME=Override
 set PROJECT_PATH=D:\Work\Repo\Override\Override
 set ENGINE_PATH=D:\Work\Repo\UnrealEngine
@@ -20,26 +16,9 @@ set CONFIG=Development
 set ARCHIVE_BASE=D:\Work\Build\Override\Build
 set LOG_DIR=%PROJECT_PATH%\Saved\Logs
 
-rem ---------- PARAMETRES ----------
-rem Usage :
-rem   Build_Override_Auto.bat [client|server] [iterate|full]
-rem Exemples :
-rem   Build_Override_Auto.bat client iterate
-rem   Build_Override_Auto.bat server full
-
 set TARGET_INPUT=%1
 set COOK_INPUT=%2
 
-if "%TARGET_INPUT%"=="" (
-    echo [ERREUR] Aucun type de build spécifié. Utilisez : client ou server
-    exit /b 1
-)
-if "%COOK_INPUT%"=="" (
-    echo [ERREUR] Aucun mode de cook spécifié. Utilisez : iterate ou full
-    exit /b 1
-)
-
-rem ---------- INTERPRETATION DES PARAMETRES ----------
 if /I "%TARGET_INPUT%"=="client" (
     set TARGET=Client
 ) else if /I "%TARGET_INPUT%"=="server" (
@@ -62,8 +41,6 @@ if /I "%COOK_INPUT%"=="iterate" (
     exit /b 1
 )
 
-rem ---------- CONFIGURATION DYNAMIQUE ----------
-
 for /f "tokens=1-4 delims=/ " %%a in ("%date%") do (
     set YYYY=%%d
     set MM=%%b
@@ -73,6 +50,7 @@ for /f "tokens=1-2 delims=: " %%a in ("%time%") do (
     set HH=%%a
     set MN=%%b
 )
+
 set DATETIME=%YYYY%-%MM%-%DD%_%HH%h%MN%m
 
 if /I "%TARGET%"=="Client" (
@@ -86,7 +64,7 @@ set ARCHIVE_DIR=%ARCHIVE_BASE%\%TARGET_SUBFOLDER%\%PLATFORM%_%CONFIG%_%DATETIME%
 set LOG_FILE=%LOG_DIR%\Build_%TARGET%_%DATETIME%.log
 
 echo ==========================================================
-echo  TCHOUPI ENGINE - BUILD AUTO
+echo  TCHOUPI BUILDER
 echo ==========================================================
 echo  Projet : %PROJECT_NAME%
 echo  Type : %TARGET%
@@ -97,14 +75,14 @@ echo  Archive : %ARCHIVE_DIR%
 echo  Log : %LOG_FILE%
 echo ==========================================================
 
-rem ---------- EXECUTION ----------
 pushd "%ENGINE_PATH%\Engine\Build\BatchFiles"
 
 RunUAT.bat BuildCookRun ^
  -project="%PROJECT_PATH%\%PROJECT_NAME%.uproject" ^
  -noP4 ^
+ -target="%PROJECT_NAME%%TARGET%" ^
  -targetplatform=%PLATFORM% ^
- -%TARGET%config=%CONFIG% ^
+ -config=%CONFIG% ^
  -build ^
  %COOK_MODE% ^
  -pak ^
