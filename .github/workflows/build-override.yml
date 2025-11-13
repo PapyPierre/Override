@@ -13,7 +13,8 @@ jobs:
     env:
       PROJECT_NAME: Override
       UE_ENGINE_PATH: D:\Work\Repo\UnrealEngine
-      BUILD_SCRIPT: D:\Work\Repo\Override-Repo\Override\Override\Build_Override_Auto.bat
+      BUILD_SCRIPT: D:\Work\Repo\Override-Repo\Override\Override\Tchoupi_Builder.bat
+      VERSION_UPDATE_SCRIPT: D:\Work\Repo\Override-Repo\Override\Override\Tchoupi_Updater.ps1
       OUTPUT_DIR: D:\Work\Build\Override\Build
       ZIP_OUTPUT: D:\Work\Build\Override\Zip
       
@@ -41,8 +42,8 @@ jobs:
       - name: Update Versioning
         shell: cmd
         run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & 'D:\Work\Repo\Override-Repo\Override\Override\UpdateVersion.ps1' }"
-
+          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & '$env:VERSION_UPDATE_SCRIPT' }"
+          
       - name: Build Client (Iterate)
         run: |
           call "${{ env.BUILD_SCRIPT }}" client iterate ${{ env.FULL_VERSION }}
