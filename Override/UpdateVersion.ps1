@@ -1,6 +1,6 @@
 # UpdateVersion.ps1
 param (
-    [string]$VersionFile = "D:\Work\Repo\Override\Override\VersionInfo.txt"
+    [string]$VersionFile = "D:\Work\Repo\Override-Repo\Override\Override\VersionInfo.txt"
 )
 
 # Lecture du fichier existant
@@ -22,7 +22,7 @@ $oldPatch = $version["Patch"]
 $previousBase = "$oldMajor.$oldMinor.$oldRevision"
 
 # Vérifie si un fichier de suivi de dernière version existe
-$lastVersionFile = "D:\Work\Repo\Override\Override\LastBaseVersion.txt"
+$lastVersionFile = "D:\Work\Repo\Override-Repo\Override\Override\LastBaseVersion.txt"
 if (Test-Path $lastVersionFile) {
     $lastBase = Get-Content $lastVersionFile -Raw
 } else {
