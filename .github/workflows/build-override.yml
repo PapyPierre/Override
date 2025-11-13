@@ -13,10 +13,10 @@ jobs:
     env:
       PROJECT_NAME: Override
       UE_ENGINE_PATH: D:\Work\Repo\UnrealEngine
-      BUILD_SCRIPT: D:\Work\Repo\Override\Override\Build_Override_Auto.bat
+      BUILD_SCRIPT: D:\Work\Repo\Override-Repo\Override\Override\Build_Override_Auto.bat
       OUTPUT_DIR: D:\Work\Build\Override\Build
       ZIP_OUTPUT: D:\Work\Build\Override\Zip
-
+      
     steps:
       - name: Set start time
         shell: pwsh
