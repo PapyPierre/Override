@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            D:\Work\Repo\Override\Override\Saved\DerivedDataCache
+            D:\Work\Repo\Override-Repo\Override\Override\Saved\DerivedDataCache
           key: ${{ runner.os }}-ddc-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-ddc-
@@ -41,7 +41,7 @@ jobs:
       - name: Update Versioning
         shell: cmd
         run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & 'D:\Work\Repo\Override\Override\UpdateVersion.ps1' }"
+          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & 'D:\Work\Repo\Override-Repo\Override\Override\UpdateVersion.ps1' }"
 
       - name: Build Client (Iterate)
         run: |
