@@ -40,9 +40,9 @@ jobs:
             ${{ runner.os }}-ddc-
 
       - name: Update Versioning
-        shell: cmd
+        shell: pwsh
         run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & '$env:VERSION_UPDATE_SCRIPT' }"
+          & $env:VERSION_UPDATE_SCRIPT
           
       - name: Build Client (Iterate)
         run: |
