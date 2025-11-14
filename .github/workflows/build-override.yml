@@ -18,6 +18,12 @@ jobs:
       ZIP_OUTPUT: D:\Work\Build\Override\Zip
 
     steps:
+      - name: Set start time
+        shell: pwsh
+        run: |
+          $start = Get-Date
+          echo "BUILD_START=$($start.ToUniversalTime().ToString('o'))" | Out-File -FilePath $env:GITHUB_ENV -Append
+        
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -31,8 +37,8 @@ jobs:
           key: ${{ runner.os }}-ddc-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-ddc-
-            
-      - name: Update version number
+
+      - name: Update Versioning
         shell: cmd
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { & 'D:\Work\Repo\Override\Override\UpdateVersion.ps1' }"
@@ -47,17 +53,47 @@ jobs:
           call "${{ env.BUILD_SCRIPT }}" server full
         shell: cmd
 
-      - name: Create ZIP archives
-        shell: cmd
-        run: |
-          if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
-          for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
-            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=1 -mmt=on
-            echo Zipped: %%~nD
-          )
+#      - name: Create ZIP archives
+#        shell: cmd
+#        run: |
+#          if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
+#          for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
+#            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=1 -mmt=on
+#            echo Zipped: %%~nD
+#          )
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Override-${{ env.FULL_VERSION }}
-          path: ${{ env.ZIP_OUTPUT }}
+#      - name: Upload Build Artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: Override-${{ env.FULL_VERSION }}
+#          path: ${{ env.ZIP_OUTPUT }}
+
+      - name: Send Discord Notification
+        if: always()
+        shell: pwsh
+        run: |
+          $startTime = [DateTime]::Parse($env:BUILD_START)
+          $endTime = Get-Date
+          $duration = $endTime - $startTime
+          $durationFormatted = "{0:D2}h:{1:D2}m:{2:D2}s" -f $duration.Hours, $duration.Minutes, $duration.Seconds
+          
+          $status = '${{ job.status }}'
+          $color = 0x00ff00
+          if ($status -eq 'failure') { $color = 0xff0000 }
+          elseif ($status -eq 'cancelled') { $color = 0x808080 }
+          
+          $payload = @{
+            embeds = @(@{
+              title = '${{ github.workflow }}'
+              description = "Build terminé avec le statut **$status**"
+              color = $color
+              fields = @(
+                @{ name = 'Branch'; value = '${{ github.ref_name }}' }
+                @{ name = 'Version'; value = "$($env:FULL_VERSION)" },
+                @{ name = 'Durée'; value = "$durationFormatted" },
+                @{ name = 'Logs'; value = "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+              )
+            })
+          } | ConvertTo-Json -Depth 5
+          
+          Invoke-RestMethod -Uri '${{ secrets.DISCORD_TCHOUPI_NOTIFIER }}' -Method Post -ContentType 'application/json' -Body $payload

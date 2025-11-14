@@ -351,6 +351,12 @@ void APlayerCharacter::UnselectHack()
 	SelectedHackIndex = 0;
 }
 
+void APlayerCharacter::Launch(const FVector& Force)
+{
+	GetCharacterMovement()->Velocity = FVector::ZeroVector;
+	LaunchCharacter(Force, true, true);
+}
+
 ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 {
 	return GetPlayerState<ACustomPlayerState>();
