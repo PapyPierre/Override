@@ -9,8 +9,8 @@ rem  Auteur : Pierre Ferrari
 rem ==========================================================
 
 set PROJECT_NAME=Override
-set PROJECT_PATH=D:\Work\Repo\Override\Override
-set ENGINE_PATH=D:\Work\Repo\UnrealEngine
+set PROJECT_PATH=D:\Work\Repo\Override-Repo\Override\Override
+set ENGINE_PATH=D:\Work\Repo\Tchoupi Source Light\UnrealEngine
 set PLATFORM=Win64
 set CONFIG=Development
 set ARCHIVE_BASE=D:\Work\Build\Override\Build
