@@ -85,6 +85,8 @@ public:
 	UAnimMontage* VaultMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
 	float ParkourDistanceDetection = 70.f;
+
+	
 #pragma endregion
 
 #pragma region Ping

@@ -116,7 +116,7 @@ public:
 	void ResetJumpValues();
 #pragma endregion
 
-#pragma region EdgeGrab
+#pragma region Parkour
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "CMC|EdgeGrab")
 	bool bGrabbedLedge = false;
@@ -127,16 +127,19 @@ public:
 	float MaxVaultHeight;
 	float RaycastStartHeight;
 	float RaycastEndHeight;
-
+	
 	UAnimMontage* EdgeClimbMontage;
 	UAnimMontage* VaultMontage;
 	float ParkourDistanceDetection = 70.f;
+
+	UFUNCTION()
+	void OnMoveNoOp() {}
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName);
+	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName, AActor* Wall, APlayerCharacter* Player);
 	
 	UFUNCTION(Client, Reliable)
-	void RPC_WallClimbMoveTo(FVector TargetRelativeLocation, FRotator TargetRotation, FLatentActionInfo JumpDelayInfo);
+	void RPC_WallClimbMoveTo(FVector TargetRelativeLocation, FRotator TargetRotation);
 
 	UFUNCTION(Server, Reliable)
 	void Server_CallVaultAnimation(AActor* Actor);
@@ -150,7 +153,9 @@ public:
 	AActor* ParkourWallDetection(float &Thickness, float &Height);
 	FHitResult SweepResult;
 	AActor* HitSecondWallActor;
-	bool bMontagePending = false;	
+	bool bMontagePending = false;
+	bool bDebugLedge = false;
+	
 #pragma endregion
 
 private:
@@ -185,6 +190,7 @@ private:
 	virtual void UnCrouch(bool bClientSimulation = true) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void DebugPrintClientIds();
 
 	FVector CharaLocation;
 	FVector CharaForward;
