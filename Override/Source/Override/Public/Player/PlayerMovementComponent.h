@@ -121,8 +121,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "CMC|EdgeGrab")
 	bool bGrabbedLedge = false;
 	
-	float GrabHeight = 0;
-
 	float MaxVaultThickness;
 	float MaxVaultHeight;
 	float RaycastStartHeight;
@@ -139,7 +137,10 @@ public:
 	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName, AActor* Wall, APlayerCharacter* Player);
 	
 	UFUNCTION(Client, Reliable)
-	void RPC_WallClimbMoveTo(FVector TargetRelativeLocation, FRotator TargetRotation, AActor* Wall);
+	void RPC_WallClimbMoveTo(AActor* Wall);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_CapsuleMoveTo(UCapsuleComponent* Capsule, FHitResult HitVertical, FVector Location);
 
 	UFUNCTION(Server, Reliable)
 	void Server_CallVaultAnimation(AActor* Actor);
@@ -153,8 +154,9 @@ public:
 	AActor* ParkourWallDetection(float &Thickness, float &Height);
 	FHitResult SweepResult;
 	AActor* HitSecondWallActor;
+	AActor* MultiPlayerHitWall;
 	bool bMontagePending = false;
-	bool bDebugLedge = true;
+	bool bDebugLedge = false;
 	
 #pragma endregion
 
