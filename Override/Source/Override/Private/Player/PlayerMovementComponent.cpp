@@ -197,18 +197,17 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 					SetMovementMode(MOVE_None);
 
 					if (EdgeClimbMontage && CharacterRef && CharacterRef->GetMesh())
-					{
+					{						
 						if (AnimInstance && CharacterRef->HasAuthority())
 						{
+							HitSecondWallActor = SweepResult.GetActor();
+							
 							bGrabbedLedge = true;
 
 							FVector TargetLocAndFwd = CharaLocation + CharaForward * 50;
 							FVector TargetRelativeLocation = FVector(TargetLocAndFwd.X, TargetLocAndFwd.Y, CharaLocation.Z + 154);
-
-							HitSecondWallActor = SweepResult.GetActor();
-							HitSecondWallActor->SetActorEnableCollision(false);
 							
-							/*FLatentActionInfo JumpDelayInfo;
+							FLatentActionInfo JumpDelayInfo;
 							JumpDelayInfo.CallbackTarget = this;
 							JumpDelayInfo.ExecutionFunction = FName("OnMoveNoOp");
 							JumpDelayInfo.UUID = 999;
@@ -222,12 +221,11 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 								EMoveComponentAction::Move,
 								JumpDelayInfo
 							);
-							*/
 
-							//RPC_WallClimbMoveTo(TargetRelativeLocation, CharacterRef->GetActorRotation());
+							RPC_WallClimbMoveTo(TargetRelativeLocation, CharacterRef->GetActorRotation(), HitSecondWallActor);
 
 							FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageWallClimbEnded);
-							Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName,SweepResult.GetActor(),CharacterRef);
+							Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName,HitSecondWallActor,CharacterRef);
 						}
 					}
 				}
@@ -366,8 +364,18 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (HitSecondWallActor)
+	{
+		if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
+		{
+			Capsule->MoveIgnoreActors.Remove(HitSecondWallActor);
+		}
+	}
+	
 	JumpCount--;
 	bGrabbedLedge = false;
+	bMontagePending = false;
+	HitSecondWallActor = nullptr;
 	SetMovementMode(MOVE_Walking);
 }
 
@@ -408,10 +416,8 @@ void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool b
 {
 	if (HitSecondWallActor)
 	{
-		UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent();
-		if (Capsule)
+		if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
 		{
-			DebugPrintClientIds();
 			Capsule->MoveIgnoreActors.Remove(HitSecondWallActor);
 		}
 	}
@@ -420,10 +426,16 @@ void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool b
 	HitSecondWallActor = nullptr;
 }
 
-void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(FVector TargetRelativeLocation, FRotator TargetRotation)
+void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(FVector TargetRelativeLocation, FRotator TargetRotation, AActor* Wall)
 {
 	if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
 	{
+		UPrimitiveComponent* WallComp = Wall->FindComponentByClass<UPrimitiveComponent>();
+		if (Capsule && WallComp)
+		{
+			Capsule->MoveIgnoreActors.Add(Wall);
+		}
+		
 		FLatentActionInfo JumpDelayInfo;
 		JumpDelayInfo.CallbackTarget = this;
 		JumpDelayInfo.ExecutionFunction = FName("OnMoveNoOp");

@@ -139,7 +139,7 @@ public:
 	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName, AActor* Wall, APlayerCharacter* Player);
 	
 	UFUNCTION(Client, Reliable)
-	void RPC_WallClimbMoveTo(FVector TargetRelativeLocation, FRotator TargetRotation);
+	void RPC_WallClimbMoveTo(FVector TargetRelativeLocation, FRotator TargetRotation, AActor* Wall);
 
 	UFUNCTION(Server, Reliable)
 	void Server_CallVaultAnimation(AActor* Actor);
@@ -154,7 +154,7 @@ public:
 	FHitResult SweepResult;
 	AActor* HitSecondWallActor;
 	bool bMontagePending = false;
-	bool bDebugLedge = false;
+	bool bDebugLedge = true;
 	
 #pragma endregion
 
