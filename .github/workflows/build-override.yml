@@ -35,7 +35,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            C:\actions-runner\Override-Repo\Override\Override\Saved\DerivedDataCache
+            C:\actions-runner\Override\Override\Override\Saved\DerivedDataCache
           key: ${{ runner.os }}-ddc-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-ddc-
