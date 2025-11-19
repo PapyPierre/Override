@@ -130,7 +130,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Aim")
 	void StopAimWeapon();
 	
-	UFUNCTION(Server, Reliable, WithValidation)
+	UFUNCTION(Server, Reliable)
 	void ServerSetAim(bool bNewAiming);
 
 	bool ServerSetAim_Validate(bool bNewAiming);
