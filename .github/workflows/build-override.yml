@@ -12,6 +12,7 @@ jobs:
 
     env:
       PROJECT_NAME: Override
+      PROJECT_PATH: C:\actions-runner\_work\Override\Override\Override
       UE_ENGINE_PATH: C:\partage\Tchoupi Source Light\UnrealEngine
       BUILD_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Builder.bat
       VERSION_UPDATE_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Updater.ps1
@@ -59,7 +60,7 @@ jobs:
       - name: Build Editor
         shell: cmd
         run: |
-          call "${{ env.UE_ENGINE_PATH }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" OverrideEditor Win64 Development -Project="${{ env.OUTPUT_DIR }}\${{ env.PROJECT_NAME }}.uproject"
+          call "${{ env.UE_ENGINE_PATH }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" OverrideEditor Win64 Development -Project="${{ env.PROJECT_PATH }}\${{ env.PROJECT_NAME }}.uproject"
 
       - name: Build Client (Iterate)
         run: |
