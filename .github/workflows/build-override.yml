@@ -17,6 +17,7 @@ jobs:
       VERSION_UPDATE_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Updater.ps1
       OUTPUT_DIR: C:\Users\SIG5-PROJ05\Desktop\Build
       ZIP_OUTPUT: C:\partage\Zip Client
+      DOTNET_DISABLE_VULNERABILITY_ANALYSIS: true
       
     steps:
       - name: Set start time
@@ -34,7 +35,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            C:\actions-runner\Override-Repo\Override\Override\Saved\DerivedDataCache
+            C:\actions-runner\_work\Override\Override\Override\Saved\DerivedDataCache
           key: ${{ runner.os }}-ddc-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-ddc-
