@@ -102,6 +102,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 			FCollisionObjectQueryParams ObjectQuery;
 			ObjectQuery.AddObjectTypesToQuery(ECC_WorldStatic);
+			ObjectQuery.AddObjectTypesToQuery(ECC_GameTraceChannel1);
 
 			bool bHit = GetWorld()->SweepSingleByObjectType(
 				SweepResult,
@@ -162,6 +163,12 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 						}
 					}
 					// =====================
+				}
+
+				// Ignorer les Players
+				if (HitVertical.bBlockingHit && HitVertical.GetActor() && HitVertical.GetActor()->IsA(APlayerCharacter::StaticClass()))
+				{
+					HitVertical.bBlockingHit = false;
 				}
 
 
@@ -391,16 +398,17 @@ void UPlayerMovementComponent::Multicast_CapsuleMoveTo_Implementation(UCapsuleCo
 
 void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (HitSecondWallActor)
+	if (MultiPlayerHitWall)
 	{
 		if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
 		{
-			Capsule->MoveIgnoreActors.Remove(HitSecondWallActor);
+			Capsule->MoveIgnoreActors.Remove(MultiPlayerHitWall);
 		}
 	}
 	
 	bMontagePending = false;
 	HitSecondWallActor = nullptr;
+	MultiPlayerHitWall = nullptr;
 }
 
 void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(AActor* Wall)
@@ -441,17 +449,27 @@ bool UPlayerMovementComponent::CanVaultOrClimb()
 AActor* UPlayerMovementComponent::ParkourWallDetection(float& Thickness, float& Height)
 {	
     FVector Start = CharaLocation;
-    FVector End = Start + CharaForward * ParkourDistanceDetection;
+    FVector End   = Start + CharaForward * ParkourDistanceDetection;
+
+    FCollisionObjectQueryParams ObjQuery;
+    ObjQuery.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjQuery.AddObjectTypesToQuery(ECC_GameTraceChannel1);
 
     // ===== WALL RANGE DETECTION =====
     FHitResult FrontWallHit;
-    bool bWallInFront = GetWorld()->LineTraceSingleByChannel(
+    bool bWallInFront = GetWorld()->LineTraceSingleByObjectType(
         FrontWallHit,
         Start,
         End,
-        ECC_Visibility,
+        ObjQuery,
         TraceParams
     );
+
+    // Ignorer les Players
+    if (bWallInFront && FrontWallHit.GetActor() && FrontWallHit.GetActor()->IsA(APlayerCharacter::StaticClass()))
+    {
+        bWallInFront = false;
+    }
 
     // ===== DEBUG FRONT WALL =====
     if (bDebugLedge)
@@ -470,13 +488,19 @@ AActor* UPlayerMovementComponent::ParkourWallDetection(float& Thickness, float& 
 
         // ===== SECOND TRACE HORIZONTAL =====
         FHitResult HitHorizontal;
-        bool bWallHorizontalHit = GetWorld()->LineTraceSingleByChannel(
+        bool bWallHorizontalHit = GetWorld()->LineTraceSingleByObjectType(
             HitHorizontal,
             End,
             Start,
-            ECC_Visibility,
+            ObjQuery,
             TraceParams
         );
+
+        // Ignorer les Players
+        if (bWallHorizontalHit && HitHorizontal.GetActor() && HitHorizontal.GetActor()->IsA(APlayerCharacter::StaticClass()))
+        {
+            bWallHorizontalHit = false;
+        }
 
         // ===== DEBUG HORIZONTAL =====
         if (bDebugLedge)
@@ -491,13 +515,19 @@ AActor* UPlayerMovementComponent::ParkourWallDetection(float& Thickness, float& 
 
         // ===== SECOND TRACE VERTICAL =====
         FHitResult HitVertical;
-        bool bWallVerticalHit = GetWorld()->LineTraceSingleByChannel(
+        bool bWallVerticalHit = GetWorld()->LineTraceSingleByObjectType(
             HitVertical,
             Start + CharaUp * 500.f,
             Start,
-            ECC_Visibility,
+            ObjQuery,
             TraceParams
         );
+
+        // Ignorer les Players
+        if (bWallVerticalHit && HitVertical.GetActor() && HitVertical.GetActor()->IsA(APlayerCharacter::StaticClass()))
+        {
+            bWallVerticalHit = false;
+        }
 
         // ===== DEBUG VERTICAL =====
         if (bDebugLedge)
