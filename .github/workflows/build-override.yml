@@ -30,6 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
+          clean: false
 
       - name: Cache Unreal DerivedDataCache
         uses: actions/cache@v4
