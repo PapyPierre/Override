@@ -55,7 +55,10 @@ public:
 #pragma region Slide
 
 	float TimeSliding = 0.f;
+	
+	UPROPERTY(Replicated)
 	bool bIsSliding = false;
+	
 	bool bPendingCancelSlide = false;
 	bool bCoolDownFinished = false;
 
