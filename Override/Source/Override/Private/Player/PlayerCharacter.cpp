@@ -139,11 +139,6 @@ void APlayerCharacter::OnRep_IsAimingWeapon()
 	UpdateAimingSettings();
 }
 
-bool APlayerCharacter::ServerSetAim_Validate(bool bNewAiming)
-{
-	return true;
-}
-
 void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
 {
 	SetAimingState(bNewAiming);

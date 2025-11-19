@@ -94,13 +94,12 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 #pragma region WALL CLIMB DETECTION
 		if ((Velocity.Z < 0.0f || Velocity.Z > 0.0f) && !bGrabbedLedge)
 		{
-			FCollisionShape Shape = FCollisionShape::MakeBox(FVector(20, 5, 1));
+			FCollisionShape Shape = FCollisionShape::MakeBox(FVector(20, 5, 20));
 			FQuat BoxRotation = CharacterRef->GetActorQuat();
 
 			FVector StartLocation = (CharaLocation + CharaForward * (ParkourDistanceDetection / 2)) + CharaUp * RaycastStartHeight;
 			FVector EndLocation   = (CharaLocation + CharaForward * (ParkourDistanceDetection / 2)) + CharaUp * RaycastEndHeight;
 
-			// Object query : détecte seulement les objets statiques
 			FCollisionObjectQueryParams ObjectQuery;
 			ObjectQuery.AddObjectTypesToQuery(ECC_WorldStatic);
 
@@ -120,7 +119,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				DrawDebugBox(
 					GetWorld(),
 					(StartLocation + EndLocation) / 2,
-					FVector(20, 5, 1),
+					FVector(20, 5, 20),
 					BoxRotation,
 					FColor::Red,
 					false,
@@ -134,92 +133,56 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 			if (bHit && SweepResult.Distance > 0)
 			{
-				StartLocation = CharaLocation + CharaForward * 5;
-				StartLocation = FVector(StartLocation.X, StartLocation.Y, SweepResult.ImpactPoint.Z);
-				EndLocation = SweepResult.Location + CharaForward * 5;
-				Shape = FCollisionShape::MakeBox(FVector(5, 5, 5));
+				FVector OriginBounds;
+				FVector BoxExtent;
+				SweepResult.GetActor()->GetActorBounds(false, OriginBounds, BoxExtent);
 
-				bool bHitSecond = GetWorld()->SweepSingleByObjectType(
-					SweepResult,
-					StartLocation,
-					EndLocation,
-					CharacterRef->GetActorRotation().Quaternion(),
-					ObjectQuery,
-					Shape,
-					TraceParams
-				);
+				FVector Start = SweepResult.ImpactPoint + CharaForward * 10;
+				Start.Z -= BoxExtent.Z / 2;
 
-				// ======= DEBUG =======
-				if (bDebugLedge)
+				FHitResult HitVertical;
+				if (CharacterRef->HasAuthority())
 				{
-					DrawDebugBox(
-						GetWorld(),
-						(StartLocation + EndLocation) / 2,
-						FVector(5, 5, 5),
-						CharacterRef->GetActorQuat(),
-						FColor::Green,
-						false,
-						2.0f,
-						0,
-						1.0f
+					// ===== SECOND TRACE VERTICAL =====
+					bool bWallVerticalHit = GetWorld()->LineTraceSingleByObjectType(
+						HitVertical,
+						Start + CharaUp * 500.f,
+						Start,
+						ObjectQuery,
+						TraceParams
 					);
-					DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 2.0f, 0, 1.0f);
-				}
-				// =====================
 
-				if (bHitSecond)
-				{
-					
-					FVector OriginBounds;
-					FVector BoxExtent;
-					SweepResult.GetActor()->GetActorBounds(false, OriginBounds, BoxExtent);
-
-					FVector Start = SweepResult.ImpactPoint + CharaForward * 10;
-					Start.Z -= BoxExtent.Z / 2;
-
-					FHitResult HitVertical;
-					if (CharacterRef->HasAuthority())
+					// ===== DEBUG VERTICAL =====
+					if (bDebugLedge)
 					{
-						// ===== SECOND TRACE VERTICAL =====
-						bool bWallVerticalHit = GetWorld()->LineTraceSingleByObjectType(
-							HitVertical,
-							Start + CharaUp * 500.f,
-							Start,
-							ObjectQuery,
-							TraceParams
-						);
-
-						// ===== DEBUG VERTICAL =====
-						if (bDebugLedge)
+						DrawDebugLine(GetWorld(), Start + CharaUp * 500.f, Start, FColor::Purple, false, 20.0f, 0, 1.0f);
+						if (bWallVerticalHit)
 						{
-							DrawDebugLine(GetWorld(), Start + CharaUp * 500.f, Start, FColor::Purple, false, 20.0f, 0, 1.0f);
-							if (bWallVerticalHit)
-							{
-								DrawDebugSphere(GetWorld(), HitVertical.ImpactPoint, 10.0f, 12, FColor::Cyan, false, 20.0f);
-							}
+							DrawDebugSphere(GetWorld(), HitVertical.ImpactPoint, 10.0f, 12, FColor::Cyan, false, 20.0f);
 						}
 					}
+					// =====================
+				}
 
 
-					if (EdgeClimbMontage && CharacterRef && CharacterRef->GetMesh() && HitVertical.bBlockingHit)
+				if (EdgeClimbMontage && CharacterRef && CharacterRef->GetMesh() && HitVertical.bBlockingHit)
+				{
+					StopMovementImmediately();
+					SetMovementMode(MOVE_None);
+					if (AnimInstance && CharacterRef->HasAuthority())
 					{
-						StopMovementImmediately();
-						SetMovementMode(MOVE_None);
-						if (AnimInstance && CharacterRef->HasAuthority())
-						{
-							MultiPlayerHitWall = SweepResult.GetActor();
-							bGrabbedLedge = true;
+						MultiPlayerHitWall = SweepResult.GetActor();
+						bGrabbedLedge = true;
 
-							UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent();
-							float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+						UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent();
+						float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
 							
-							FVector TargetRelativeLocation = FVector(HitVertical.ImpactPoint.X, HitVertical.ImpactPoint.Y, HitVertical.ImpactPoint.Z + HalfHeight);
+						FVector TargetRelativeLocation = FVector(HitVertical.ImpactPoint.X, HitVertical.ImpactPoint.Y, HitVertical.ImpactPoint.Z + HalfHeight);
 							
-							Multicast_CapsuleMoveTo(Capsule,HitVertical, TargetRelativeLocation);
+						Multicast_CapsuleMoveTo(Capsule,HitVertical, TargetRelativeLocation);
 							
-							FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageWallClimbEnded);
-							Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName,MultiPlayerHitWall,this->CharacterRef);
-						}
+						FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageWallClimbEnded);
+						Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName,MultiPlayerHitWall,this->CharacterRef);
 					}
 				}
 			}
@@ -1112,6 +1075,7 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
 	DOREPLIFETIME(UPlayerMovementComponent, bGrabbedLedge);
+	DOREPLIFETIME(UPlayerMovementComponent, bIsSliding);
 }
 
 
