@@ -59,7 +59,7 @@ jobs:
       - name: Build Editor
         shell: cmd
         run: |
-          call "${{ env.UE_ENGINE_PATH }}\Engine\Binaries\DotNET\UnrealBuildTool.exe" OverrideEditor Win64 Development -Project="${{ env.OUTPUT_DIR }}\${{ env.PROJECT_NAME }}.uproject"
+          call "${{ env.UE_ENGINE_PATH }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" OverrideEditor Win64 Development -Project="${{ env.OUTPUT_DIR }}\${{ env.PROJECT_NAME }}.uproject"
 
       - name: Build Client (Iterate)
         run: |
