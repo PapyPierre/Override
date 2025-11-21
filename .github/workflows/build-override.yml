@@ -33,9 +33,6 @@ jobs:
           lfs: true
           clean: false
 
-      - name: Pull LFS
-        run: git lfs pull
-
       - name: Cache Unreal DerivedDataCache
         uses: actions/cache@v4
         with:
