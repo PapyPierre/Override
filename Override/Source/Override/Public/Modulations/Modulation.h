@@ -50,13 +50,16 @@ public:
 	UPROPERTY(EditInstanceOnly, Category="Default", meta=(MakeEditWidget))
 	TArray<FTransform> Ends;
 
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FTransform CurrentStart;
+
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FTransform CurrentEnd;
 
 	UPROPERTY(EditAnywhere, Category="Default")
 	UCurveFloat* ModSpeedCurve;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	ModState CurrentState = ModState::Stopped;
 
 	UPROPERTY(EditAnywhere, Category="Default")
@@ -117,4 +120,6 @@ private:
 	void ApplyImpulseOnPlayer() const;
 
 	void ManageHackCastingCooldown(float DeltaTime);
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
