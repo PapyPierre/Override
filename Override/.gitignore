@@ -71,6 +71,14 @@ Saved/*
 Intermediate/*
 Plugins/**/Intermediate/*
 
+# FMOD
+Content/FMOD
+!Content/FMOD/Desktop
+!Content/FMOD/Mobile
+!Plugins/FMODStudio/Binaries/*.dll
+!Plugins/FMODStudio/Binaries/*.lib
+!Plugins/FMODStudioNiagara/Binaries/*.dll
+
 # Cache files for the editor to use
 DerivedDataCache/*
 

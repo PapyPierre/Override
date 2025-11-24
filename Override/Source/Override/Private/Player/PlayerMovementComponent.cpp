@@ -664,10 +664,12 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 bool UPlayerMovementComponent::SlideLineTrace()
 {
-	FVector End = (CharacterRef->GetActorUpVector() * -200) + CharacterRef->GetActorLocation();
+	FVector UpWorld = FVector(0.f, 0.f, 1.f);
+	FVector End = (UpWorld * -200) + CharacterRef->GetActorLocation();
+	FVector Start = (UpWorld * 200) + CharacterRef->GetActorLocation();
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(CharacterRef);
-	bool bSlideHitResult = GetWorld()->LineTraceSingleByChannel(SlideHit, CharacterRef->GetActorLocation(), End, ECC_WorldStatic, QueryParams);
+	bool bSlideHitResult = GetWorld()->LineTraceSingleByChannel(SlideHit, Start, End, ECC_WorldStatic, QueryParams);
 	Impact = UKismetMathLibrary::Cross_VectorVector(SlideHit.ImpactNormal, CharacterRef->GetActorRightVector());
 	Impact *= -1.0;
 	return bSlideHitResult;
@@ -711,6 +713,13 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
+	if (bResult)
+	{
+		if (Impact.Z <= -0.20f && VelocityAtCrouch.Size() > DefaultMaxWalkSpeedCrouched)
+		{
+			return true;
+		}
+	}
 	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, 100);
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	return bResult;
