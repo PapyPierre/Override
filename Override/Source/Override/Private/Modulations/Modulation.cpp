@@ -4,6 +4,7 @@
 #include "Hacks/GameplayHackTargetData.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Modulations/ModulationGroup.h"
+#include <Net/UnrealNetwork.h>
 
 struct FGameplayHackTargetData;
 
@@ -100,15 +101,15 @@ void AModulation::HandleLock(float DeltaTime)
 	}
 }
 
-void AModulation::ChangeState(ModState newState)
+void AModulation::ChangeState(ModState NewState)
 {
 	PreviousState = CurrentState;
-	CurrentState = newState;
+	CurrentState = NewState;
 
-	if (newState == ModState::InCD) CdTime = 0;
-	if (newState == ModState::Locked) LockTime = 0;
+	if (NewState == ModState::InCD) CdTime = 0;
+	if (NewState == ModState::Locked) LockTime = 0;
 
-	OnStateChanged(newState);
+	OnStateChanged(NewState);
 }
 
 void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration)
@@ -186,6 +187,15 @@ void AModulation::ManageHackCastingCooldown(float DeltaTime)
 		CastingTime = 0;
 		HackCastingDuration = 0;
 	}
+}
+
+void AModulation::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AModulation, CurrentState);
+	DOREPLIFETIME(AModulation, CurrentStart);
+	DOREPLIFETIME(AModulation, CurrentEnd);
 }
 
 void AModulation::Tick(float DeltaTime)
