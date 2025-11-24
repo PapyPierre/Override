@@ -53,9 +53,7 @@ void ACustomHUD::DrawHUD()
 	// Right
 	DrawRect(MaskColor, MaxX, MinY, ViewportX - MaxX, MaxY - MinY);
 	*/
-
-
-	float radius = TargetingComp->MaxDistFromCursor;
+	float radius = TargetingComp->MaxDistFromCursor / 2;
 	
 	const float Step = 2 * PI / 32;
 	FVector2D PrevPoint(ViewportX/2 + radius, ViewportY/2);
