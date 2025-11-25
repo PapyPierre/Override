@@ -718,7 +718,7 @@ bool UPlayerMovementComponent::CanSlide()
 		if (Impact.Z <= -0.20f && VelocityAtCrouch.Size() > DefaultMaxWalkSpeedCrouched)
 		{
 			return true;
-		}
+		}	
 	}
 	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, 100);
 	bResult &= Impact.Z <= SlopeToleranceValue;
