@@ -25,7 +25,7 @@ public:
 	float ScreenPadding = -100;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float MaxDistFromCursor = 50; // In Screen Space
+	float MaxDistFromCursor = 40; // In Screen Space
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -40,7 +40,7 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float MaxTargetingDistance = 30000;
+	float MaxTargetingDistance = 1000;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float SimulationDetectionDistance = 800;
@@ -54,9 +54,7 @@ private:
 
 	void FindPointInSight(float range);
 
-	TArray<FVector> ComputeTraceDirections(const float AngleDegrees) const;
-
-	TArray<AActor*> FindActorsWithLineTraces(float Range);
+	AActor* GetActorInSight(float Range) const;
 
 	//	Check if is in the viewport rectangle expanded by Padding.
 	//	Positive Padding lets you count actors slightly outside the screen as still “in view”.
