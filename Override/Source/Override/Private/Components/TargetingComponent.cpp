@@ -36,15 +36,30 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 	if (!PlayerController) return;
 	if (!PlayerController->GetLocalPlayer()) return;
 
-	TArray<AActor*> TargetableHitByTrace = FindActorsInConeMesh(TargetingRange);
+	TArray<AActor*> PotentialTargets;
+	AActor* ActorOnHover = GetActorInSight(TargetingRange);
 
-	if (TargetableHitByTrace.Num() == 0)
+	if (ActorOnHover != nullptr)
+	{
+		PotentialTargets.Add(ActorOnHover);
+	}
+	else
+	{
+		for (AActor* ActorInRange : FindTargetablesInRange(TargetingRange))
+		{
+			if (!IsActorTargetable(PlayerController, ActorInRange, ScreenPadding, MaxDistFromCursor)) continue;
+			
+			PotentialTargets.Add(ActorInRange);
+		}
+	}
+
+	if (PotentialTargets.Num() == 0)
 	{
 		ClearCurrentTargets();
 		return;
 	}
 
-	AActor* Target = GetClosestActorToCursor(PlayerController, TargetableHitByTrace);
+	AActor* Target = GetClosestActorToCursor(PlayerController, PotentialTargets);
 
 	if (CurrentTargets.Num() > 0)
 	{
@@ -70,229 +85,33 @@ void UTargetingComponent::FindPointInSight(float range)
 	//DrawDebugSphere(GetWorld(), PointInSight, 5.0f, 24, FColor::Blue, false);
 }
 
-TArray<FVector> UTargetingComponent::ComputeTraceDirections(const float AngleDegrees) const
+AActor* UTargetingComponent::GetActorInSight(const float Range) const
 {
-	TArray<FVector> Directions;
-
-	const auto* CamPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransformComponent();
-
-	const FVector Forward = CamPos->GetForwardVector();
-	const FVector Right = CamPos->GetRightVector();
-	const FVector Up = CamPos->GetUpVector();
-
-	Directions.Add(Forward);
-
-	const float DiagonalAngle = FMath::RadiansToDegrees(
-		FMath::Atan(FMath::Tan(FMath::DegreesToRadians(AngleDegrees)) / FMath::Sqrt(2.f)));
-
-	const FVector UpDir = Forward.RotateAngleAxis(AngleDegrees, Right).GetSafeNormal();
-	const FVector DownDir = Forward.RotateAngleAxis(-AngleDegrees, Right).GetSafeNormal();
-	const FVector RightDir = Forward.RotateAngleAxis(AngleDegrees, Up).GetSafeNormal();
-	const FVector LeftDir = Forward.RotateAngleAxis(-AngleDegrees, Up).GetSafeNormal();
-
-	Directions.Add(UpDir);
-	Directions.Add(DownDir);
-	Directions.Add(RightDir);
-	Directions.Add(LeftDir);
-
-	FVector UpRight = Forward;
-	UpRight = UpRight.RotateAngleAxis(DiagonalAngle, Right);
-	UpRight = UpRight.RotateAngleAxis(DiagonalAngle, Up);
-
-	FVector UpLeft = Forward;
-	UpLeft = UpLeft.RotateAngleAxis(DiagonalAngle, Right);
-	UpLeft = UpLeft.RotateAngleAxis(-DiagonalAngle, Up);
-
-	FVector DownRight = Forward;
-	DownRight = DownRight.RotateAngleAxis(-DiagonalAngle, Right);
-	DownRight = DownRight.RotateAngleAxis(DiagonalAngle, Up);
-
-	FVector DownLeft = Forward;
-	DownLeft = DownLeft.RotateAngleAxis(-DiagonalAngle, Right);
-	DownLeft = DownLeft.RotateAngleAxis(-DiagonalAngle, Up);
-
-	Directions.Add(UpRight.GetSafeNormal());
-	Directions.Add(UpLeft.GetSafeNormal());
-	Directions.Add(DownRight.GetSafeNormal());
-	Directions.Add(DownLeft.GetSafeNormal());
-
-	return Directions;
-}
-
-TArray<AActor*> UTargetingComponent::FindActorsWithLineTraces(const float Range)
-{
-	TArray<AActor*> HitActors;
-
 	const auto* CamPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransformComponent();
 
 	const FVector Start = CamPos->GetComponentLocation();
+	const FVector Forward = CamPos->GetForwardVector();
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
 
 	FHitResult Hit;
 
-	for (const FVector& Dir : ComputeTraceDirections(Angle))
+	const FVector End = Start + (Forward * Range);
+
+	if (GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ECC_GameTraceChannel1, QueryParams))
 	{
-		const FVector End = Start + (Dir * Range);
+		AActor* HitActor = Hit.GetActor();
 
-		if (GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ECC_GameTraceChannel1, QueryParams))
+		if (HitActor && HitActor->Implements<UTargetable>())
 		{
-			AActor* HitActor = Hit.GetActor();
-
-			if (HitActor && HitActor->Implements<UTargetable>())
-			{
-				// Foward Trace Gets Priority
-				if (Dir == CamPos->GetForwardVector())
-				{
-					HitActors.Empty();
-					HitActors.Add(HitActor);
-					return HitActors;
-				}
-
-				HitActors.Add(HitActor);
-			}
-
-			//DrawDebugLine(GetWorld(), Start, End, FColor::Cyan, false, 0.1f);
+			return HitActor;
 		}
 	}
 
-	return HitActors;
-}
-
-TArray<AActor*> UTargetingComponent::FindActorsInCynlinderMesh(float Range)
-{
-	TArray<AActor*> FoundActors;
-
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PC) return FoundActors;
-
-	FVector CamLoc;
-	FRotator CamRot;
-	PC->GetPlayerViewPoint(CamLoc, CamRot);
-
-	const FVector Forward = CamRot.Vector();
-
-	const FVector Start = CamLoc;
-	const FVector End = CamLoc + Forward * Range;
-
-	const float Radius = MaxDistFromCursor;
-	const float HalfHeight = Range * 0.5f;
-
-	const FVector CapsuleCenter = (Start + End) * 0.5f;
-	const FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Forward).ToQuat();
-
-	TArray<FOverlapResult> Hits;
-
-	FCollisionShape ColShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
-
-	GetWorld()->OverlapMultiByChannel(
-		Hits,
-		CapsuleCenter,
-		CapsuleRot,
-		ECC_GameTraceChannel1,
-		ColShape,
-		QueryParams
-	);
-
-	DrawDebugCapsule(
-		GetWorld(),
-		CapsuleCenter,
-		HalfHeight,
-		Radius,
-		CapsuleRot,
-		FColor::Red,
-		false,
-		1.0f,
-		0,
-		1.0f
-	);
-
-	for (auto& H : Hits)
-	{
-		AActor* Actor = H.GetActor();
-		if (Actor && Actor->Implements<UTargetable>()) FoundActors.Add(Actor);
-	}
-
-	return FoundActors;
-}
-
-TArray<AActor*> UTargetingComponent::FindActorsInConeMesh(float Range)
-{
-	TArray<AActor*> FoundActors;
-
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PC) return FoundActors;
-
-	FVector CamLoc;
-	FRotator CamRot;
-	PC->GetPlayerViewPoint(CamLoc, CamRot);
-
-	const FVector Forward = CamRot.Vector();
-
-	const FVector Start = CamLoc;
-	const FVector End = CamLoc + Forward * Range;
-
-	const float Radius = MaxDistFromCursor;
-	const float HalfHeight = Range * 0.5f;
-
-	const FVector CapsuleCenter = (Start + End) * 0.5f;
-	const FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Forward).ToQuat();
-
-	TArray<FOverlapResult> Hits;
-
-	FCollisionShape ColShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
-
-	GetWorld()->OverlapMultiByChannel(
-		Hits,
-		CapsuleCenter,
-		CapsuleRot,
-		ECC_GameTraceChannel1,
-		ColShape,
-		QueryParams
-	);
-
+	//DrawDebugLine(GetWorld(), Start, End, FColor::Cyan, false, 0.1f);
 	
-	DrawDebugCapsule(
-		GetWorld(),
-		CapsuleCenter,
-		HalfHeight,
-		Radius,
-		CapsuleRot,
-		FColor::Yellow,
-		false,
-		1.0f,
-		0,
-		1.0f
-	);
-	
-
-	for (auto& H : Hits)
-	{
-		AActor* Actor = H.GetActor();
-		if (!Actor || !Actor->Implements<UTargetable>()) continue;
-
-		FVector Ray = End - Start;
-		FVector VecToActor = Actor->GetActorLocation() - GetOwner()->GetActorLocation();
-
-		DrawDebugLine(GetWorld(), Start, End, FColor::Blue, false, 0.5f);
-		DrawDebugLine(GetWorld(), GetOwner()->GetActorLocation(), Actor->GetActorLocation(), FColor::Red, false, 0.5f);
-		
-		float DotProduct = FVector::DotProduct(Ray, VecToActor);
-
-		if (DotProduct >= .71) // 45 degree angle
-		{
-			FoundActors.Add(Actor);
-		}
-	}
-
-	return FoundActors;
+	return nullptr;
 }
 
 bool UTargetingComponent::IsActorTargetable(const APlayerController* PC, AActor* Actor, const float Padding,
