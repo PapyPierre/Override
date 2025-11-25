@@ -31,7 +31,7 @@ void ACustomHUD::DrawHUD()
 		return;
 	}
 
-	/*
+	
 	float Padding = TargetingComp->ScreenPadding;;
 	
 	const float MinX = -Padding;
@@ -52,7 +52,9 @@ void ACustomHUD::DrawHUD()
 
 	// Right
 	DrawRect(MaskColor, MaxX, MinY, ViewportX - MaxX, MaxY - MinY);
-	*/
+	
+
+	/*
 	float radius = TargetingComp->MaxDistFromCursor / 2;
 	
 	const float Step = 2 * PI / 32;
@@ -69,5 +71,7 @@ void ACustomHUD::DrawHUD()
 		DrawLine(PrevPoint.X, PrevPoint.Y, NextPoint.X, NextPoint.Y, FLinearColor::White, 1.5f);
 		PrevPoint = NextPoint;
 	}
+
+	*/
 }
 
