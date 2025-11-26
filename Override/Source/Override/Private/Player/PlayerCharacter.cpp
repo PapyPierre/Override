@@ -361,21 +361,21 @@ void APlayerCharacter::ActivateHack1()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 1"));
 
-	SendHackEventWithData(Hack1Tag, TargetingComponent->PointInSight, TargetingComponent->CurrentTargets);
+	SendHackEventWithData(Hack1Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
 }
 
 void APlayerCharacter::ActivateHack2()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 2"));
 
-	SendHackEventWithData(Hack2Tag, TargetingComponent->PointInSight, TargetingComponent->CurrentTargets);
+	SendHackEventWithData(Hack2Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
 }
 
 void APlayerCharacter::ActivateHack3()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 3"));
 
-	SendHackEventWithData(Hack3Tag, TargetingComponent->PointInSight, TargetingComponent->CurrentTargets);
+	SendHackEventWithData(Hack3Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
 }
 
 void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight, TArray<AActor*> Targets)
