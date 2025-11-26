@@ -70,6 +70,7 @@ public:
 	float EaseOutTime;
 	float SlideImpulse;
 	float SlopeToleranceValue;
+	float MinDiffVelocityToAllowSlide;
 	
 	float TimeToWaitBetweenSlide = 0;
 	
