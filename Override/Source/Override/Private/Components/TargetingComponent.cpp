@@ -123,13 +123,13 @@ void UTargetingComponent::LookForTarget()
 				AActor* HitActor = Hit.GetActor();
 				if (!HitActor) continue;
 				
-				if (IsPointOnTargetVisible(CamPos, Hit.Location, HitActor, PlayerController))
+				if (IsPointOnTargetVisible(CamPos, Dir, MaxTargetingDistance, HitActor, PlayerController))
 				{
 					DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Green, false, 0.01f);
 					//DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * TargetingRange, FColor::Green, false, 0.1f);
 
 					const float Dist = FMath::Sqrt(ScreenDistSq);
-					if (Dist <= ClosestDist)
+					if (Dist < ClosestDist)
 					{
 						ClosestDist = Dist;
 						ClosestActor = HitActor;
@@ -181,7 +181,7 @@ FVector UTargetingComponent::GetPointInSight() const
 	return Hit.ImpactPoint;
 }
 
-bool UTargetingComponent::IsPointOnTargetVisible(const FVector& Start, const FVector& End, const AActor* Target,
+bool UTargetingComponent::IsPointOnTargetVisible(const FVector& Start, const FVector& Dir, const float Range, const AActor* Target,
                                                  const APlayerController* PC)
 {
 	if (!PC) return false;
@@ -190,10 +190,10 @@ bool UTargetingComponent::IsPointOnTargetVisible(const FVector& Start, const FVe
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(PC->GetPawn());
 
-	bool bHit = PC->GetWorld()->LineTraceSingleByChannel(
+	const bool bHit = PC->GetWorld()->LineTraceSingleByChannel(
 		Hit,
 		Start,
-		End,
+		Start + Dir * Range,
 		ECC_Visibility,
 		Params
 	);
