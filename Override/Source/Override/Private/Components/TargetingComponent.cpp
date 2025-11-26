@@ -37,22 +37,102 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 	if (!PlayerController->GetLocalPlayer()) return;
 
 	TArray<AActor*> PotentialTargets;
-	AActor* ActorOnHover = GetActorInSight(TargetingRange);
 
-	if (ActorOnHover != nullptr)
+	const APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	if (!Cam) return;
+
+	const FVector CamPos = Cam->GetCameraLocation();
+	const FVector CamForward = Cam->GetActorForwardVector();
+	const FVector CamRight = Cam->GetActorRightVector();
+	const FVector CamUp = Cam->GetActorUpVector();
+
+	const float NearPlane = 20.0f;
+	const float FOV = Cam->GetFOVAngle();
+
+	const float PlaneHeight = NearPlane * FMath::Tan(FMath::DegreesToRadians(FOV * 0.5f)) * 2.0f;
+	const float Aspect = Cam->GetCameraCacheView().AspectRatio;
+	const float PlaneWidth = PlaneHeight * Aspect;
+
+	// Bas-gauche du plan (local cam)
+	const FVector BottomLeftLocal = FVector(
+		-PlaneWidth * 0.5f,
+		-PlaneHeight * 0.5f,
+		NearPlane
+	);
+
+	const int CountX = 50;
+	const int CountY = 50;
+
+	int32 ViewportX = 0, ViewportY = 0;
+	PlayerController->GetViewportSize(ViewportX, ViewportY);
+
+	FVector2D ScreenCenter = FVector2D(ViewportX / 2, ViewportY / 2);
+
+	for (int x = 0; x < CountX; x++)
 	{
-		PotentialTargets.Add(ActorOnHover);
-	}
-	else
-	{
-		for (AActor* ActorInRange : FindTargetablesInRange(TargetingRange))
+		for (int y = 0; y < CountY; y++)
 		{
-			if (!IsActorTargetable(PlayerController, ActorInRange, ScreenPadding, MaxDistFromCursor)) continue;
-			
-			PotentialTargets.Add(ActorInRange);
+			const float Tx = float(x) / float(CountX - 1);
+			const float Ty = float(y) / float(CountY - 1);
+
+			const FVector PointLocal =
+				BottomLeftLocal +
+				FVector(PlaneWidth * Tx, PlaneHeight * Ty, 0.0f);
+
+			// Transform local cam → world
+			const FVector PointWorld =
+				CamPos +
+				CamRight * PointLocal.X +
+				CamUp * PointLocal.Y +
+				CamForward * PointLocal.Z;
+
+			FVector2D ScreenPos;
+			PlayerController->ProjectWorldLocationToScreen(PointWorld, ScreenPos);
+			const FVector Dir = (PointWorld - CamPos).GetSafeNormal();
+
+			if (FVector2D::Distance(ScreenPos, ScreenCenter) <= MaxDistFromCursor / 2)
+			{
+				FCollisionQueryParams QueryParams;
+				QueryParams.AddIgnoredActor(GetOwner());
+
+				FHitResult Hit;
+
+				const FVector End = CamPos + (CamForward * TargetingRange);
+
+				if (GetWorld()->LineTraceSingleByObjectType(Hit, CamPos, End, ECC_GameTraceChannel1, QueryParams))
+				{
+					AActor* HitActor = Hit.GetActor();
+
+					GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Some debug message!"));
+					
+					if (!PotentialTargets.Contains(HitActor))
+					{
+						PotentialTargets.Add(HitActor);
+							
+					}
+					/*
+					if (IsActorTargetable(PlayerController, HitActor, ScreenPadding, MaxDistFromCursor))
+					{
+						
+					}
+					*/
+				}
+
+				DrawDebugPoint(GetWorld(), PointWorld, 10, FColor::Blue, false, 0.2f);
+				DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * 200.0f, FColor::Green, false, 0.1f);
+			}
 		}
 	}
 
+	/*
+		for (AActor* ActorInRange : FindTargetablesInRange(TargetingRange))
+		{
+			if (!IsActorTargetable(PlayerController, ActorInRange, ScreenPadding, MaxDistFromCursor)) continue;
+
+			PotentialTargets.Add(ActorInRange);
+		}
+		*/
+	
 	if (PotentialTargets.Num() == 0)
 	{
 		ClearCurrentTargets();
@@ -110,7 +190,7 @@ AActor* UTargetingComponent::GetActorInSight(const float Range) const
 	}
 
 	//DrawDebugLine(GetWorld(), Start, End, FColor::Cyan, false, 0.1f);
-	
+
 	return nullptr;
 }
 
@@ -139,22 +219,24 @@ bool UTargetingComponent::IsActorTargetable(const APlayerController* PC, AActor*
 	{
 		if (!IsPointVisiblePhysically(WorldPos, Actor, PC))
 		{
-			//DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), PC->GetPawn()->GetActorLocation(), FColor::Purple, false, 0.1f);
+			DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), PC->GetPawn()->GetActorLocation(),
+			              FColor::Purple, false, 0.1f);
 			continue;
 		}
 
-		//DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), PC->GetPawn()->GetActorLocation(), FColor::Green, false, 0.1f);
+		DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), PC->GetPawn()->GetActorLocation(), FColor::Green,
+		              false, 0.1f);
 
 		FVector2D ScreenPos;
 
-		//DrawDebugSphere(Actor->GetWorld(), WorldPos, 5.0f, 24, FColor::Blue, false);
+		DrawDebugSphere(Actor->GetWorld(), WorldPos, 5.0f, 24, FColor::Blue, false);
 
 		if (PC->ProjectWorldLocationToScreen(WorldPos, ScreenPos))
 		{
 			FVector OutPosition;
 			FVector OutDirection;
 			PC->DeprojectScreenPositionToWorld(ScreenPos.X, ScreenPos.Y, OutPosition, OutDirection);
-			//DrawDebugSphere(Actor->GetWorld(), OutPosition, 0.1f, 24, FColor::Red, false);
+			DrawDebugSphere(Actor->GetWorld(), OutPosition, 0.1f, 24, FColor::Red, false);
 
 			if (ScreenPos.X < MinX || ScreenPos.X > MaxX || ScreenPos.Y < MinY || ScreenPos.Y > MaxY)
 			{
@@ -164,11 +246,8 @@ bool UTargetingComponent::IsActorTargetable(const APlayerController* PC, AActor*
 
 			float DistToScreenCenter = FVector2D::Distance(ScreenCenter, ScreenPos);
 
-			if (DistToScreenCenter < maxDistFromCursor)
-			{
-				result = true;
-				break;
-			}
+			result = true;
+			break;
 		}
 	}
 
@@ -295,8 +374,8 @@ void UTargetingComponent::RegenerateTargetActorPoints(AActor* Actor) //TODO Opti
 
 	TargetActor->Points.Empty();
 
-	TargetActor->Points.Add(Origin);
-	TargetActor->Points.Add(Origin + FVector(Extent.X, Extent.Y, Extent.Z));
+	TargetActor->Points.Add(Origin); // Pivot
+	TargetActor->Points.Add(Origin + FVector(Extent.X, Extent.Y, Extent.Z)); //
 	TargetActor->Points.Add(Origin + FVector(Extent.X, Extent.Y, -Extent.Z));
 	TargetActor->Points.Add(Origin + FVector(Extent.X, -Extent.Y, Extent.Z));
 	TargetActor->Points.Add(Origin + FVector(Extent.X, -Extent.Y, -Extent.Z));

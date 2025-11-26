@@ -22,10 +22,10 @@ public:
 	FVector PointInSight;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float ScreenPadding = -100;
+	float ScreenPadding = -220;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float MaxDistFromCursor = 40; // In Screen Space
+	float MaxDistFromCursor = 100; // In Screen Space
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
