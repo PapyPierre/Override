@@ -14,12 +14,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	APlayerController* PlayerController;
-
+	
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	TArray<AActor*> CurrentTargets;
-
-	UPROPERTY(BlueprintReadOnly, Replicated)
-	FVector PointInSight;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float ScreenPadding = -220;
@@ -38,34 +35,25 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ClearCurrentTargets();
 
+	FVector GetPointInSight() const;
+	
 protected:
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float MaxTargetingDistance = 1000;
+	float MaxTargetingDistance = 5000;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float SimulationDetectionDistance = 800;
-
+	float TargetingAccuracy = 120;
+	
 	virtual void BeginPlay() override;
 
 private:
 	float Angle;
 
-	void LookForTarget(float TargetingRange);
+	UPROPERTY()
+	AActor* ClosestActor = nullptr;
+	
+	void LookForTarget();
 
-	void FindPointInSight(float range);
-
-	AActor* GetActorInSight(float Range) const;
-
-	//	Check if is in the viewport rectangle expanded by Padding.
-	//	Positive Padding lets you count actors slightly outside the screen as still “in view”.
-	//	Negative Padding forces the actor to be deeper inside the screen to count.
-	static bool IsActorTargetable(const APlayerController* PC, AActor* Actor, float Padding, float maxDistFromCursor);
-
-	static bool IsPointVisiblePhysically(const FVector Point, AActor* Actor, const APlayerController* PlayerController);
-
-	TArray<AActor*> FindTargetablesInRange(float Range) const;
-
-	static AActor* GetClosestActorToCursor(APlayerController* PC, const TArray<AActor*> Actors);
-
-	static void RegenerateTargetActorPoints(AActor* Actor);
+	static bool IsPointOnTargetVisible(const FVector& Start, const FVector& Dir, const float Range, const AActor* Target,
+												 const APlayerController* PC);
 };
