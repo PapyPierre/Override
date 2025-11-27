@@ -95,7 +95,6 @@ protected:
 	void HandleCooldown(float DeltaTime);
 
 	void HandleLock(float DeltaTime);
-	
 
 	UFUNCTION(BlueprintCallable)
 	void ChangeState(ModState newState);

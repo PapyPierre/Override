@@ -19,6 +19,7 @@ void UPlayerMovementComponent::BeginPlay()
 		EaseOutTime = MovementData->EaseOutTime;
 		SlideImpulse = MovementData->SlideImpulse;
 		SlopeToleranceValue = MovementData->SlopeToleranceValue;
+		MinDiffVelocityToAllowSlide = MovementData->MinDiffVelocityToAllowSlide;
 
 		//Sprint
 		SprintSpeed = MovementData->SprintSpeed;
@@ -718,9 +719,9 @@ bool UPlayerMovementComponent::CanSlide()
 		if (Impact.Z <= -0.20f && VelocityAtCrouch.Size() > DefaultMaxWalkSpeedCrouched)
 		{
 			return true;
-		}
+		}	
 	}
-	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, 100);
+	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, MinDiffVelocityToAllowSlide);
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	return bResult;
 }
