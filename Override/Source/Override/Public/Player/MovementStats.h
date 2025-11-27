@@ -46,6 +46,8 @@ public:
 	float SlideImpulse = 600.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
 	float SlopeToleranceValue = 0.02;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float MinDiffVelocityToAllowSlide = 100;
 #pragma endregion
 
 #pragma region Sprint

@@ -193,6 +193,9 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void UnselectHack();
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnHackActivated(int hackIndex);
+
 private:
 	void SetControllerRef();
 	

@@ -19,6 +19,7 @@ void UPlayerMovementComponent::BeginPlay()
 		EaseOutTime = MovementData->EaseOutTime;
 		SlideImpulse = MovementData->SlideImpulse;
 		SlopeToleranceValue = MovementData->SlopeToleranceValue;
+		MinDiffVelocityToAllowSlide = MovementData->MinDiffVelocityToAllowSlide;
 
 		//Sprint
 		SprintSpeed = MovementData->SprintSpeed;
@@ -335,7 +336,6 @@ void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bo
 		}
 	}
 	
-	JumpCount--;
 	bGrabbedLedge = false;
 	bMontagePending = false;
 	MultiPlayerHitWall = nullptr;
@@ -436,6 +436,9 @@ bool UPlayerMovementComponent::CanVaultOrClimb()
 	{
 		return false;
 	}
+
+	if (IsCrouching())
+		return false;
 
 	if (Thickness < MaxVaultThickness && Height < MaxVaultHeight)
 	{
@@ -664,10 +667,12 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 bool UPlayerMovementComponent::SlideLineTrace()
 {
-	FVector End = (CharacterRef->GetActorUpVector() * -200) + CharacterRef->GetActorLocation();
+	FVector UpWorld = FVector(0.f, 0.f, 1.f);
+	FVector End = (UpWorld * -200) + CharacterRef->GetActorLocation();
+	FVector Start = (UpWorld * 200) + CharacterRef->GetActorLocation();
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(CharacterRef);
-	bool bSlideHitResult = GetWorld()->LineTraceSingleByChannel(SlideHit, CharacterRef->GetActorLocation(), End, ECC_WorldStatic, QueryParams);
+	bool bSlideHitResult = GetWorld()->LineTraceSingleByChannel(SlideHit, Start, End, ECC_WorldStatic, QueryParams);
 	Impact = UKismetMathLibrary::Cross_VectorVector(SlideHit.ImpactNormal, CharacterRef->GetActorRightVector());
 	Impact *= -1.0;
 	return bSlideHitResult;
@@ -711,7 +716,14 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, 100);
+	if (bResult)
+	{
+		if (Impact.Z <= -0.20f && VelocityAtCrouch.Size() > DefaultMaxWalkSpeedCrouched)
+		{
+			return true;
+		}	
+	}
+	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, MinDiffVelocityToAllowSlide);
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	return bResult;
 }
@@ -756,23 +768,6 @@ bool UPlayerMovementComponent::IsMovingOnGround() const
 void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 {
 	Super::PhysFalling(DeltaTime, Iterations);
-	
-	if (Velocity.SizeSquared2D() > 0.f && JumpCount == 2)
-	{
-		FVector TargetHorizontalVel = InitialHorizontalVelocity * AirHorizontalRetainPercent;
-		FVector CurrentHorizontalVel(Velocity.X, Velocity.Y, 0.f);
-
-		float ReductionSpeed = 1.f;
-		FVector NewHorizontalVel = FMath::VInterpTo(
-			CurrentHorizontalVel,
-			TargetHorizontalVel,
-			DeltaTime,
-			ReductionSpeed
-		);
-
-		Velocity.X = NewHorizontalVel.X;
-		Velocity.Y = NewHorizontalVel.Y;
-	}
 }
 
 bool UPlayerMovementComponent::CanAttemptJump() const
@@ -792,16 +787,7 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 
 			if (bFirstJump || bDontFallBelowJumpZVelocityDuringJump)
 			{
-				JumpCount++;
-				if (JumpCount == 1)
-				{
-					Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, JumpZVelocity);
-				}
-				else
-				{
-					AirControl = SecondJumpAirControl;
-					Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, SecondJumpZVelocity);
-				}
+				Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, JumpZVelocity);
 			}
 			
 			SetMovementMode(MOVE_Falling);
@@ -813,7 +799,6 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 
 void UPlayerMovementComponent::ResetJumpValues()
 {
-	JumpCount = 0;
 	AirControl = DefaultAirControl;
 }
 
@@ -876,7 +861,7 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 	}
 
 	// See if collision is already at desired size.
-	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == CrouchedHalfHeight)
+	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == GetCrouchedHalfHeight())
 	{
 		if (!bClientSimulation)
 		{
@@ -898,7 +883,7 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 	const float OldUnscaledHalfHeight = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 	const float OldUnscaledRadius = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleRadius();
 	// Height is not allowed to be smaller than radius.
-	const float ClampedCrouchedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, CrouchedHalfHeight);
+	const float ClampedCrouchedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, GetCrouchedHalfHeight());
 	float HalfHeightAdjust = (OldUnscaledHalfHeight - ClampedCrouchedHalfHeight);
 	float ScaledHalfHeightAdjust = HalfHeightAdjust * ComponentScale;
 
