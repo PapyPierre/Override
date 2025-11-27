@@ -110,7 +110,7 @@ void UTargetingComponent::LookForTarget()
 			// 2nd skip of points outside the targeting circle (precise)
 			if (ScreenDistSq > MaxDistSq)
 			{
-				DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Red, false, 0.1f);
+				//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Red, false, 0.1f);
 				continue;
 			}
 
@@ -125,7 +125,7 @@ void UTargetingComponent::LookForTarget()
 				
 				if (IsPointOnTargetVisible(CamPos, Dir, MaxTargetingDistance, HitActor, PlayerController))
 				{
-					DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Green, false, 0.01f);
+					//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Green, false, 0.01f);
 					//DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * TargetingRange, FColor::Green, false, 0.1f);
 
 					const float Dist = FMath::Sqrt(ScreenDistSq);
@@ -138,13 +138,13 @@ void UTargetingComponent::LookForTarget()
 					continue;
 				}
 
-				DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Purple, false, 0.01f);
+				//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Purple, false, 0.01f);
 				//DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * TargetingRange, FColor::Purple, false, 0.1f);
 
 				continue;
 			}
 
-			DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Blue, false, 0.1f);
+			//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Blue, false, 0.1f);
 			//DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * TargetingRange, FColor::Blue, false, 0.1f);
 		}
 	}

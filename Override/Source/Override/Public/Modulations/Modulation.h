@@ -96,11 +96,14 @@ protected:
 
 	void HandleLock(float DeltaTime);
 
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Lock();
+
 	UFUNCTION(BlueprintCallable)
-	void ChangeState(ModState newState);
+	void ChangeState(ModState NewState);
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnStateChanged(ModState newState);
+	void OnStateChanged(ModState NewState);
 
 private:
 	float LerpTime;
