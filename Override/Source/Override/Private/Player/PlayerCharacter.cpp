@@ -212,7 +212,6 @@ void APlayerCharacter::Falling()
 
 void APlayerCharacter::Jump()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Jump"));
 	if (!PlayerMovementComponent->CanVaultOrClimb())
 	{
 		Super::Jump();
