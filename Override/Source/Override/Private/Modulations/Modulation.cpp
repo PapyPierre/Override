@@ -101,7 +101,7 @@ void AModulation::HandleLock(float DeltaTime)
 	}
 }
 
-void AModulation::ChangeState(ModState NewState)
+void AModulation::ChangeState(const ModState NewState)
 {
 	PreviousState = CurrentState;
 	CurrentState = NewState;
@@ -110,6 +110,24 @@ void AModulation::ChangeState(ModState NewState)
 	if (NewState == ModState::Locked) LockTime = 0;
 
 	OnStateChanged(NewState);
+}
+
+void AModulation::Lock_Implementation()
+{
+	if (CurrentState == ModState::Locked)return;
+	if (CurrentState == ModState::InCD) return;
+
+	if (Group)
+	{
+		for (AModulation* mod : Group->ModulationsInGroup)
+		{
+			mod->ChangeState(ModState::Locked);
+		}
+
+		return;
+	}
+	
+	ChangeState(ModState::Locked);
 }
 
 void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration)
