@@ -4,6 +4,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Player/PlayerCharacter.h"
 
+
 UTargetingComponent::UTargetingComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -15,7 +16,6 @@ void UTargetingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UTargetingComponent, CurrentTargets);
-	DOREPLIFETIME(UTargetingComponent, PointInSight);
 }
 
 void UTargetingComponent::BeginPlay()
@@ -27,16 +27,10 @@ void UTargetingComponent::BeginPlay()
 	Angle = FMath::RadiansToDegrees(FMath::Atan(MaxDistFromCursor / MaxTargetingDistance)) * 4;
 }
 
-void UTargetingComponent::LookForTarget(float TargetingRange)
+void UTargetingComponent::LookForTarget()
 {
-	// Do not read this function server-side
-	if (!GetOwner()) return;
-	if (GetOwner()->HasAuthority()) return;
-
-	if (!PlayerController) return;
-	if (!PlayerController->GetLocalPlayer()) return;
-
-	TArray<AActor*> PotentialTargets;
+	if (!GetOwner() || GetOwner()->HasAuthority()) return;
+	if (!PlayerController || !PlayerController->GetLocalPlayer()) return;
 
 	const APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	if (!Cam) return;
@@ -46,111 +40,133 @@ void UTargetingComponent::LookForTarget(float TargetingRange)
 	const FVector CamRight = Cam->GetActorRightVector();
 	const FVector CamUp = Cam->GetActorUpVector();
 
-	const float NearPlane = 20.0f;
-	const float FOV = Cam->GetFOVAngle();
-
-	const float PlaneHeight = NearPlane * FMath::Tan(FMath::DegreesToRadians(FOV * 0.5f)) * 2.0f;
-	const float Aspect = Cam->GetCameraCacheView().AspectRatio;
-	const float PlaneWidth = PlaneHeight * Aspect;
-
-	// Bas-gauche du plan (local cam)
-	const FVector BottomLeftLocal = FVector(
-		-PlaneWidth * 0.5f,
-		-PlaneHeight * 0.5f,
-		NearPlane
+	const FMatrix CamMatrix = FMatrix(
+		CamRight,
+		CamUp,
+		CamForward,
+		FVector::ZeroVector
 	);
 
-	const int CountX = 50;
-	const int CountY = 50;
+	constexpr float NearPlane = 20.f;
+	const float HalfFOVRad = FMath::DegreesToRadians(Cam->GetFOVAngle() * 0.5f);
+	const float PlaneHeight = NearPlane * FMath::Tan(HalfFOVRad) * 2.f;
+	const float PlaneWidth = PlaneHeight * Cam->GetCameraCacheView().AspectRatio;
+	const float PlaneWidthHalf = PlaneWidth * 0.5f;
+	const float PlaneHeightHalf = PlaneHeight * 0.5f;
 
-	int32 ViewportX = 0, ViewportY = 0;
-	PlayerController->GetViewportSize(ViewportX, ViewportY);
+	const int CountX = TargetingAccuracy;
+	const int CountY = TargetingAccuracy;
+	const float StepX = 1.f / (CountX - 1);
+	const float StepY = 1.f / (CountY - 1);
 
-	FVector2D ScreenCenter = FVector2D(ViewportX / 2, ViewportY / 2);
+	int32 Vx, Vy;
+	PlayerController->GetViewportSize(Vx, Vy);
+	const FVector2D ScreenCenter(Vx * 0.5f, Vy * 0.5f);
+
+	const float MaxDistSq = FMath::Square(MaxDistFromCursor * 0.5f);
+	const float MaxDist = MaxDistFromCursor * 0.5f;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(GetOwner());
+
+	ClosestActor = nullptr;
+	float ClosestDist = TNumericLimits<float>::Max();
+
+	const float CircleRadiusNormalized = MaxDist / FMath::Max(Vx, Vy);
 
 	for (int x = 0; x < CountX; x++)
 	{
+		const float Tx = x * StepX;
+		const float NormalizedX = Tx - 0.5f;
+
 		for (int y = 0; y < CountY; y++)
 		{
-			const float Tx = float(x) / float(CountX - 1);
-			const float Ty = float(y) / float(CountY - 1);
+			const float Ty = y * StepY;
+			const float NormalizedY = Ty - 0.5f;
 
-			const FVector PointLocal =
-				BottomLeftLocal +
-				FVector(PlaneWidth * Tx, PlaneHeight * Ty, 0.0f);
+			// 1st skip of points outside the targeting circle (approx)
+			const float DistFromCenterSq = NormalizedX * NormalizedX + NormalizedY * NormalizedY;
+			if (DistFromCenterSq > CircleRadiusNormalized * CircleRadiusNormalized * 2.f)
+			{
+				continue;
+			}
 
-			// Transform local cam → world
-			const FVector PointWorld =
-				CamPos +
-				CamRight * PointLocal.X +
-				CamUp * PointLocal.Y +
-				CamForward * PointLocal.Z;
+			const float OffsetX = PlaneWidth * Tx;
+			const float OffsetY = PlaneHeight * Ty;
+
+			const FVector LocalPoint(
+				OffsetX - PlaneWidthHalf,
+				OffsetY - PlaneHeightHalf,
+				NearPlane
+			);
+
+			const FVector PointWorld = CamPos + CamMatrix.TransformVector(LocalPoint);
 
 			FVector2D ScreenPos;
 			PlayerController->ProjectWorldLocationToScreen(PointWorld, ScreenPos);
-			const FVector Dir = (PointWorld - CamPos).GetSafeNormal();
 
-			if (FVector2D::Distance(ScreenPos, ScreenCenter) <= MaxDistFromCursor / 2)
+			const float ScreenDistSq = FVector2D::DistSquared(ScreenPos, ScreenCenter);
+
+			// 2nd skip of points outside the targeting circle (precise)
+			if (ScreenDistSq > MaxDistSq)
 			{
-				FCollisionQueryParams QueryParams;
-				QueryParams.AddIgnoredActor(GetOwner());
+				//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Red, false, 0.1f);
+				continue;
+			}
 
-				FHitResult Hit;
+			const FVector Dir = (PointWorld - CamPos).GetSafeNormal();
+			const FVector End = CamPos + Dir * MaxTargetingDistance;
 
-				const FVector End = CamPos + (CamForward * TargetingRange);
-
-				if (GetWorld()->LineTraceSingleByObjectType(Hit, CamPos, End, ECC_GameTraceChannel1, QueryParams))
+			if (FHitResult Hit; GetWorld()->LineTraceSingleByObjectType(
+				Hit, CamPos, End, ECC_GameTraceChannel1, QueryParams))
+			{
+				AActor* HitActor = Hit.GetActor();
+				if (!HitActor) continue;
+				
+				if (IsPointOnTargetVisible(CamPos, Dir, MaxTargetingDistance, HitActor, PlayerController))
 				{
-					AActor* HitActor = Hit.GetActor();
+					//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Green, false, 0.01f);
+					//DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * TargetingRange, FColor::Green, false, 0.1f);
 
-					GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Some debug message!"));
-					
-					if (!PotentialTargets.Contains(HitActor))
+					const float Dist = FMath::Sqrt(ScreenDistSq);
+					if (Dist < ClosestDist)
 					{
-						PotentialTargets.Add(HitActor);
-							
+						ClosestDist = Dist;
+						ClosestActor = HitActor;
 					}
-					/*
-					if (IsActorTargetable(PlayerController, HitActor, ScreenPadding, MaxDistFromCursor))
-					{
-						
-					}
-					*/
+
+					continue;
 				}
 
-				DrawDebugPoint(GetWorld(), PointWorld, 10, FColor::Blue, false, 0.2f);
-				DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * 200.0f, FColor::Green, false, 0.1f);
+				//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Purple, false, 0.01f);
+				//DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * TargetingRange, FColor::Purple, false, 0.1f);
+
+				continue;
 			}
+
+			//DrawDebugPoint(GetWorld(), PointWorld, 3, FColor::Blue, false, 0.1f);
+			//DrawDebugLine(GetWorld(), CamPos, CamPos + Dir * TargetingRange, FColor::Blue, false, 0.1f);
 		}
 	}
 
-	/*
-		for (AActor* ActorInRange : FindTargetablesInRange(TargetingRange))
-		{
-			if (!IsActorTargetable(PlayerController, ActorInRange, ScreenPadding, MaxDistFromCursor)) continue;
-
-			PotentialTargets.Add(ActorInRange);
-		}
-		*/
-	
-	if (PotentialTargets.Num() == 0)
+	if (ClosestActor == nullptr)
 	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("No actor found, clear"));
 		ClearCurrentTargets();
 		return;
 	}
 
-	AActor* Target = GetClosestActorToCursor(PlayerController, PotentialTargets);
-
 	if (CurrentTargets.Num() > 0)
 	{
-		if (CurrentTargets.Contains(Target)) return;
+		if (CurrentTargets.Contains(ClosestActor)) return;
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Clear old targets before targeting"));
 		ClearCurrentTargets();
 	}
 
-	TargetActor(Target);
+	TargetActor(ClosestActor);
 }
 
-void UTargetingComponent::FindPointInSight(float range)
+FVector UTargetingComponent::GetPointInSight() const
 {
 	const auto* CamPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransformComponent();
 	const FVector Start = CamPos->GetComponentLocation();
@@ -159,232 +175,30 @@ void UTargetingComponent::FindPointInSight(float range)
 	QueryParams.AddIgnoredActor(GetOwner());
 
 	FHitResult Hit;
-	GetWorld()->LineTraceSingleByObjectType(Hit, Start, Start + CamPos->GetForwardVector() * range, ECC_WorldStatic,
+	GetWorld()->LineTraceSingleByObjectType(Hit, Start, Start + CamPos->GetForwardVector() * MaxTargetingDistance,
+	                                        ECC_WorldStatic,
 	                                        QueryParams);
-	PointInSight = Hit.ImpactPoint;
-	//DrawDebugSphere(GetWorld(), PointInSight, 5.0f, 24, FColor::Blue, false);
+	return Hit.ImpactPoint;
 }
 
-AActor* UTargetingComponent::GetActorInSight(const float Range) const
+bool UTargetingComponent::IsPointOnTargetVisible(const FVector& Start, const FVector& Dir, const float Range, const AActor* Target,
+                                                 const APlayerController* PC)
 {
-	const auto* CamPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransformComponent();
-
-	const FVector Start = CamPos->GetComponentLocation();
-	const FVector Forward = CamPos->GetForwardVector();
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
-
-	FHitResult Hit;
-
-	const FVector End = Start + (Forward * Range);
-
-	if (GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ECC_GameTraceChannel1, QueryParams))
-	{
-		AActor* HitActor = Hit.GetActor();
-
-		if (HitActor && HitActor->Implements<UTargetable>())
-		{
-			return HitActor;
-		}
-	}
-
-	//DrawDebugLine(GetWorld(), Start, End, FColor::Cyan, false, 0.1f);
-
-	return nullptr;
-}
-
-bool UTargetingComponent::IsActorTargetable(const APlayerController* PC, AActor* Actor, const float Padding,
-                                            const float maxDistFromCursor)
-{
-	if (!PC || !Actor) return false;
-
-	const auto TargetActor = Cast<ITargetable>(Actor);
-
-	RegenerateTargetActorPoints(Actor);
-
-	int32 ViewportX, ViewportY;
-	PC->GetViewportSize(ViewportX, ViewportY);
-
-	FVector2D ScreenCenter = FVector2D(ViewportX / 2, ViewportY / 2);
-
-	const float MinX = -Padding;
-	const float MinY = -Padding;
-	const float MaxX = ViewportX + Padding;
-	const float MaxY = ViewportY + Padding;
-
-	bool result = false;
-
-	for (const FVector& WorldPos : TargetActor->Points)
-	{
-		if (!IsPointVisiblePhysically(WorldPos, Actor, PC))
-		{
-			DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), PC->GetPawn()->GetActorLocation(),
-			              FColor::Purple, false, 0.1f);
-			continue;
-		}
-
-		DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), PC->GetPawn()->GetActorLocation(), FColor::Green,
-		              false, 0.1f);
-
-		FVector2D ScreenPos;
-
-		DrawDebugSphere(Actor->GetWorld(), WorldPos, 5.0f, 24, FColor::Blue, false);
-
-		if (PC->ProjectWorldLocationToScreen(WorldPos, ScreenPos))
-		{
-			FVector OutPosition;
-			FVector OutDirection;
-			PC->DeprojectScreenPositionToWorld(ScreenPos.X, ScreenPos.Y, OutPosition, OutDirection);
-			DrawDebugSphere(Actor->GetWorld(), OutPosition, 0.1f, 24, FColor::Red, false);
-
-			if (ScreenPos.X < MinX || ScreenPos.X > MaxX || ScreenPos.Y < MinY || ScreenPos.Y > MaxY)
-			{
-				result = false;
-				continue;
-			}
-
-			float DistToScreenCenter = FVector2D::Distance(ScreenCenter, ScreenPos);
-
-			result = true;
-			break;
-		}
-	}
-
-	return result;
-}
-
-bool UTargetingComponent::IsPointVisiblePhysically(const FVector Pos, AActor* Actor,
-                                                   const APlayerController* PlayerController)
-{
-	if (!PlayerController) return false;
-
-	FVector ViewLoc;
-	FRotator ViewRot;
-	PlayerController->GetPlayerViewPoint(ViewLoc, ViewRot);
+	if (!PC) return false;
 
 	FHitResult Hit;
 	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(PlayerController->GetPawn());
+	Params.AddIgnoredActor(PC->GetPawn());
 
-	bool bHit = PlayerController->GetWorld()->LineTraceSingleByChannel(
+	const bool bHit = PC->GetWorld()->LineTraceSingleByChannel(
 		Hit,
-		ViewLoc,
-		Pos,
+		Start,
+		Start + Dir * Range,
 		ECC_Visibility,
 		Params
 	);
 
-	if (bHit && Hit.GetActor() == Actor)
-	{
-		//DrawDebugLine(Actor->GetWorld(), ViewLoc, Pos, FColor::Blue, false, 0.1f);
-		return true;
-	}
-
-	//DrawDebugLine(Actor->GetWorld(), ViewLoc, Pos, FColor::Red, false, 0.1f);
-	return false;
-}
-
-TArray<AActor*> UTargetingComponent::FindTargetablesInRange(const float Range) const
-{
-	TArray<FOverlapResult> OverlapResults;
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1); // equal to ECC_Targetable (custom obj type)
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
-
-	bool bHasOverlap = GetWorld()->OverlapMultiByObjectType(OverlapResults, GetOwner()->GetActorLocation(),
-	                                                        FQuat::Identity,
-	                                                        ObjectQueryParams,
-	                                                        FCollisionShape::MakeSphere(Range),
-	                                                        QueryParams);
-
-	//DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), Range, 24, FColor::Yellow, false);
-
-	TArray<AActor*> FoundTargetable;
-
-	if (bHasOverlap)
-	{
-		for (const FOverlapResult& Result : OverlapResults)
-		{
-			AActor* Actor = Result.GetActor();
-			if (Actor && Actor->Implements<UTargetable>())
-			{
-				FoundTargetable.Add(Actor);
-				//DrawDebugLine(Actor->GetWorld(), Actor->GetActorLocation(), GetOwner()->GetActorLocation(), FColor::Yellow, false, 0.1f);
-			}
-		}
-	}
-
-	return FoundTargetable;
-}
-
-AActor* UTargetingComponent::GetClosestActorToCursor(APlayerController* PC, const TArray<AActor*> Actors)
-{
-	if (!PC || Actors.Num() == 0) return nullptr;
-
-	int32 ViewportX, ViewportY;
-	PC->GetViewportSize(ViewportX, ViewportY);
-	FVector2D ScreenCenter(ViewportX * 0.5f, ViewportY * 0.5f);
-
-	FVector OutPosition;
-	FVector OutDirection;
-	PC->DeprojectScreenPositionToWorld(ScreenCenter.X, ScreenCenter.Y, OutPosition, OutDirection);
-	//DrawDebugSphere(PC->GetWorld(), OutPosition, 0.2f, 24, FColor::Purple, false);
-
-	AActor* ClosestActor = nullptr;
-	float ClosestDist = TNumericLimits<float>::Max();
-
-	if (Actors.Num() == 1) return Actors[0];
-
-	for (AActor* Actor : Actors)
-	{
-		if (!Actor) continue;
-
-		const auto TargetActor = Cast<ITargetable>(Actor);
-
-		RegenerateTargetActorPoints(Actor);
-
-		for (const FVector Point : TargetActor->Points)
-		{
-			if (!IsPointVisiblePhysically(Point, Actor, PC)) continue;
-
-			if (FVector2D ScreenPos; PC->ProjectWorldLocationToScreen(Point, ScreenPos))
-			{
-				if (const float Dist = FVector2D::Distance(ScreenCenter, ScreenPos); Dist < ClosestDist)
-				{
-					ClosestDist = Dist;
-					ClosestActor = Actor;
-				}
-			}
-		}
-	}
-
-	return ClosestActor;
-}
-
-void UTargetingComponent::RegenerateTargetActorPoints(AActor* Actor) //TODO Optimised by cashing points
-{
-	FVector Origin;
-	FVector Extent;
-
-	Actor->GetActorBounds(true, Origin, Extent);
-
-	auto TargetActor = Cast<ITargetable>(Actor);
-
-	TargetActor->Points.Empty();
-
-	TargetActor->Points.Add(Origin); // Pivot
-	TargetActor->Points.Add(Origin + FVector(Extent.X, Extent.Y, Extent.Z)); //
-	TargetActor->Points.Add(Origin + FVector(Extent.X, Extent.Y, -Extent.Z));
-	TargetActor->Points.Add(Origin + FVector(Extent.X, -Extent.Y, Extent.Z));
-	TargetActor->Points.Add(Origin + FVector(Extent.X, -Extent.Y, -Extent.Z));
-	TargetActor->Points.Add(Origin + FVector(-Extent.X, Extent.Y, Extent.Z));
-	TargetActor->Points.Add(Origin + FVector(-Extent.X, Extent.Y, -Extent.Z));
-	TargetActor->Points.Add(Origin + FVector(-Extent.X, -Extent.Y, Extent.Z));
-	TargetActor->Points.Add(Origin + FVector(-Extent.X, -Extent.Y, -Extent.Z));
-
-	TargetActor->PointsGenerated = true;
+	return bHit && Hit.GetActor() == Target;
 }
 
 void UTargetingComponent::TargetActor(AActor* Target)
@@ -413,9 +227,7 @@ void UTargetingComponent::ClearCurrentTargets()
 void UTargetingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)
 {
-	FindPointInSight(MaxTargetingDistance);
-
-	LookForTarget(MaxTargetingDistance);
+	LookForTarget();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
