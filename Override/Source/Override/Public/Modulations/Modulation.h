@@ -43,6 +43,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	AModulationGroup* Group;
 
+	UPROPERTY(BlueprintReadOnly)
 	int CurrentEndIndex = 0;
 
 	FTransform Start;
@@ -50,10 +51,10 @@ public:
 	UPROPERTY(EditInstanceOnly, Category="Default", meta=(MakeEditWidget))
 	TArray<FTransform> Ends;
 
-	UPROPERTY(BlueprintReadOnly, Replicated)
+	UPROPERTY(BlueprintReadOnly)
 	FTransform CurrentStart;
 
-	UPROPERTY(BlueprintReadOnly, Replicated)
+	UPROPERTY(BlueprintReadOnly)
 	FTransform CurrentEnd;
 
 	UPROPERTY(EditAnywhere, Category="Default")
