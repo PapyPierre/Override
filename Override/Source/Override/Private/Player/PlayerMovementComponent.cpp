@@ -187,7 +187,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 							
 						FVector TargetRelativeLocation = FVector(HitVertical.ImpactPoint.X, HitVertical.ImpactPoint.Y, HitVertical.ImpactPoint.Z + HalfHeight);
 							
-						Multicast_CapsuleMoveTo(Capsule,HitVertical, TargetRelativeLocation);
+						Multicast_CapsuleMoveTo(Capsule, TargetRelativeLocation);
 							
 						FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageWallClimbEnded);
 						Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName,MultiPlayerHitWall,this->CharacterRef);
@@ -209,10 +209,11 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				{
 					Capsule->MoveIgnoreActors.Add(HitSecondWallActor);
 				}
-				Server_CallVaultAnimation(HitSecondWallActor);
+				FVector EndLocation = CharaLocation + (IncomingWallThickness * 2) * CharaForward;
+				Server_CallVaultAnimation(HitSecondWallActor, EndLocation);
 				bMontagePending = true;
 			}
-		}
+		} 
 	
 #pragma endregion
 	}
@@ -369,14 +370,15 @@ void UPlayerMovementComponent::Multicast_PlayWallClimbMontage_Implementation(UAn
 }
 
 
-void UPlayerMovementComponent::Server_CallVaultAnimation_Implementation(AActor* Actor)
+void UPlayerMovementComponent::Server_CallVaultAnimation_Implementation(AActor* Actor, FVector EndLocation)
 {
 	HitSecondWallActor = Actor;
 	FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageVaultEnded);
+	Multicast_CapsuleMoveTo(this->CharacterRef->GetCapsuleComponent(),EndLocation);
 	Multicast_PlayWallClimbMontage(VaultMontage, EndFuncName, HitSecondWallActor, this->CharacterRef);
 }
 
-void UPlayerMovementComponent::Multicast_CapsuleMoveTo_Implementation(UCapsuleComponent* Capsule, FHitResult HitVertical, FVector Location)
+void UPlayerMovementComponent::Multicast_CapsuleMoveTo_Implementation(UCapsuleComponent* Capsule, FVector Location)
 {
 	FLatentActionInfo JumpDelayInfo;
 	JumpDelayInfo.CallbackTarget = this;
@@ -443,6 +445,7 @@ bool UPlayerMovementComponent::CanVaultOrClimb()
 	if (Thickness < MaxVaultThickness && Height < MaxVaultHeight)
 	{
 		HitSecondWallActor = HitWall;
+		IncomingWallThickness = Thickness;
 		return true;
 	}
 
@@ -621,7 +624,7 @@ bool UPlayerMovementComponent::CanSprint() const
 
 	float Dot = FVector::DotProduct(MoveDir, ForwardDir);
 
-	return Dot > 0.7f && Velocity.Size() > 0.f;
+	return Dot >= 0.f && Velocity.Size() > 0.f;
 }
 
 bool UPlayerMovementComponent::IsRunning() const
