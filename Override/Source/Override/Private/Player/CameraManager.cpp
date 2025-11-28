@@ -15,47 +15,42 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 {
 	CameraShake(PlayerCharacter, PlayerMovementComponent);
 
+	float CurrentFOV = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
+	float TargetFOV = PlayerCharacter->DefaultFOV;
+	float InterpSpeed = PlayerCharacter->FOVInterpNormalSpeed;
+		
+	// Sprint
 	if (PlayerMovementComponent->IsRunning())
 	{
-		float Speed = PlayerCharacter->GetVelocity().Size();
-		float TargetFOV = FMath::GetMappedRangeValueClamped(
-			FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
-			FVector2D(PlayerCharacter->DefaultFOV, PlayerCharacter->SprintFOV),
-			Speed
-		);
-
-		float NewFOV = FMath::FInterpTo(
-			PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle(),
-			TargetFOV,
-			DeltaTime,
-			PlayerCharacter->FOVInterpSpeed
-		);
-
-		PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);
+		TargetFOV = PlayerCharacter->SprintFOV;
+		InterpSpeed = PlayerCharacter->FOVInterpSprintSpeed;
+		LastFOV = 0;
 	}
 
+	// Aim
 	if (PlayerCharacter->bIsAimingWeapon)
 	{
-		float NewFOV = FMath::FInterpTo(
-			PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle(),
-			PlayerCharacter->AimFOV,
-			DeltaTime,
-			PlayerCharacter->FOVInterpSpeed
-		);
-
-		PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);
+		TargetFOV = PlayerCharacter->AimFOV;
+		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
+		LastFOV = 1;
 	}
-	else if (!FMath::IsNearlyEqual(PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle(), PlayerCharacter->DefaultFOV) && !PlayerCharacter->bIsAimingWeapon && PlayerMovementComponent->IsMovingOnGround() && !PlayerMovementComponent->IsSliding())
+
+	// Slide
+	if (PlayerMovementComponent->IsSliding())
 	{
-		float NewFOV = FMath::FInterpTo(
-			PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle(),
-			PlayerCharacter->DefaultFOV,
-			DeltaTime,
-			PlayerCharacter->FOVInterpSpeed
-		);
-
-		PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);
+		TargetFOV = PlayerCharacter->SlideFOV;
+		InterpSpeed = PlayerCharacter->FOVInterpSlideSpeed;
+		LastFOV = 2;
 	}
+
+
+	if (LastFOV == 1)
+		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
+	if (LastFOV == 0)
+		InterpSpeed = PlayerCharacter->FOVInterpNormalSpeed;
+	
+	float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, InterpSpeed);
+	PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);
 }
 
 void CameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent)

@@ -30,12 +30,10 @@ void AModulation::BeginPlay()
 	for (FTransform& End : Ends)
 	{
 		FVector WorldLoc = GetActorTransform().TransformPosition(End.GetLocation());
-
-		//FVector WorldLoc = End.GetLocation() + GetActorTransform().GetLocation();
 		End.SetLocation(WorldLoc);
 	}
 
-	if (Ends.Num() > 0) CurrentEnd = Ends[CurrentEndIndex];
+	if (Ends.Num() > 0) CurrentEnd = Ends[0];
 
 	Super::BeginPlay();
 }
@@ -43,6 +41,8 @@ void AModulation::BeginPlay()
 void AModulation::HandleMovement(float DeltaTime)
 {
 	if (CurrentState != ModState::Moving) return;
+
+	if (!HasAuthority()) return;
 
 	if (ModSpeedCurve == nullptr) return;
 
@@ -212,8 +212,6 @@ void AModulation::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AModulation, CurrentState);
-	DOREPLIFETIME(AModulation, CurrentStart);
-	DOREPLIFETIME(AModulation, CurrentEnd);
 }
 
 void AModulation::Tick(float DeltaTime)
@@ -237,10 +235,10 @@ void AModulation::Interact()
 
 	if (Group)
 	{
-		for (AModulation* mod : Group->ModulationsInGroup)
+		for (AModulation* Mod : Group->ModulationsInGroup)
 		{
-			mod->ChangeState(ModState::Moving);
-			mod->Execute_OnInteract(mod);
+			Mod->ChangeState(ModState::Moving);
+			Mod->Execute_OnInteract(Mod);
 		}
 
 		return;

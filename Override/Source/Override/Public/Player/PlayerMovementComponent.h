@@ -134,6 +134,8 @@ public:
 	UAnimMontage* VaultMontage;
 	float ParkourDistanceDetection = 70.f;
 
+	float IncomingWallThickness;
+
 	UFUNCTION()
 	void OnMoveNoOp() {}
 	
@@ -144,10 +146,10 @@ public:
 	void RPC_WallClimbMoveTo(AActor* Wall);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_CapsuleMoveTo(UCapsuleComponent* Capsule, FHitResult HitVertical, FVector Location);
+	void Multicast_CapsuleMoveTo(UCapsuleComponent* Capsule, FVector Location);
 
 	UFUNCTION(Server, Reliable)
-	void Server_CallVaultAnimation(AActor* Actor);
+	void Server_CallVaultAnimation(AActor* Actor , FVector EndLocation);
 	
 	UFUNCTION()
 	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
