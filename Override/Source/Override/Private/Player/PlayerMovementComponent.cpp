@@ -624,7 +624,7 @@ bool UPlayerMovementComponent::CanSprint() const
 
 	float Dot = FVector::DotProduct(MoveDir, ForwardDir);
 
-	return Dot > 0.7f && Velocity.Size() > 0.f;
+	return Dot >= 0.f && Velocity.Size() > 0.f;
 }
 
 bool UPlayerMovementComponent::IsRunning() const

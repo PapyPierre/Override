@@ -31,7 +31,7 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* InputMappingContext;
-	
+
 	virtual void Tick(float DeltaTime) override;
 	virtual void Target() override;
 
@@ -84,7 +84,12 @@ public:
 #pragma region FOV
 	float DefaultFOV;
 	float SprintFOV;
-	float FOVInterpSpeed;
+	float SlideFOV;
+
+	float FOVInterpSlideSpeed;
+	float FOVInterpSprintSpeed;
+	float FOVInterpAimSpeed;
+	float FOVInterpNormalSpeed;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
