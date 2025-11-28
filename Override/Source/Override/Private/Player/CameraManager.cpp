@@ -45,7 +45,7 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 
 		PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);
 	}
-	else if (!FMath::IsNearlyEqual(PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle(), PlayerCharacter->DefaultFOV) && !PlayerCharacter->bIsAimingWeapon && PlayerMovementComponent->IsMovingOnGround() && !PlayerMovementComponent->IsSliding())
+	else if (!FMath::IsNearlyEqual(PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle(), PlayerCharacter->DefaultFOV) && !PlayerCharacter->bIsAimingWeapon && !PlayerMovementComponent->IsSliding())
 	{
 		float NewFOV = FMath::FInterpTo(
 			PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle(),
