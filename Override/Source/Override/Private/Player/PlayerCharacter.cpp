@@ -42,7 +42,11 @@ void APlayerCharacter::BeginPlay()
 	{
 		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
 		SprintFOV = PlayerMovementComponent->MovementData->SprintFOV;
-		FOVInterpSpeed = PlayerMovementComponent->MovementData->FOVInterpSpeed;
+		SlideFOV = PlayerMovementComponent->MovementData->SlideFOV;
+		FOVInterpSprintSpeed = PlayerMovementComponent->MovementData->FOVInterpSprintSpeed;
+		FOVInterpNormalSpeed = PlayerMovementComponent->MovementData->FOVInterpNormalSpeed;
+		FOVInterpAimSpeed = PlayerMovementComponent->MovementData->FOVInterpAimSpeed;
+		FOVInterpSlideSpeed = PlayerMovementComponent->MovementData->FOVInterpSlideSpeed;
 
 		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
 		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
