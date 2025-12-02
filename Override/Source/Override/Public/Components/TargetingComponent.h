@@ -39,7 +39,7 @@ public:
 	
 protected:
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float MaxTargetingDistance = 5000;
+	float MaxTargetingDistance = 15000;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	float TargetingAccuracy = 120;
@@ -56,4 +56,6 @@ private:
 
 	static bool IsPointOnTargetVisible(const FVector& Start, const FVector& Dir, const float Range, const AActor* Target,
 												 const APlayerController* PC);
+
+	static bool IsActorTargetable(AActor* Target);
 };

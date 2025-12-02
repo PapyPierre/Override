@@ -1,6 +1,7 @@
 #include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
 #include "Kismet/GameplayStatics.h"
+#include "Modulations/Modulation.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/PlayerCharacter.h"
 
@@ -122,6 +123,8 @@ void UTargetingComponent::LookForTarget()
 			{
 				AActor* HitActor = Hit.GetActor();
 				if (!HitActor) continue;
+
+				if (!IsActorTargetable(HitActor)) continue;
 				
 				if (IsPointOnTargetVisible(CamPos, Dir, MaxTargetingDistance, HitActor, PlayerController))
 				{
@@ -199,6 +202,16 @@ bool UTargetingComponent::IsPointOnTargetVisible(const FVector& Start, const FVe
 	);
 
 	return bHit && Hit.GetActor() == Target;
+}
+
+bool UTargetingComponent::IsActorTargetable(AActor* Target)
+{
+	if (!Target->Implements<UTargetable>()) return false;
+
+	AModulation* Mod = Cast<AModulation>(Target);
+	if (Mod && Mod->IsDemat) return false;
+	
+	return true;
 }
 
 void UTargetingComponent::TargetActor(AActor* Target)
