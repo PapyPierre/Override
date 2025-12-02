@@ -318,7 +318,7 @@ void APlayerCharacter::SelectHack1()
 {
 	if (SelectedHackIndex == 1) return;
 
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 1"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 1"));
 
 	SelectedHackIndex = 1;
 }
@@ -327,7 +327,7 @@ void APlayerCharacter::SelectHack2()
 {
 	if (SelectedHackIndex == 2) return;
 
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 2"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 2"));
 
 	SelectedHackIndex = 2;
 }
@@ -336,7 +336,7 @@ void APlayerCharacter::SelectHack3()
 {
 	if (SelectedHackIndex == 3) return;
 
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 3"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 3"));
 
 	SelectedHackIndex = 3;
 }
@@ -345,7 +345,7 @@ void APlayerCharacter::UnselectHack()
 {
 	if (SelectedHackIndex == 0) return;
 
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Unselect"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Unselect"));
 
 	SelectedHackIndex = 0;
 }
@@ -363,7 +363,7 @@ ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 
 void APlayerCharacter::ActivateHack1()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 1"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 1"));
 
 	SendHackEventWithData(Hack1Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
 	OnHackActivated(1);
@@ -371,7 +371,7 @@ void APlayerCharacter::ActivateHack1()
 
 void APlayerCharacter::ActivateHack2()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 2"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 2"));
 
 	SendHackEventWithData(Hack2Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
 	OnHackActivated(2);
@@ -379,7 +379,7 @@ void APlayerCharacter::ActivateHack2()
 
 void APlayerCharacter::ActivateHack3()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 3"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Activate hack 3"));
 
 	SendHackEventWithData(Hack3Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
 	OnHackActivated(3);
@@ -387,7 +387,7 @@ void APlayerCharacter::ActivateHack3()
 
 void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight, TArray<AActor*> Targets)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
