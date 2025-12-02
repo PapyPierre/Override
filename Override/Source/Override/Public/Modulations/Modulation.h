@@ -62,6 +62,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	ModState CurrentState = ModState::Stopped;
+	
+	UPROPERTY(BlueprintReadWrite, Category="Default")
+	bool IsDemat;
 
 	UPROPERTY(EditAnywhere, Category="Default")
 	float CooldownDuration = 2;

@@ -99,7 +99,7 @@ void UAsyncTaskCooldownChanged::CooldownTagChanged(const FGameplayTag CooldownTa
 	}
 }
 
-bool UAsyncTaskCooldownChanged::GetCooldownRemainingForTag(FGameplayTagContainer InCooldownTags, float & TimeRemaining, float & CooldownDuration)
+bool UAsyncTaskCooldownChanged::GetCooldownRemainingForTag(FGameplayTagContainer InCooldownTags, float & TimeRemaining, float & CooldownDuration) const
 {
 	if (IsValid(ASC) && InCooldownTags.Num() > 0)
 	{

@@ -56,4 +56,6 @@ private:
 
 	static bool IsPointOnTargetVisible(const FVector& Start, const FVector& Dir, const float Range, const AActor* Target,
 												 const APlayerController* PC);
+
+	static bool IsActorTargetable(AActor* Target);
 };
