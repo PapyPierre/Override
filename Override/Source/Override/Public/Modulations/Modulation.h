@@ -36,7 +36,7 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void Target() override;
+	virtual void OnTarget_Implementation() override;
 	
 	virtual void Interact() override;
 

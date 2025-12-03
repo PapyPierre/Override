@@ -166,6 +166,7 @@ void UTargetingComponent::LookForTarget()
 		ClearCurrentTargets();
 	}
 
+	DistToTargetActor = ClosestDist;
 	TargetActor(ClosestActor);
 }
 
@@ -223,12 +224,13 @@ void UTargetingComponent::TargetActor(AActor* Target)
 
 	CurrentTargets.Add(Target);
 
-	Cast<ITargetable>(Target)->Target();
 	ITargetable::Execute_OnTarget(Target);
 }
 
 void UTargetingComponent::ClearCurrentTargets()
 {
+	DistToTargetActor = 0;
+	
 	for (AActor* Targetable : CurrentTargets)
 	{
 		ITargetable::Execute_OnUntarget(Targetable);
