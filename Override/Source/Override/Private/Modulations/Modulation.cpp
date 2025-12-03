@@ -229,7 +229,7 @@ void AModulation::OnTarget_Implementation(AActor* TargetingActor)
 	if (Group) Group->TargetGroup();
 }
 
-void AModulation::Interact() // Server-side
+void AModulation::OnInteract_Implementation(AActor* InteractingActor) // Server-side
 {
 	if (CurrentState != ModState::Stopped) return;
 
@@ -238,12 +238,11 @@ void AModulation::Interact() // Server-side
 		for (AModulation* Mod : Group->ModulationsInGroup)
 		{
 			Mod->ChangeState(ModState::Moving);
-			Mod->Execute_OnInteract(Mod);
+			Mod->Execute_OnInteract(Mod, InteractingActor);
 		}
 
 		return;
 	}
 
 	ChangeState(ModState::Moving);
-	Execute_OnInteract(this);
 }

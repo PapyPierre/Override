@@ -28,5 +28,5 @@ void UInteractingComponent::TryInteractWithActor(AActor* Target)
 
 void UInteractingComponent::RPC_TryInteractWithActor_Implementation(AActor* Target)
 {
-	if (Target) Cast<IInteractable>(Target)->Interact();
+	IInteractable::Execute_OnInteract(Target, GetOwner());
 }
