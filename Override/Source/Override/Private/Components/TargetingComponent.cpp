@@ -224,7 +224,7 @@ void UTargetingComponent::TargetActor(AActor* Target)
 
 	CurrentTargets.Add(Target);
 
-	ITargetable::Execute_OnTarget(Target);
+	ITargetable::Execute_OnTarget(Target, GetOwner());
 }
 
 void UTargetingComponent::ClearCurrentTargets()
