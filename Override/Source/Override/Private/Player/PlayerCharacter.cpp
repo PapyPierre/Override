@@ -30,10 +30,6 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 	return GetCustomPlayerState()->GetAbilitySystemComponent();
 }
 
-void APlayerCharacter::Target()
-{
-}
-
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
