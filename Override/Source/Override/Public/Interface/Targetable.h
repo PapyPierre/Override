@@ -19,7 +19,7 @@ public:
 	TArray<FVector> Points;
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Targetable")
-	void OnTarget();
+	void OnTarget(AActor* TargetingActor);
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
 	void OnUntarget();
