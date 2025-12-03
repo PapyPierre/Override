@@ -40,6 +40,8 @@ void AModulation::BeginPlay()
 
 void AModulation::HandleMovement(float DeltaTime)
 {
+	if (!HasAuthority()) return;
+	
 	if (CurrentState != ModState::Moving) return;
 
 	if (ModSpeedCurve == nullptr) return;
@@ -53,8 +55,6 @@ void AModulation::HandleMovement(float DeltaTime)
 	if (LerpTime < 1) return;
 	
 	StopMovement();
-
-	if (!HasAuthority()) return;
 
 	CurrentEndIndex++;
 
@@ -82,7 +82,7 @@ void AModulation::HandleCooldown(float DeltaTime)
 	{
 		CdTime = 0;
 
-		ChangeState(ModState::Stopped);
+		RPC_ChangeState(ModState::Stopped);
 	}
 }
 
@@ -96,12 +96,12 @@ void AModulation::HandleLock(float DeltaTime)
 	{
 		LockTime = 0;
 
-		if (PreviousState == ModState::Moving) ChangeState(ModState::Moving);
-		else ChangeState(ModState::Stopped);
+		if (PreviousState == ModState::Moving) RPC_ChangeState(ModState::Moving);
+		else RPC_ChangeState(ModState::Stopped);
 	}
 }
 
-void AModulation::ChangeState(const ModState NewState)
+void AModulation::RPC_ChangeState_Implementation(ModState NewState)
 {
 	PreviousState = CurrentState;
 	CurrentState = NewState;
@@ -121,13 +121,13 @@ void AModulation::Lock_Implementation()
 	{
 		for (AModulation* mod : Group->ModulationsInGroup)
 		{
-			mod->ChangeState(ModState::Locked);
+			mod->RPC_ChangeState(ModState::Locked);
 		}
 
 		return;
 	}
 	
-	ChangeState(ModState::Locked);
+	RPC_ChangeState(ModState::Locked);
 }
 
 void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, float CastDuration)
@@ -148,7 +148,7 @@ void AModulation::StopMovement()
 		ApplyImpulseOnPlayer();
 	}
 
-	ChangeState(ModState::InCD);
+	RPC_ChangeState(ModState::InCD);
 }
 
 void AModulation::ApplyImpulseOnPlayer() const
@@ -211,7 +211,7 @@ void AModulation::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AModulation, CurrentState);
+	//DOREPLIFETIME(AModulation, CurrentState);
 	DOREPLIFETIME(AModulation, CurrentStart);
 	DOREPLIFETIME(AModulation, CurrentEnd);
 }
@@ -224,6 +224,9 @@ void AModulation::Tick(float DeltaTime)
 	HandleCooldown(DeltaTime);
 	HandleLock(DeltaTime);
 	ManageHackCastingCooldown(DeltaTime);
+
+	DrawDebugSphere(GetWorld(), CurrentStart.GetLocation(), 20, 12, FColor::Emerald);
+	DrawDebugSphere(GetWorld(), CurrentEnd.GetLocation(), 20, 12, FColor::Orange);
 }
 
 void AModulation::OnTarget_Implementation(AActor* TargetingActor)
@@ -239,12 +242,11 @@ void AModulation::OnInteract_Implementation(AActor* InteractingActor) // Server-
 	{
 		for (AModulation* Mod : Group->ModulationsInGroup)
 		{
-			Mod->ChangeState(ModState::Moving);
-			Mod->Execute_OnInteract(Mod, InteractingActor);
+			Mod->RPC_ChangeState(ModState::Moving);
 		}
 
 		return;
 	}
 
-	ChangeState(ModState::Moving);
+	RPC_ChangeState(ModState::Moving);
 }

@@ -60,7 +60,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Default")
 	UCurveFloat* ModSpeedCurve;
 
-	UPROPERTY(BlueprintReadOnly, Replicated)
+	UPROPERTY(BlueprintReadOnly)
 	ModState CurrentState = ModState::Stopped;
 	
 	UPROPERTY(BlueprintReadWrite, Category="Default")
@@ -103,8 +103,8 @@ protected:
 	UFUNCTION(Server, Reliable, BlueprintCallable)
 	void Lock();
 
-	UFUNCTION(BlueprintCallable)
-	void ChangeState(ModState NewState);
+	UFUNCTION(NetMulticast, Reliable)
+	void RPC_ChangeState(ModState NewState);
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnStateChanged(ModState NewState);
