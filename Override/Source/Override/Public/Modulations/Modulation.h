@@ -51,10 +51,10 @@ public:
 	UPROPERTY(EditInstanceOnly, Category="Default", meta=(MakeEditWidget))
 	TArray<FTransform> Ends;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FTransform CurrentStart;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FTransform CurrentEnd;
 
 	UPROPERTY(EditAnywhere, Category="Default")
