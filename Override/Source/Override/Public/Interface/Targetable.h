@@ -22,5 +22,5 @@ public:
 	void OnTarget(AActor* TargetingActor);
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
-	void OnUntarget();
+	void OnUntarget(AActor* TargetingActor);
 };
