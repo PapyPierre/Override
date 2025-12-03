@@ -224,7 +224,7 @@ void AModulation::Tick(float DeltaTime)
 	ManageHackCastingCooldown(DeltaTime);
 }
 
-void AModulation::Target()
+void AModulation::OnTarget_Implementation()
 {
 	if (Group) Group->TargetGroup();
 }

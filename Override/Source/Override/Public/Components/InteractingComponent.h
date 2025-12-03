@@ -21,7 +21,7 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void TryInteractWithActor(AActor* Target);
 
-	UFUNCTION(NetMulticast, Reliable)
+	UFUNCTION(Server, Reliable)
 	void RPC_TryInteractWithActor(AActor* Target);
 
 private:

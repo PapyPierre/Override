@@ -33,7 +33,6 @@ public:
 	UInputMappingContext* InputMappingContext;
 
 	virtual void Tick(float DeltaTime) override;
-	virtual void Target() override;
 
 #pragma region Hack
 	UPROPERTY(BlueprintReadOnly, Category="Hack")

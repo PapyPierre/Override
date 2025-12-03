@@ -18,9 +18,7 @@ public:
 	bool PointsGenerated;
 	TArray<FVector> Points;
 	
-	virtual void Target() = 0;
-
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Targetable")
 	void OnTarget();
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Targetable")

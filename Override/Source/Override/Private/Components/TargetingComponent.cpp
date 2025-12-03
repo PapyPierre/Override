@@ -224,7 +224,6 @@ void UTargetingComponent::TargetActor(AActor* Target)
 
 	CurrentTargets.Add(Target);
 
-	Cast<ITargetable>(Target)->Target();
 	ITargetable::Execute_OnTarget(Target);
 }
 
