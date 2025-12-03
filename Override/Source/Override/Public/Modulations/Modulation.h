@@ -36,9 +36,9 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void Target() override;
+	virtual void OnTarget_Implementation(AActor* TargetingActor) override;
 	
-	virtual void Interact() override;
+	virtual void OnInteract_Implementation(AActor* InteractingActor) override;
 
 	UPROPERTY(BlueprintReadOnly)
 	AModulationGroup* Group;
@@ -51,10 +51,10 @@ public:
 	UPROPERTY(EditInstanceOnly, Category="Default", meta=(MakeEditWidget))
 	TArray<FTransform> Ends;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FTransform CurrentStart;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FTransform CurrentEnd;
 
 	UPROPERTY(EditAnywhere, Category="Default")

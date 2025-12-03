@@ -42,8 +42,6 @@ void AModulation::HandleMovement(float DeltaTime)
 {
 	if (CurrentState != ModState::Moving) return;
 
-	if (!HasAuthority()) return;
-
 	if (ModSpeedCurve == nullptr) return;
 
 	LerpTime += DeltaTime * ModSpeedCurve->FloatCurve.Eval(LerpTime);
@@ -53,8 +51,10 @@ void AModulation::HandleMovement(float DeltaTime)
 	SetActorTransform(UKismetMathLibrary::TLerp(CurrentStart, CurrentEnd, LerpTime));
 
 	if (LerpTime < 1) return;
-
+	
 	StopMovement();
+
+	if (!HasAuthority()) return;
 
 	CurrentEndIndex++;
 
@@ -212,6 +212,8 @@ void AModulation::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AModulation, CurrentState);
+	DOREPLIFETIME(AModulation, CurrentStart);
+	DOREPLIFETIME(AModulation, CurrentEnd);
 }
 
 void AModulation::Tick(float DeltaTime)
@@ -224,12 +226,12 @@ void AModulation::Tick(float DeltaTime)
 	ManageHackCastingCooldown(DeltaTime);
 }
 
-void AModulation::Target()
+void AModulation::OnTarget_Implementation(AActor* TargetingActor)
 {
 	if (Group) Group->TargetGroup();
 }
 
-void AModulation::Interact()
+void AModulation::OnInteract_Implementation(AActor* InteractingActor) // Server-side
 {
 	if (CurrentState != ModState::Stopped) return;
 
@@ -238,12 +240,11 @@ void AModulation::Interact()
 		for (AModulation* Mod : Group->ModulationsInGroup)
 		{
 			Mod->ChangeState(ModState::Moving);
-			Mod->Execute_OnInteract(Mod);
+			Mod->Execute_OnInteract(Mod, InteractingActor);
 		}
 
 		return;
 	}
 
 	ChangeState(ModState::Moving);
-	Execute_OnInteract(this);
 }
