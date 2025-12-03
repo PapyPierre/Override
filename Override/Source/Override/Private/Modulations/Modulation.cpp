@@ -42,7 +42,7 @@ void AModulation::HandleMovement(float DeltaTime)
 {
 	if (CurrentState != ModState::Moving) return;
 
-	if (!HasAuthority()) return;
+	//if (!HasAuthority()) return;
 
 	if (ModSpeedCurve == nullptr) return;
 
@@ -229,7 +229,7 @@ void AModulation::Target()
 	if (Group) Group->TargetGroup();
 }
 
-void AModulation::Interact()
+void AModulation::Interact() // Server-side
 {
 	if (CurrentState != ModState::Stopped) return;
 
