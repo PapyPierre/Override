@@ -16,8 +16,6 @@ class OVERRIDE_API IInteractable : public ITargetable
 	GENERATED_BODY()
 
 public:
-	virtual void Interact() = 0;
-
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Interactable")
-	void OnInteract();
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable")
+	void OnInteract(AActor* InteractingActor);
 };
