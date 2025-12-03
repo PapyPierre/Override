@@ -15,7 +15,6 @@ void UInteractingComponent::BeginPlay()
 void UInteractingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                       FActorComponentTickFunction* ThisTickFunction)
 {
-
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 

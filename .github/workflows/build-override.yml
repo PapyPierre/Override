@@ -69,7 +69,7 @@ jobs:
 
       - name: Build Server (Full)
         run: |
-          call "${{ env.BUILD_SCRIPT }}" server full
+          call "${{ env.BUILD_SCRIPT }}" server full ${{ env.FULL_VERSION }}
         shell: cmd
       
       #      - name: Create ZIP archives
