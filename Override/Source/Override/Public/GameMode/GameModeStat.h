@@ -17,6 +17,9 @@ class OVERRIDE_API UGameModeStat : public UDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
 	TArray<int32> RoundData;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
+	int MaxDataWin = 10000;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
 	int PhaseTime = 90;
