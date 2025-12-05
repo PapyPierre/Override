@@ -67,7 +67,7 @@ void UPlayerMovementComponent::BeginPlay()
 		TimelineCallback.BindUFunction(this, FName("EaseVelocityUpdate"));
 		TimelineCallbackFinished.BindUFunction(this, FName("StopVelocityEaseTimeline"));
 		VelocityEaseTimeline.SetTimelineFinishedFunc(TimelineCallbackFinished);
-		VelocityEaseTimeline.SetTimelineLength(1.f);
+		VelocityEaseTimeline.SetTimelineLength(EaseOutTime);
 		VelocityEaseTimeline.AddInterpFloat(VelocityEaseCurve, TimelineCallback);
 		VelocityEaseTimeline.SetLooping(false);
 	}
@@ -227,25 +227,34 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			SlideLineTrace();
 		}
 		
-		// Hard stop : conditions immédiates pour arrêter la timeline
+		// HARD STOP, conditions to immediately stop the slide 
 		bool bStopSliding =
 			!bWantsToCrouch ||
 			Impact.Z >= SlopeToleranceValue ||
 			Velocity.IsNearlyZero();       
 
-		// Soft stop : conditions pour lancer le easing
+		// SOFT STOP : conditions to start the easing
 		bool bShouldStopSliding =
 			TimeSliding >= BoostSlidingTime ||
-			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < 800);
+			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < DefaultSprintSpeed * 0.75f);
+
 		
-		if (FMath::IsNearlyZero(Impact.Z) && Impact.Z <= SlopeToleranceValue)
+		if (FMath::IsNearlyZero(Impact.Z))
 		{
 			if (IsMovingOnGround())
 				TimeSliding += DeltaTime;
 		}
+
+		if (Impact.Z <= SlopeToleranceValue *- 1 && VelocityEaseTimeline.IsPlaying())
+		{
+			bPendingCancelSlide = false;
+			VelocityEaseTimeline.SetNewTime(0);
+			VelocityEaseTimeline.SetPlayRate(0);
+		}
 		
 		if (bShouldStopSliding && !bPendingCancelSlide)
 		{
+			VelocityEaseTimeline.SetPlayRate(1);
 			StartVelocityEase(Velocity.GetSafeNormal() * DefaultMaxWalkSpeedCrouched);
 		}
 		
@@ -698,12 +707,12 @@ void UPlayerMovementComponent::StartVelocityEase(const FVector& NewTargetVelocit
     
 	if (VelocityEaseCurve)
 	{
-		VelocityEaseTimeline.SetPlayRate(1.f / EaseOutTime); 
+		float InitialTime = EaseOutTime;
+		VelocityEaseTimeline.SetPlayRate(InitialTime / EaseOutTime); 
 		VelocityEaseTimeline.PlayFromStart();
 		bPendingCancelSlide = true;
 	}
 }
-
 
 void UPlayerMovementComponent::StopVelocityEaseTimeline()
 {
