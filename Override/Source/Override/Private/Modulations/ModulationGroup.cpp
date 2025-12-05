@@ -26,14 +26,11 @@ void AModulationGroup::OnConstruction(const FTransform& Transform)
 #endif
 }
 
-void AModulationGroup::TargetGroup()
+void AModulationGroup::TargetGroup(const AActor* TargetingActor)
 {
-	ACharacter* Character = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
-	APlayerCharacter* LocalPlayer = static_cast<APlayerCharacter*>(Character);
-
 	for (AModulation* mod : ModulationsInGroup)
 	{
-		UTargetingComponent* TargetingComponent = LocalPlayer->FindComponentByClass<UTargetingComponent>();
+		UTargetingComponent* TargetingComponent = TargetingActor->FindComponentByClass<UTargetingComponent>();
 		TargetingComponent->TargetActor(mod);
 	}
 }
