@@ -224,9 +224,6 @@ void AModulation::Tick(float DeltaTime)
 	HandleCooldown(DeltaTime);
 	HandleLock(DeltaTime);
 	ManageHackCastingCooldown(DeltaTime);
-
-	DrawDebugSphere(GetWorld(), CurrentStart.GetLocation(), 20, 12, FColor::Emerald);
-	DrawDebugSphere(GetWorld(), CurrentEnd.GetLocation(), 20, 12, FColor::Orange);
 }
 
 void AModulation::OnTarget_Implementation(AActor* TargetingActor)

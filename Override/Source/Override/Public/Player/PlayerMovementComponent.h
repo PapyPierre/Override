@@ -61,7 +61,7 @@ public:
 	
 	bool bPendingCancelSlide = false;
 	bool bCoolDownFinished = false;
-
+	
 	UPROPERTY(Replicated)
 	FVector VelocityAtCrouch;
 
@@ -76,6 +76,7 @@ public:
 	
 	bool SlideLineTrace();
 
+	EMovementMode _PreviousMovementMode;
 	FHitResult SlideHit;
 	FTimeline VelocityEaseTimeline;
 	FVector Impact;
