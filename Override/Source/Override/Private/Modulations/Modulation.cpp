@@ -228,7 +228,7 @@ void AModulation::Tick(float DeltaTime)
 
 void AModulation::OnTarget_Implementation(AActor* TargetingActor)
 {
-	if (Group) Group->TargetGroup();
+	if (Group) Group->TargetGroup(TargetingActor);
 }
 
 void AModulation::OnInteract_Implementation(AActor* InteractingActor) // Server-side
