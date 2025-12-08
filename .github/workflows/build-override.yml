@@ -18,7 +18,7 @@ jobs:
       VERSION_UPDATE_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Updater.ps1
       BUILD_UPLOADER_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Cloud_Uploader.ps1
       OUTPUT_DIR: C:\Users\SIG5-PROJ05\Desktop\Build_Archive\Server\Win64
-      SERCER_BUILD_OUTPUT: C:\Users\SIG5-PROJ05\Desktop\
+      SERVER_BUILD_OUTPUT: C:\Users\SIG5-PROJ05\Desktop\
       DOTNET_DISABLE_VULNERABILITY_ANALYSIS: true
     
     steps:
