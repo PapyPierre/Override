@@ -724,7 +724,7 @@ void UPlayerMovementComponent::StopVelocityEaseTimeline()
 		VelocityEaseTimeline.Stop();
 }
 
-bool UPlayerMovementComponent::CanSlide()
+bool UPlayerMovementComponent::CanSlide()²
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
