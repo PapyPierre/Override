@@ -15,6 +15,7 @@ jobs:
       PROJECT_PATH: C:\actions-runner\_work\Override\Override\Override
       UE_ENGINE_PATH: C:\partage\Tchoupi Source Light\UnrealEngine
       BUILD_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Builder.bat
+      ZIP_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Zipper.bat
       VERSION_UPDATE_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Updater.ps1
       BUILD_UPLOADER_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Cloud_Uploader.ps1
       OUTPUT_DIR: C:\Users\SIG5-PROJ05\Desktop\Build_Archive\Server\Win64
@@ -63,9 +64,14 @@ jobs:
         run: |
           call "${{ env.UE_ENGINE_PATH }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" OverrideEditor Win64 Development -Project="${{ env.PROJECT_PATH }}\${{ env.PROJECT_NAME }}.uproject"
 
-      - name: Build & Zip Client (Iterate)
+      - name: Build Client (Iterate)
         run: |
           call "${{ env.BUILD_SCRIPT }}" client iterate ${{ env.FULL_VERSION }}
+        shell: cmd
+        
+      - name: Zip Client
+        run: |
+          call "${{ env.ZIP_SCRIPT }}" ${{ env.FULL_VERSION }}
         shell: cmd
 
       - name: Build Server (Full)
