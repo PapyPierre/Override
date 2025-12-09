@@ -36,4 +36,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	int StockMunition = 200;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
+	float MeleeCoolDown = 1.2f;
 };
