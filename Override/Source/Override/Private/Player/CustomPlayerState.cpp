@@ -58,7 +58,7 @@ bool ACustomPlayerState::GetCdRemainingForTag(FGameplayTagContainer CdTags, floa
 void ACustomPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	if (HasAuthority())
 	{
 		GiveCharacterHacks();
@@ -74,6 +74,6 @@ void ACustomPlayerState::GiveCharacterHacks()
 		FGameplayAbilitySpec HackSpec(Hack, 1, INDEX_NONE, this);
 		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(HackSpec);
 
-		UE_LOG(LogTemp, Warning, TEXT("Server hack gave: %s to %s"), *Hack->GetName(), *this->GetName());
+		//UE_LOG(LogTemp, Warning, TEXT("Server hack gave: %s to %s"), *Hack->GetName(), *this->GetName());
 	}
 }
