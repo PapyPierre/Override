@@ -51,9 +51,6 @@ public:
     
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* SelectHack3Action;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* SelectWeaponAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Hack")
 	FGameplayTag Hack1Tag;
@@ -193,9 +190,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsHackSelected() const;
-
-	UFUNCTION(BlueprintCallable)
-	void UnselectHack();
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnHackActivated(int hackIndex);

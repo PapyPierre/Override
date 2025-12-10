@@ -251,9 +251,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		if (SelectWeaponAction) EnhancedInput->BindAction(SelectWeaponAction, ETriggerEvent::Started, this,
-		                                                  &APlayerCharacter::UnselectHack);
-
 		if (SelectHack1Action) EnhancedInput->BindAction(SelectHack1Action, ETriggerEvent::Started, this,
 		                                                 &APlayerCharacter::SelectHack1);
 
@@ -317,6 +314,7 @@ void APlayerCharacter::SelectHack1()
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 1"));
 
 	SelectedHackIndex = 1;
+	LaunchSelectedHack();
 }
 
 void APlayerCharacter::SelectHack2()
@@ -326,6 +324,7 @@ void APlayerCharacter::SelectHack2()
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 2"));
 
 	SelectedHackIndex = 2;
+	LaunchSelectedHack();
 }
 
 void APlayerCharacter::SelectHack3()
@@ -335,15 +334,7 @@ void APlayerCharacter::SelectHack3()
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Select hack 3"));
 
 	SelectedHackIndex = 3;
-}
-
-void APlayerCharacter::UnselectHack()
-{
-	if (SelectedHackIndex == 0) return;
-
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Unselect"));
-
-	SelectedHackIndex = 0;
+	LaunchSelectedHack();
 }
 
 void APlayerCharacter::Launch(const FVector& Force)
@@ -422,8 +413,8 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector Curr
 	EventData.TargetData = Handle;
 
 	ASC->HandleGameplayEvent(EventTag, &EventData);
-
-	if (AutoUnselectHack) UnselectHack();
+	
+	SelectedHackIndex = 0;
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
