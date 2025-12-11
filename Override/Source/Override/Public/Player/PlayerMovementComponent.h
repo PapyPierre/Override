@@ -107,9 +107,6 @@ public:
 
 #pragma region Jump
 	float FirstJumpZVelocity;
-	float SecondJumpZVelocity;
-	float SecondJumpAirControl;
-	float AirHorizontalRetainPercent;
 	float CoyoteTime;
 	
 	FVector InitialHorizontalVelocity;
@@ -117,8 +114,7 @@ public:
 	
 	float DefaultAirControl = 0;
 	float DefaultBrakingDecelerationFalling = 0;
-	
-	void ResetJumpValues();
+
 #pragma endregion
 
 #pragma region Parkour
