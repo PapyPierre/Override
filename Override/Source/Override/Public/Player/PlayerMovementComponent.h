@@ -107,9 +107,6 @@ public:
 
 #pragma region Jump
 	float FirstJumpZVelocity;
-	float SecondJumpZVelocity;
-	float SecondJumpAirControl;
-	float AirHorizontalRetainPercent;
 	float CoyoteTime;
 	
 	FVector InitialHorizontalVelocity;

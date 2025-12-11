@@ -27,9 +27,6 @@ void UPlayerMovementComponent::BeginPlay()
 
 		//Jump
 		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
-		SecondJumpZVelocity = MovementData->SecondJumpZVelocity;
-		SecondJumpAirControl = MovementData->SecondJumpAirControl;
-		AirHorizontalRetainPercent = MovementData->AirHorizontalRetainPercent;
 		CoyoteTime = MovementData->CoyoteTime;
 
 		//Parkour
@@ -625,15 +622,24 @@ void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 
 bool UPlayerMovementComponent::CanSprint() const
 {
-	if (!IsMovingOnGround() || bWantsToCrouch || IsCrouching())
-		return false;
+		if (!IsMovingOnGround() || bWantsToCrouch || IsCrouching())
+			return false;
 
-	FVector MoveDir = Velocity.GetSafeNormal();
-	FVector ForwardDir = CharacterOwner->GetActorForwardVector();
+		const float Speed = Velocity.Size();
+		if (Speed <= KINDA_SMALL_NUMBER)
+			return false;
 
-	float Dot = FVector::DotProduct(MoveDir, ForwardDir);
+		const float MaxAngle = 90.f;
+		const float AngleTolerance = 5.f;
 
-	return Dot >= 0.f && Velocity.Size() > 0.f;
+		const FVector MoveDir = Velocity.GetSafeNormal2D();
+		const FVector ForwardDir = CharacterOwner->GetActorForwardVector().GetSafeNormal2D();
+
+		const float Angle = FMath::RadiansToDegrees(
+			FMath::Acos(FVector::DotProduct(MoveDir, ForwardDir))
+		);
+
+		return Angle <= (MaxAngle + AngleTolerance);
 }
 
 bool UPlayerMovementComponent::IsRunning() const
@@ -784,34 +790,16 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 
 bool UPlayerMovementComponent::CanAttemptJump() const
 {
-	return IsJumpAllowed() &&
-		   (IsMovingOnGround() || IsFalling()) &&
-		   	(IsSliding() || !bWantsToCrouch);
+	return Super::CanAttemptJump();
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 {
-	if (CharacterOwner && CharacterOwner->CanJump())
-	{	
-		if (!bConstrainToPlane || !FMath::IsNearlyEqual(FMath::Abs(GetGravitySpaceZ(PlaneConstraintNormal)), 1.f))
-		{
-			const bool bFirstJump = (CharacterOwner->JumpCurrentCountPreJump == 0);
-
-			if (bFirstJump || bDontFallBelowJumpZVelocityDuringJump)
-			{
-				Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, JumpZVelocity);
-			}
-			
-			SetMovementMode(MOVE_Falling);
-			return true;
-		}
-	}
-	return false;
+	return Super::DoJump(bReplayingMoves, DeltaTime);
 }
 
 void UPlayerMovementComponent::ResetJumpValues()
 {
-	AirControl = DefaultAirControl;
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
