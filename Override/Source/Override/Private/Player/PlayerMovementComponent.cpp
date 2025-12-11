@@ -782,6 +782,27 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 	Super::PhysFalling(DeltaTime, Iterations);
 }
 
+float UPlayerMovementComponent::GetMaxBrakingDeceleration() const
+{
+	switch (MovementMode)
+	{
+	case MOVE_Walking:
+	case MOVE_NavWalking:
+		return BrakingDecelerationWalking;
+	case MOVE_Falling:
+		return BrakingDecelerationFalling;
+	case MOVE_Swimming:
+		return BrakingDecelerationSwimming;
+	case MOVE_Flying:
+		return BrakingDecelerationFlying;
+	case MOVE_Custom:
+		return BrakingDecelerationWalking;
+	case MOVE_None:
+	default:
+		return 0.f;
+	}
+}
+
 bool UPlayerMovementComponent::CanAttemptJump() const
 {
 	return IsJumpAllowed() &&
@@ -791,27 +812,11 @@ bool UPlayerMovementComponent::CanAttemptJump() const
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 {
-	if (CharacterOwner && CharacterOwner->CanJump())
-	{	
-		if (!bConstrainToPlane || !FMath::IsNearlyEqual(FMath::Abs(GetGravitySpaceZ(PlaneConstraintNormal)), 1.f))
-		{
-			const bool bFirstJump = (CharacterOwner->JumpCurrentCountPreJump == 0);
-
-			if (bFirstJump || bDontFallBelowJumpZVelocityDuringJump)
-			{
-				Velocity.Z = FMath::Max<FVector::FReal>(Velocity.Z, JumpZVelocity);
-			}
-			
-			SetMovementMode(MOVE_Falling);
-			return true;
-		}
-	}
-	return false;
+	return Super::DoJump(bReplayingMoves, DeltaTime);
 }
 
 void UPlayerMovementComponent::ResetJumpValues()
 {
-	AirControl = DefaultAirControl;
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
