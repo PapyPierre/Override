@@ -62,7 +62,7 @@ jobs:
       - name: Delete FMOD Intermediate Folder
         shell: cmd
         run: |
-          rd /s /q C:\actions-runner_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
+          rd /s /q C:\actions-runner\_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
 
       - name: Build Editor
         shell: cmd
