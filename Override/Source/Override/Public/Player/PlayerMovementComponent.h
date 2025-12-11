@@ -114,8 +114,7 @@ public:
 	
 	float DefaultAirControl = 0;
 	float DefaultBrakingDecelerationFalling = 0;
-	
-	void ResetJumpValues();
+
 #pragma endregion
 
 #pragma region Parkour

@@ -194,7 +194,6 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
 		                                             FRotator::ZeroRotator);
 	}
-	PlayerMovementComponent->ResetJumpValues();
 }
 
 void APlayerCharacter::Falling()

@@ -790,16 +790,14 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 
 bool UPlayerMovementComponent::CanAttemptJump() const
 {
-	return Super::CanAttemptJump();
+	return IsJumpAllowed() &&
+		   (IsMovingOnGround() || IsFalling()) &&
+			   (IsSliding() || !bWantsToCrouch);
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 {
 	return Super::DoJump(bReplayingMoves, DeltaTime);
-}
-
-void UPlayerMovementComponent::ResetJumpValues()
-{
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
