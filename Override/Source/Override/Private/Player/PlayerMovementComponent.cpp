@@ -27,9 +27,6 @@ void UPlayerMovementComponent::BeginPlay()
 
 		//Jump
 		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
-		SecondJumpZVelocity = MovementData->SecondJumpZVelocity;
-		SecondJumpAirControl = MovementData->SecondJumpAirControl;
-		AirHorizontalRetainPercent = MovementData->AirHorizontalRetainPercent;
 		CoyoteTime = MovementData->CoyoteTime;
 
 		//Parkour
@@ -625,15 +622,24 @@ void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 
 bool UPlayerMovementComponent::CanSprint() const
 {
-	if (!IsMovingOnGround() || bWantsToCrouch || IsCrouching())
-		return false;
+		if (!IsMovingOnGround() || bWantsToCrouch || IsCrouching())
+			return false;
 
-	FVector MoveDir = Velocity.GetSafeNormal();
-	FVector ForwardDir = CharacterOwner->GetActorForwardVector();
+		const float Speed = Velocity.Size();
+		if (Speed <= KINDA_SMALL_NUMBER)
+			return false;
 
-	float Dot = FVector::DotProduct(MoveDir, ForwardDir);
+		const float MaxAngle = 90.f;
+		const float AngleTolerance = 5.f;
 
-	return Dot >= 0.f && Velocity.Size() > 0.f;
+		const FVector MoveDir = Velocity.GetSafeNormal2D();
+		const FVector ForwardDir = CharacterOwner->GetActorForwardVector().GetSafeNormal2D();
+
+		const float Angle = FMath::RadiansToDegrees(
+			FMath::Acos(FVector::DotProduct(MoveDir, ForwardDir))
+		);
+
+		return Angle <= (MaxAngle + AngleTolerance);
 }
 
 bool UPlayerMovementComponent::IsRunning() const
@@ -782,32 +788,9 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 	Super::PhysFalling(DeltaTime, Iterations);
 }
 
-float UPlayerMovementComponent::GetMaxBrakingDeceleration() const
-{
-	switch (MovementMode)
-	{
-	case MOVE_Walking:
-	case MOVE_NavWalking:
-		return BrakingDecelerationWalking;
-	case MOVE_Falling:
-		return BrakingDecelerationFalling;
-	case MOVE_Swimming:
-		return BrakingDecelerationSwimming;
-	case MOVE_Flying:
-		return BrakingDecelerationFlying;
-	case MOVE_Custom:
-		return BrakingDecelerationWalking;
-	case MOVE_None:
-	default:
-		return 0.f;
-	}
-}
-
 bool UPlayerMovementComponent::CanAttemptJump() const
 {
-	return IsJumpAllowed() &&
-		   (IsMovingOnGround() || IsFalling()) &&
-		   	(IsSliding() || !bWantsToCrouch);
+	return Super::CanAttemptJump();
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
