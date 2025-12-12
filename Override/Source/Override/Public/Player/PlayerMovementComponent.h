@@ -107,9 +107,6 @@ public:
 
 #pragma region Jump
 	float FirstJumpZVelocity;
-	float SecondJumpZVelocity;
-	float SecondJumpAirControl;
-	float AirHorizontalRetainPercent;
 	float CoyoteTime;
 	
 	FVector InitialHorizontalVelocity;
@@ -117,8 +114,7 @@ public:
 	
 	float DefaultAirControl = 0;
 	float DefaultBrakingDecelerationFalling = 0;
-	
-	void ResetJumpValues();
+
 #pragma endregion
 
 #pragma region Parkour
@@ -183,8 +179,6 @@ private:
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 
 	virtual void PhysFalling(float DeltaTime, int32 Iterations) override;
-
-	virtual float GetMaxBrakingDeceleration() const override;
 	
 	void ResetSlideValues();
 	
