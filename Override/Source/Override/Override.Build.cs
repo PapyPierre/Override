@@ -15,7 +15,11 @@ public class Override : ModuleRules
 			"EnhancedInput",
 			"GameplayAbilities",
 			"GameplayTags",
-			"GameplayTasks"
+			"GameplayTasks",
+			"HTTP",
+			"Json",
+			"JsonUtilities", 
+			"HttpServer"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule" });
