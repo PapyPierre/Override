@@ -6,7 +6,7 @@ public class OverrideTarget : TargetRules
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
-		ExtraModuleNames.AddRange(new string[] { "Override", "HttpServer" });
+		ExtraModuleNames.AddRange(new string[] { "Override", "HTTPServer" });
         CppStandard = CppStandardVersion.Latest;
 	}
 }
