@@ -15,9 +15,11 @@ jobs:
       PROJECT_PATH: C:\actions-runner\_work\Override\Override\Override
       UE_ENGINE_PATH: C:\partage\Tchoupi Source Light\UnrealEngine
       BUILD_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Builder.bat
+      ZIP_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Zipper.bat
       VERSION_UPDATE_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Updater.ps1
-      OUTPUT_DIR: C:\Users\SIG5-PROJ05\Desktop\Build
-      ZIP_OUTPUT: C:\partage\Zip Client
+      BUILD_UPLOADER_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Cloud_Uploader.ps1
+      OUTPUT_DIR: C:\Users\SIG5-PROJ05\Desktop\Build_Archive\Server\Win64
+      SERVER_BUILD_OUTPUT: C:\Users\SIG5-PROJ05\Desktop\
       DOTNET_DISABLE_VULNERABILITY_ANALYSIS: true
     
     steps:
@@ -57,6 +59,11 @@ jobs:
         run: |
           & $env:VERSION_UPDATE_SCRIPT
 
+      - name: Delete FMOD Intermediate Folder
+        shell: cmd
+        run: |
+          rd /s /q C:\actions-runner\_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
+
       - name: Build Editor
         shell: cmd
         run: |
@@ -66,26 +73,21 @@ jobs:
         run: |
           call "${{ env.BUILD_SCRIPT }}" client iterate ${{ env.FULL_VERSION }}
         shell: cmd
+        
+      - name: Zip Client
+        run: |
+          call "${{ env.ZIP_SCRIPT }}" ${{ env.FULL_VERSION }}
+        shell: cmd
 
       - name: Build Server (Full)
         run: |
           call "${{ env.BUILD_SCRIPT }}" server full ${{ env.FULL_VERSION }}
         shell: cmd
-      
-      #      - name: Create ZIP archives
-      #        shell: cmd
-      #        run: |
-      #          if not exist "${{ env.ZIP_OUTPUT }}" mkdir "${{ env.ZIP_OUTPUT }}"
-      #          for /d %%D in ("${{ env.OUTPUT_DIR }}\*") do (
-      #            "C:\Program Files\7-Zip\7z.exe" a -tzip "${{ env.ZIP_OUTPUT }}\%%~nD.zip" "%%D\*" -mx=1 -mmt=on
-      #            echo Zipped: %%~nD
-      #          )
-      
-      #      - name: Upload Build Artifacts
-      #        uses: actions/upload-artifact@v4
-      #        with:
-      #          name: Override-${{ env.FULL_VERSION }}
-      #          path: ${{ env.ZIP_OUTPUT }}
+        
+      - name: Upload Client Build In Cloud
+        shell: pwsh
+        run: |
+          & $env:BUILD_UPLOADER_SCRIPT
 
       - name: Send Discord Notification
         if: always()

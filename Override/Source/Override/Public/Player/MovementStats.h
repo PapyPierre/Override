@@ -69,12 +69,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	float FirstJumpZVelocity = 800.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
-	float SecondJumpZVelocity = 1000.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
-	float SecondJumpAirControl = 0.05f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
-	float AirHorizontalRetainPercent = 0.5f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	float CoyoteTime= 0.5f;
 #pragma endregion
 
