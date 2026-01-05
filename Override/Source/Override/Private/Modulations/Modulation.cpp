@@ -40,8 +40,6 @@ void AModulation::BeginPlay()
 
 void AModulation::HandleMovement(float DeltaTime)
 {
-	if (!HasAuthority()) return;
-	
 	if (CurrentState != ModState::Moving) return;
 
 	if (ModSpeedCurve == nullptr) return;
@@ -53,7 +51,7 @@ void AModulation::HandleMovement(float DeltaTime)
 	SetActorTransform(UKismetMathLibrary::TLerp(CurrentStart, CurrentEnd, LerpTime));
 
 	if (LerpTime < 1) return;
-	
+
 	StopMovement();
 
 	CurrentEndIndex++;
@@ -126,7 +124,7 @@ void AModulation::Lock_Implementation()
 
 		return;
 	}
-	
+
 	RPC_ChangeState(ModState::Locked);
 }
 
@@ -183,7 +181,7 @@ void AModulation::ApplyImpulseOnPlayer() const
 			if (const auto Player = Cast<APlayerCharacter>(Result.GetActor()))
 			{
 				//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("Player"));
-				
+
 				//if (LaunchedPlayers.Contains(Player)) return;
 
 				Player->Launch(Dir * ImpulseForce * 10);
@@ -214,6 +212,7 @@ void AModulation::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	//DOREPLIFETIME(AModulation, CurrentState);
 	DOREPLIFETIME(AModulation, CurrentStart);
 	DOREPLIFETIME(AModulation, CurrentEnd);
+	DOREPLIFETIME(AModulation, LerpTime);
 }
 
 void AModulation::Tick(float DeltaTime)
