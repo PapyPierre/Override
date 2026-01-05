@@ -110,6 +110,7 @@ protected:
 	void OnStateChanged(ModState NewState);
 
 private:
+	UPROPERTY(Replicated)
 	float LerpTime;
 
 	float CdTime;
