@@ -104,17 +104,6 @@ public:
 	FHitResult WallRunHitResult;
 #pragma endregion
 
-#pragma region Sprint
-	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
-	void Sprint();
-
-	UFUNCTION(BlueprintCallable, Category = "CMC|Sprint")
-	void StopSprint();
-
-	UFUNCTION(Server, Reliable)
-	void RPC_SetSprint(bool value);	
-#pragma endregion
-
 #pragma region Jump
 	FTimerHandle JumpDelayHandle;
 	
