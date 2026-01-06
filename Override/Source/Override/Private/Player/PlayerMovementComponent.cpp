@@ -345,7 +345,12 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 {
-	DirectionMelee = CharacterRef->GetActorForwardVector() * MeleeImpulse;
+	if (CharacterRef->IsLocallyControlled())
+	{
+		DirectionMelee = CharacterRef->FirstPersonCameraComponent->GetActorForwardVector() * MeleeImpulse;
+		Server_GetForwardCamera(DirectionMelee);
+	}
+
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 1400;
 	AddImpulse(DirectionMelee, true);
@@ -354,6 +359,11 @@ void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 	SetMovementMode(MOVE_Walking);
 	bWantsToMelee = false;
 	bIsMelee = true;
+}
+
+void UPlayerMovementComponent::Server_GetForwardCamera_Implementation(FVector Direction)
+{
+	DirectionMelee = Direction;
 }
 
 void UPlayerMovementComponent::MeleeVelocityUpdate(float Value)

@@ -58,6 +58,9 @@ public:
 	UFUNCTION()
 	void MeleeVelocityUpdate(float Value);
 
+	UFUNCTION(Server, Reliable)
+	void Server_GetForwardCamera(FVector Direction);
+
 	UFUNCTION()
 	void StopMeleeVelocityEaseTimeline();
 #pragma endregion
