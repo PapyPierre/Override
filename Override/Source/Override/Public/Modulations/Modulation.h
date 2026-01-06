@@ -93,6 +93,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	void UpdateCurrentEnd();
 
 	void HandleMovement(float DeltaTime);
 
