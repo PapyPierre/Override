@@ -54,44 +54,6 @@ void APlayerCharacter::BeginPlay()
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
 }
 
-void APlayerCharacter::Sprint()
-{
-	if (IsLocallyControlled())
-	{
-		bool bCan = PlayerMovementComponent->CanSprint();
-		PlayerMovementComponent->bWantsToSprint = bCan;
-		if (bCan)
-		{
-			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
-			RPC_SetSprint(bCan);
-		}
-		else
-		{
-			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
-			RPC_SetSprint(bCan);
-		}
-	}
-}
-
-void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
-{
-	PlayerMovementComponent->bWantsToSprint = value;
-	if (PlayerMovementComponent->bWantsToSprint)
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
-	else
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
-}
-
-void APlayerCharacter::StopSprint()
-{
-	if (IsLocallyControlled())
-	{
-		PlayerMovementComponent->bWantsToSprint = false;
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
-		RPC_SetSprint(false);
-	}
-}
-
 void APlayerCharacter::AimWeapon()
 {
 	if (IsLocallyControlled())
@@ -189,6 +151,12 @@ void APlayerCharacter::Tick(float DeltaTime)
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
+
+	if (PlayerMovementComponent->bWantsToCrouch)
+	{
+		PlayerMovementComponent->bResetSlide = true;
+	}
+	
 	if (IsLocallyControlled())
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,

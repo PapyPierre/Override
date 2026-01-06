@@ -57,12 +57,12 @@ public:
 	float MinDiffVelocityToAllowSlide = 100;
 #pragma endregion
 
-#pragma region Sprint
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Sprint")
-	float SprintSpeed = 825.f;
+#pragma region Melee
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Melee")
+	float EaseOutTimeMelee = 0.15f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Sprint")
-	float SprintAcceleration = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Melee")
+	float MeleeImpulse = 2000.f;
 #pragma endregion
 
 #pragma region Jump
