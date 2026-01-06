@@ -20,14 +20,14 @@ void UPlayerMovementComponent::BeginPlay()
 		SlideImpulse = MovementData->SlideImpulse;
 		SlopeToleranceValue = MovementData->SlopeToleranceValue;
 		MinDiffVelocityToAllowSlide = MovementData->MinDiffVelocityToAllowSlide;
-
-		//Sprint
-		SprintSpeed = MovementData->SprintSpeed;
-		SprintAcceleration = MovementData->SprintAcceleration;
-
+		
 		//Jump
 		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
 		CoyoteTime = MovementData->CoyoteTime;
+
+		//Melee
+		EaseOutTimeMelee = MovementData->EaseOutTimeMelee;
+		MeleeImpulse = MovementData->MeleeImpulse;
 
 		//Parkour
 		MaxVaultThickness = MovementData->MaxVaultThickness;
@@ -44,11 +44,9 @@ void UPlayerMovementComponent::BeginPlay()
 	DefaultGroundFriction = GroundFriction;
 	DefaultBrakingDecelerationWalking = BrakingDecelerationWalking;
 	DefaultMaxWalkSpeedCrouched = MaxWalkSpeedCrouched;
-	DefaultMaxWalkSpeed = MaxWalkSpeed;
 	JumpZVelocity = FirstJumpZVelocity;
-	DefaultSprintSpeed = SprintSpeed;
 	DefaultAirControl = AirControl;
-	DefaultAcceleration = GetMaxAcceleration();
+	DefaultMaxWalkSpeed = MaxWalkSpeed;
 
 	//TRACE FOR PARKOUR
 	TraceParams.bTraceComplex = true;
@@ -67,6 +65,17 @@ void UPlayerMovementComponent::BeginPlay()
 		VelocityEaseTimeline.SetTimelineLength(EaseOutTime);
 		VelocityEaseTimeline.AddInterpFloat(VelocityEaseCurve, TimelineCallback);
 		VelocityEaseTimeline.SetLooping(false);
+
+		FOnTimelineFloat TimelineMeleeCallback;
+		FOnTimelineEvent TimelineMeleeCallbackFinished;
+		TimelineMeleeCallback.BindUFunction(this, FName("MeleeVelocityUpdate"));
+		TimelineMeleeCallbackFinished.BindUFunction(this, FName("StopMeleeVelocityEaseTimeline"));
+		DashMeleeTimeline.SetTimelineFinishedFunc(TimelineMeleeCallbackFinished);
+		DashMeleeTimeline.SetTimelineLength(EaseOutTimeMelee);
+		DashMeleeTimeline.SetPlayRate(1);
+		DashMeleeTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
+		DashMeleeTimeline.AddInterpFloat(VelocityEaseCurve, TimelineMeleeCallback);
+		DashMeleeTimeline.SetLooping(false);
 	}
 }
 
@@ -74,6 +83,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	FActorComponentTickFunction* ThisTickFunction)
 {
 	VelocityEaseTimeline.TickTimeline(DeltaTime);
+	DashMeleeTimeline.TickTimeline(DeltaTime);
 	FrameCounter++;
 
 	if (FrameCounter > 1000000)
@@ -233,7 +243,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		// SOFT STOP : conditions to start the easing
 		bool bShouldStopSliding =
 			TimeSliding >= BoostSlidingTime ||
-			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < DefaultSprintSpeed * 0.75f);
+			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < MaxWalkSpeed * 0.75f);
 
 		
 		if (FMath::IsNearlyZero(Impact.Z))
@@ -331,6 +341,54 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 #pragma endregion
 		
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+}
+
+void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
+{
+	DirectionMelee = CharacterRef->GetActorForwardVector() * MeleeImpulse;
+	GroundFriction = 0.0;
+	BrakingDecelerationWalking = 1400;
+	AddImpulse(DirectionMelee, true);
+	GravityScale = 0.0;
+	DashMeleeTimeline.PlayFromStart();
+	SetMovementMode(MOVE_Walking);
+	bWantsToMelee = false;
+	bIsMelee = true;
+}
+
+void UPlayerMovementComponent::MeleeVelocityUpdate(float Value)
+{
+}
+
+void UPlayerMovementComponent::StopMeleeVelocityEaseTimeline()
+{	
+	if (!IsMovingOnGround())
+	{
+		FVector Vel = Velocity;
+
+		FVector HorizontalVel = Vel;
+		HorizontalVel.Z = 0.f;
+
+		float MaxAirSpeed = MaxFlySpeed;
+
+		if (HorizontalVel.Size() > MaxAirSpeed)
+		{
+			HorizontalVel = HorizontalVel.GetSafeNormal() * MaxAirSpeed;
+		}
+		
+		float DesiredFallSpeed = JumpZVelocity * 0.6f;
+
+		Vel.Z = FMath::Min(Vel.Z, DesiredFallSpeed);
+		Vel.X = HorizontalVel.X;
+		Vel.Y = HorizontalVel.Y;
+
+		Velocity = Vel;
+	}
+
+	GroundFriction = DefaultGroundFriction;
+	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
+	GravityScale = 2.0f	;
+	bIsMelee = false;
 }
 
 void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -584,8 +642,8 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 {
 	switch (CustomMovementMode)
 	{
-	case CMOVE_Sprint:
-		PhysSprint(DeltaTime, Iterations);
+	case CMOVE_Melee:
+		PhysMelee(DeltaTime, Iterations);
 		break;
 	case CMOVE_Slide:
 		PhysSlide(DeltaTime, Iterations);
@@ -596,55 +654,9 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	Super::PhysCustom(DeltaTime, Iterations);
 }
 
-#pragma region Sprint
-void UPlayerMovementComponent::PhysSprint(float DeltaTime, int32 Iterations)
-{
-	if (!IsCustomMovementModeOn(CMOVE_Sprint))
-	{
-		StartNewPhysics(DeltaTime, Iterations);
-		return;
-	}
-
-	if (!CanSprint() || !bWantsToSprint)
-	{
-		SetMovementMode(MOVE_Walking);
-		StartNewPhysics(DeltaTime, Iterations);
-		return;
-	}
-	PhysWalking(DeltaTime, Iterations);
-}
-
 void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 {
 	Super::PhysWalking(DeltaTime, Iterations);
-	MaxAcceleration = DefaultAcceleration;
-}
-
-bool UPlayerMovementComponent::CanSprint() const
-{
-		if (!IsMovingOnGround() || bWantsToCrouch || IsCrouching())
-			return false;
-
-		const float Speed = Velocity.Size();
-		if (Speed <= KINDA_SMALL_NUMBER)
-			return false;
-
-		const float MaxAngle = 90.f;
-		const float AngleTolerance = 5.f;
-
-		const FVector MoveDir = Velocity.GetSafeNormal2D();
-		const FVector ForwardDir = CharacterOwner->GetActorForwardVector().GetSafeNormal2D();
-
-		const float Angle = FMath::RadiansToDegrees(
-			FMath::Acos(FVector::DotProduct(MoveDir, ForwardDir))
-		);
-
-		return Angle <= (MaxAngle + AngleTolerance);
-}
-
-bool UPlayerMovementComponent::IsRunning() const
-{
-	return IsCustomMovementModeOn(CMOVE_Sprint);
 }
 
 #pragma endregion
@@ -676,6 +688,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				AddImpulse(Impact, true);
 				bIsSliding = true;
 				VelocityAtCrouch = FVector::ZeroVector;
+				bResetSlide = false;
 			}
 		}
 	}
@@ -734,15 +747,9 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	if (bResult)
-	{
-		if (Impact.Z <= -0.20f && VelocityAtCrouch.Size() > DefaultMaxWalkSpeedCrouched)
-		{
-			return true;
-		}	
-	}
-	bResult &= FMath::IsNearlyEqual(VelocityAtCrouch.Size(), DefaultSprintSpeed, MinDiffVelocityToAllowSlide);
+	bResult &= Velocity.Size() > 0;
 	bResult &= Impact.Z <= SlopeToleranceValue;
+	bResult &= bResetSlide;
 	return bResult;
 }
 
@@ -767,19 +774,14 @@ bool UPlayerMovementComponent::IsCustomMovementModeOn(uint8 customMovementMode) 
 }
 
 float UPlayerMovementComponent::GetMaxSpeed() const
-{
-	if (IsCustomMovementModeOn(CMOVE_Sprint))
-	{
-		return DefaultSprintSpeed;
-	}
-	
+{	
 	return Super::GetMaxSpeed();
 }
 
 bool UPlayerMovementComponent::IsMovingOnGround() const
 {
 	return Super::IsMovingOnGround() ||
-	((IsCustomMovementModeOn(CMOVE_Sprint) || IsCustomMovementModeOn(CMOVE_Slide)) && UpdatedComponent && !
+	((IsCustomMovementModeOn(CMOVE_Slide)) && UpdatedComponent && !
 		IsFalling());
 }
 
@@ -803,17 +805,16 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
                                                  const FVector& OldVelocity)
 {
+	if (bWantsToMelee)
+	{
+		SetMovementMode(MOVE_Custom, CMOVE_Melee);
+	}
+	
 	if (bWantsToCrouch && CanSlide())
 	{
 		SetMovementMode(MOVE_Custom, CMOVE_Slide);
 	}
 	
-	if (bWantsToSprint && CanSprint())
-	{
-		MaxAcceleration = SprintAcceleration;
-		SetMovementMode(MOVE_Custom, CMOVE_Sprint);
-	}
-
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
 }
 
@@ -825,8 +826,7 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 		Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 	}
 	
-	if (IsCustomMovementModeOn(ECustomMovementMode::CMOVE_Sprint)
-		|| IsCustomMovementModeOn(ECustomMovementMode::CMOVE_Slide))
+	if (IsCustomMovementModeOn(ECustomMovementMode::CMOVE_Slide))
 	{
 		bSuppressSuperNotification = true;
 	}
@@ -857,6 +857,12 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 	{
 		return;
 	}
+	
+	bResetSlide	= true;
+	if (CanSlide())
+		bResetSlide	= true;
+	else
+		bResetSlide	= false;
 
 	// See if collision is already at desired size.
 	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == GetCrouchedHalfHeight())
