@@ -38,22 +38,8 @@ void AModulation::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AModulation::HandleMovement(float DeltaTime)
+void AModulation::UpdateCurrentEnd()
 {
-	if (CurrentState != ModState::Moving) return;
-
-	if (ModSpeedCurve == nullptr) return;
-
-	LerpTime += DeltaTime * ModSpeedCurve->FloatCurve.Eval(LerpTime);
-
-	if (LerpTime >= 1.0f) LerpTime = 1;
-
-	SetActorTransform(UKismetMathLibrary::TLerp(CurrentStart, CurrentEnd, LerpTime));
-
-	if (LerpTime < 1) return;
-
-	StopMovement();
-
 	CurrentEndIndex++;
 
 	if (CurrentEndIndex > Ends.Num() - 1)
@@ -68,6 +54,21 @@ void AModulation::HandleMovement(float DeltaTime)
 		if (CurrentEndIndex == 0) CurrentStart = Start;
 		else CurrentStart = Ends[CurrentEndIndex - 1];
 	}
+}
+
+void AModulation::HandleMovement(float DeltaTime)
+{
+	if (CurrentState != ModState::Moving || ModSpeedCurve == nullptr) return;
+
+	const float Speed = ModSpeedCurve->FloatCurve.Eval(LerpTime);
+	LerpTime = FMath::Min(LerpTime + DeltaTime * Speed, 1.f);
+	
+	SetActorTransform(UKismetMathLibrary::TLerp(CurrentStart, CurrentEnd, LerpTime), true);
+	
+	if (LerpTime < 1) return;
+
+	StopMovement();
+	UpdateCurrentEnd();
 }
 
 void AModulation::HandleCooldown(float DeltaTime)
