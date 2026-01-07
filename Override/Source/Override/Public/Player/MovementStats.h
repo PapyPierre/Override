@@ -16,15 +16,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
 	float DefaultFOV = 90.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
-	float SprintFOV = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
-	float SlideFOV = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
-	float FOVInterpSprintSpeed = 2.f;
+	float MaxFOV = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
 	float FOVInterpNormalSpeed = 10.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
-	float FOVInterpSlideSpeed = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
 	float FOVInterpAimSpeed = 15.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")

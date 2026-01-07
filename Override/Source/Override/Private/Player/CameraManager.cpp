@@ -1,5 +1,7 @@
 #include "Player/CameraManager.h"
 
+#include "FrameTypes.h"
+#include "Player/MovementStats.h"
 #include "Player/PlayerCharacter.h"
 #include "Player/PlayerMovementComponent.h"
 
@@ -16,9 +18,27 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 	CameraShake(PlayerCharacter, PlayerMovementComponent);
 
 	float CurrentFOV = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
-	float TargetFOV = PlayerCharacter->DefaultFOV;
 	float InterpSpeed = PlayerCharacter->FOVInterpNormalSpeed;
 
+	const float Speed = PlayerMovementComponent->Velocity.Size();
+
+	const float MinSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
+	const float MaxSpeed = PlayerMovementComponent->MovementData->MaxVelocityForSlide;
+
+	float Alpha = (Speed - MinSpeed) / (MaxSpeed - MinSpeed);
+	Alpha = FMath::Clamp(Alpha, 0.f, 1.f);
+	
+	float TargetFOV = FMath::Lerp(
+		PlayerCharacter->DefaultFOV,
+		PlayerCharacter->MaxFOV,
+		Alpha
+	);
+
+	if (!PlayerMovementComponent->IsMovingOnGround())
+	{
+		TargetFOV = CurrentFOV;
+	}
+	
 	// Aim
 	if (PlayerCharacter->bIsAimingWeapon)
 	{
@@ -27,12 +47,8 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 		LastFOV = 1;
 	}
 
-	
-
 	if (LastFOV == 1)
 		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
-	if (LastFOV == 0)
-		InterpSpeed = PlayerCharacter->FOVInterpNormalSpeed;
 	
 	float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, InterpSpeed);
 	PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);

@@ -37,12 +37,9 @@ void APlayerCharacter::BeginPlay()
 	if (PlayerMovementComponent->MovementData)
 	{
 		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
-		SprintFOV = PlayerMovementComponent->MovementData->SprintFOV;
-		SlideFOV = PlayerMovementComponent->MovementData->SlideFOV;
-		FOVInterpSprintSpeed = PlayerMovementComponent->MovementData->FOVInterpSprintSpeed;
+		MaxFOV = PlayerMovementComponent->MovementData->MaxFOV;
 		FOVInterpNormalSpeed = PlayerMovementComponent->MovementData->FOVInterpNormalSpeed;
 		FOVInterpAimSpeed = PlayerMovementComponent->MovementData->FOVInterpAimSpeed;
-		FOVInterpSlideSpeed = PlayerMovementComponent->MovementData->FOVInterpSlideSpeed;
 
 		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
 		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
@@ -157,6 +154,13 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 		PlayerMovementComponent->bResetSlide = true;
 	}
 
+	if (PlayerMovementComponent->TimeSliding > 0)
+	{
+		PlayerMovementComponent->bResetSlide = false;
+		if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
+			PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
+	}
+	
 	if (IsLocallyControlled())
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
