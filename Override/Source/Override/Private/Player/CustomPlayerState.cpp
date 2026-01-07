@@ -61,19 +61,19 @@ void ACustomPlayerState::BeginPlay()
 	
 	if (HasAuthority())
 	{
-		GiveCharacterHacks();
+		GiveCharacterAbilities();
 	}
 }
 
-void ACustomPlayerState::GiveCharacterHacks()
+void ACustomPlayerState::GiveCharacterAbilities()
 {
 	if (!GetAbilitySystemComponent()) return;
 
-	for (TSubclassOf<UGA_BaseHack>& Hack : CharacterHacks)
+	for (TSubclassOf<UGA_BaseAbility>& Ability : CharacterAbilities)
 	{
-		FGameplayAbilitySpec HackSpec(Hack, 1, INDEX_NONE, this);
-		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(HackSpec);
+		FGameplayAbilitySpec AbilitySpec(Ability, 1, INDEX_NONE, this);
+		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(AbilitySpec);
 
-		//UE_LOG(LogTemp, Warning, TEXT("Server hack gave: %s to %s"), *Hack->GetName(), *this->GetName());
+		UE_LOG(LogTemp, Log, TEXT("Server gave: %s to %s"), *Ability->GetName(), *this->GetName());
 	}
 }
