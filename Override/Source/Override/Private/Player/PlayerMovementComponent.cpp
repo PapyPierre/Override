@@ -20,6 +20,7 @@ void UPlayerMovementComponent::BeginPlay()
 		SlideImpulse = MovementData->SlideImpulse;
 		SlopeToleranceValue = MovementData->SlopeToleranceValue;
 		MinDiffVelocityToAllowSlide = MovementData->MinDiffVelocityToAllowSlide;
+		MaxVelocityForSlide = MovementData->MaxVelocityForSlide;
 		
 		//Jump
 		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
@@ -347,7 +348,7 @@ void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 {
 	if (CharacterRef->IsLocallyControlled())
 	{
-		DirectionMelee = CharacterRef->FirstPersonCameraComponent->GetActorForwardVector() * MeleeImpulse;
+		DirectionMelee = CharacterRef->GetLastMovementInputVector() * MeleeImpulse;
 		Server_GetForwardCamera(DirectionMelee);
 	}
 
@@ -357,7 +358,7 @@ void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 	GravityScale = 0.0;
 	DashMeleeTimeline.PlayFromStart();
 	SetMovementMode(MOVE_Walking);
-	bWantsToMelee = false;
+	bWantsToDash = false;
 	bIsMelee = true;
 }
 
@@ -695,7 +696,11 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				BrakingDecelerationWalking = 1400;
 				MaxWalkSpeedCrouched = 0.0;
 				Impact *= SlideImpulse;
-				AddImpulse(Impact, true);
+				if (Velocity.Size() < MaxVelocityForSlide)
+				{
+					AddImpulse(Impact, true);
+					DebugPrintClientIds();
+				}
 				bIsSliding = true;
 				VelocityAtCrouch = FVector::ZeroVector;
 				bResetSlide = false;
@@ -815,7 +820,7 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
                                                  const FVector& OldVelocity)
 {
-	if (bWantsToMelee)
+	if (bWantsToDash)
 	{
 		SetMovementMode(MOVE_Custom, CMOVE_Melee);
 	}

@@ -53,7 +53,7 @@ public:
 	bool bIsMelee = false;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
-	bool bWantsToMelee;
+	bool bWantsToDash;
 
 	UFUNCTION()
 	void MeleeVelocityUpdate(float Value);
@@ -85,6 +85,7 @@ public:
 	float SlideImpulse;
 	float SlopeToleranceValue;
 	float MinDiffVelocityToAllowSlide;
+	float MaxVelocityForSlide;
 	
 	float TimeToWaitBetweenSlide = 0;
 	

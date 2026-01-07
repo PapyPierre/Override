@@ -27,13 +27,7 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 		LastFOV = 1;
 	}
 
-	// Slide
-	if (PlayerMovementComponent->IsSliding())
-	{
-		TargetFOV = PlayerCharacter->SlideFOV;
-		InterpSpeed = PlayerCharacter->FOVInterpSlideSpeed;
-		LastFOV = 2;
-	}
+	
 
 	if (LastFOV == 1)
 		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
