@@ -11,7 +11,7 @@ class UMovementStats;
 UENUM()
 enum ECustomMovementMode
 {
-	CMOVE_Sprint = 0,
+	CMOVE_Melee = 0,
 	CMOVE_Crouch = 1,
 	CMOVE_Slide = 2,
 };
@@ -32,6 +32,7 @@ public:
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
 	float DefaultMaxWalkSpeedCrouched;
+	float DefaultMaxWalkSpeed;
 	
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
@@ -39,17 +40,29 @@ public:
 
 	virtual bool IsMovingOnGround() const override;
 
-#pragma region Sprint
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
-	bool bWantsToSprint = false;
-
-	float DefaultMaxWalkSpeed = 0;
-	float DefaultSprintSpeed = 0;
-	float DefaultAcceleration = 0;
+#pragma region Melee
+	UPROPERTY()
+	FTimeline DashMeleeTimeline;
 	
-	float SprintSpeed;
-	float SprintAcceleration;
-	virtual bool CanSprint() const;
+	float EaseOutTimeMelee = 0.15f;
+	float MeleeImpulse = 2000.f;
+	
+	FVector DirectionMelee;
+
+	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
+	bool bIsMelee = false;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
+	bool bWantsToMelee;
+
+	UFUNCTION()
+	void MeleeVelocityUpdate(float Value);
+
+	UFUNCTION(Server, Reliable)
+	void Server_GetForwardCamera(FVector Direction);
+
+	UFUNCTION()
+	void StopMeleeVelocityEaseTimeline();
 #pragma endregion
 
 #pragma region Slide
@@ -58,6 +71,7 @@ public:
 	
 	UPROPERTY(Replicated)
 	bool bIsSliding = false;
+	bool bResetSlide = false;
 	
 	bool bPendingCancelSlide = false;
 	bool bCoolDownFinished = false;
@@ -99,9 +113,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
-
-	UFUNCTION(BlueprintCallable)
-	bool IsRunning() const;
 	
 #pragma endregion
 
@@ -168,12 +179,12 @@ private:
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
-	
+
+
+	virtual void PhysMelee(float DeltaTime, int32 Iterations);
 	
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
-
-	virtual void PhysSprint(float DeltaTime, int32 Iterations);
-
+	
 	virtual void PhysWalking(float DeltaTime, int32 Iterations) override;
 	
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);

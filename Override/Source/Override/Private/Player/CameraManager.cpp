@@ -18,14 +18,6 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 	float CurrentFOV = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
 	float TargetFOV = PlayerCharacter->DefaultFOV;
 	float InterpSpeed = PlayerCharacter->FOVInterpNormalSpeed;
-		
-	// Sprint
-	if (PlayerMovementComponent->IsRunning())
-	{
-		TargetFOV = PlayerCharacter->SprintFOV;
-		InterpSpeed = PlayerCharacter->FOVInterpSprintSpeed;
-		LastFOV = 0;
-	}
 
 	// Aim
 	if (PlayerCharacter->bIsAimingWeapon)
@@ -42,7 +34,6 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 		InterpSpeed = PlayerCharacter->FOVInterpSlideSpeed;
 		LastFOV = 2;
 	}
-
 
 	if (LastFOV == 1)
 		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
@@ -64,10 +55,7 @@ void CameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayer
 		}
 		else
 		{
-			if (PlayerMovementComponent->IsRunning())
-				PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal,
-															 FRotator::ZeroRotator);
-			else if (PlayerMovementComponent->IsWalking())
+			if (PlayerMovementComponent->IsWalking())
 				PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
 															 FRotator::ZeroRotator);
 		}
