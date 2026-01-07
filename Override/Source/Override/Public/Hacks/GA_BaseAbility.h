@@ -2,15 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "GA_BaseHack.generated.h"
+#include "GA_BaseAbility.generated.h"
 
 UCLASS()
-class OVERRIDE_API UGA_BaseHack : public UGameplayAbility
+class OVERRIDE_API UGA_BaseAbility : public UGameplayAbility
 {
 	GENERATED_BODY()
 
 public:
-	UGA_BaseHack();
+	UGA_BaseAbility();
 
 	UFUNCTION(BlueprintCallable, Category = "Hack")
 	FGameplayEventData GetEventData() const { return CurrentEventData; }

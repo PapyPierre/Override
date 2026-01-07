@@ -1,4 +1,4 @@
-#include "Hacks/GA_BaseHack.h"
+#include "Hacks/GA_BaseAbility.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Hacks/GameplayHackTargetData.h"
@@ -6,12 +6,12 @@
 
 class AModulation;
 
-UGA_BaseHack::UGA_BaseHack()
+UGA_BaseAbility::UGA_BaseAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
-const FGameplayTagContainer* UGA_BaseHack::GetCooldownTags() const
+const FGameplayTagContainer* UGA_BaseAbility::GetCooldownTags() const
 {
 	FGameplayTagContainer* MutableTags = const_cast<FGameplayTagContainer*>(&TempCooldownTags);
 	MutableTags->Reset();
@@ -24,7 +24,7 @@ const FGameplayTagContainer* UGA_BaseHack::GetCooldownTags() const
 	return MutableTags;
 }
 
-void UGA_BaseHack::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+void UGA_BaseAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                  const FGameplayAbilityActivationInfo ActivationInfo) const
 {
 	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
@@ -40,7 +40,7 @@ void UGA_BaseHack::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const 
 	}
 }
 
-void UGA_BaseHack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                    const FGameplayAbilityActorInfo* ActorInfo,
                                    const FGameplayAbilityActivationInfo ActivationInfo,
                                    const FGameplayEventData* TriggerEventData)

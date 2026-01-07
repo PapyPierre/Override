@@ -14,10 +14,10 @@ class UInputMappingContext;
 class UInputAction;
 
 UCLASS()
-class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
+class OVERRIDE_API  APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
-
+	
 public:
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -34,38 +34,23 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-#pragma region Hack
-	UPROPERTY(BlueprintReadOnly, Category="Hack")
-	int SelectedHackIndex;
-	
+#pragma region GAS
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* HackAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* SelectHack1Action;
+	UInputAction* Ability1Action;
     
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* SelectHack2Action;
-    
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* SelectHack3Action;
+	UInputAction* Ability2Action;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Hack")
-	FGameplayTag Hack1Tag;
+	FGameplayTag Ability1Tag;
     
 	UPROPERTY(EditDefaultsOnly, Category = "Hack")
-	FGameplayTag Hack2Tag;
-    
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
-	FGameplayTag Hack3Tag;
-
-	UPROPERTY(EditAnywhere, Category = "Hack")
-	bool AutoUnselectHack = true;
+	FGameplayTag Ability2Tag;
 
 	UFUNCTION(BlueprintCallable)
-	void SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh,  TArray<AActor*> Targets);
+	void SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh,  TArray<AActor*> Targets);
 	
 #pragma endregion
 
@@ -176,26 +161,16 @@ protected:
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-	UFUNCTION(BlueprintCallable)
-	bool IsHackSelected() const;
-
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnHackActivated(int hackIndex);
+	void OnAbilityActivated(int index);
 
 private:
 	void SetControllerRef();
 	
 	void InitAbilitySystem();
-
-	void LaunchSelectedHack();
 	
-	void SelectHack1();
-	void SelectHack2();
-	void SelectHack3();
-	
-	void ActivateHack1();
-	void ActivateHack2();
-	void ActivateHack3();
+	void UseAbility1();
+	void UseAbility2();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
