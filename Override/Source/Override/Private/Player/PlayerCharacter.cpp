@@ -156,7 +156,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	{
 		PlayerMovementComponent->bResetSlide = true;
 	}
-	
+
 	if (IsLocallyControlled())
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
@@ -218,23 +218,14 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		if (SelectHack1Action) EnhancedInput->BindAction(SelectHack1Action, ETriggerEvent::Started, this,
-		                                                 &APlayerCharacter::SelectHack1);
+		if (Ability1Action)
+			EnhancedInput->BindAction(Ability1Action, ETriggerEvent::Started, this,
+			                          &APlayerCharacter::UseAbility1);
 
-		if (SelectHack2Action) EnhancedInput->BindAction(SelectHack2Action, ETriggerEvent::Started, this,
-		                                                 &APlayerCharacter::SelectHack2);
-
-		if (SelectHack3Action) EnhancedInput->BindAction(SelectHack3Action, ETriggerEvent::Started, this,
-		                                                 &APlayerCharacter::SelectHack3);
-
-		if (HackAction) EnhancedInput->BindAction(HackAction, ETriggerEvent::Started, this,
-		                                          &APlayerCharacter::LaunchSelectedHack);
+		if (Ability2Action)
+			EnhancedInput->BindAction(Ability2Action, ETriggerEvent::Started, this,
+			                          &APlayerCharacter::UseAbility2);
 	}
-}
-
-bool APlayerCharacter::IsHackSelected() const
-{
-	return SelectedHackIndex != 0;
 }
 
 void APlayerCharacter::SetControllerRef()
@@ -256,48 +247,6 @@ void APlayerCharacter::InitAbilitySystem()
 	OnPostAbilitySystemInit();
 }
 
-void APlayerCharacter::LaunchSelectedHack()
-{
-	switch (SelectedHackIndex)
-	{
-	case 1:
-		ActivateHack1();
-		break;
-	case 2:
-		ActivateHack2();
-		break;
-	case 3:
-		ActivateHack3();
-		break;
-	default:
-		return;
-	}
-}
-
-void APlayerCharacter::SelectHack1()
-{
-	if (SelectedHackIndex == 1) return;
-
-	SelectedHackIndex = 1;
-	LaunchSelectedHack();
-}
-
-void APlayerCharacter::SelectHack2()
-{
-	if (SelectedHackIndex == 2) return;
-
-	SelectedHackIndex = 2;
-	LaunchSelectedHack();
-}
-
-void APlayerCharacter::SelectHack3()
-{
-	if (SelectedHackIndex == 3) return;
-
-	SelectedHackIndex = 3;
-	LaunchSelectedHack();
-}
-
 void APlayerCharacter::Launch(const FVector& Force)
 {
 	GetCharacterMovement()->Velocity = FVector::ZeroVector;
@@ -309,25 +258,20 @@ ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 	return GetPlayerState<ACustomPlayerState>();
 }
 
-void APlayerCharacter::ActivateHack1()
+void APlayerCharacter::UseAbility1()
 {
-	SendHackEventWithData(Hack1Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
-	OnHackActivated(1);
+	SendAbilityEventWithData(Ability1Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
+	OnAbilityActivated(1);
 }
 
-void APlayerCharacter::ActivateHack2()
+void APlayerCharacter::UseAbility2()
 {
-	SendHackEventWithData(Hack2Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
-	OnHackActivated(2);
+	SendAbilityEventWithData(Ability2Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
+	OnAbilityActivated(2);
 }
 
-void APlayerCharacter::ActivateHack3()
-{
-	SendHackEventWithData(Hack3Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
-	OnHackActivated(3);
-}
-
-void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight, TArray<AActor*> Targets)
+void APlayerCharacter::SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight,
+                                             TArray<AActor*> Targets)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
@@ -350,7 +294,7 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector Curr
 	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
 	ContextHandle.AddOrigin(CurrentPointInSight);
 	EventData.ContextHandle = ContextHandle;
-	
+
 	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
 
 	if (Targets.Num() > 0)
@@ -366,8 +310,6 @@ void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag, FVector Curr
 	EventData.TargetData = Handle;
 
 	ASC->HandleGameplayEvent(EventTag, &EventData);
-	
-	SelectedHackIndex = 0;
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
