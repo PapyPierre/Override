@@ -1,7 +1,7 @@
 #include "Modulations/Modulation.h"
 #include "AbilitySystemComponent.h"
 #include "Attribute/UHealthAttributeSet.h"
-#include "Hacks/GameplayHackTargetData.h"
+#include "Abilities/GameplayHackTargetData.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Modulations/ModulationGroup.h"
 #include <Net/UnrealNetwork.h>

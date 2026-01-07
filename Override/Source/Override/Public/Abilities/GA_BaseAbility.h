@@ -16,20 +16,21 @@ public:
 	FGameplayEventData GetEventData() const { return CurrentEventData; }
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
-	FScalableFloat CooldownDuration;
+	float CooldownDuration;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
-	FGameplayTagContainer CooldownTags;
+	FGameplayTag CooldownTag;
 
-	// Temp container that we will return the pointer to in GetCooldownTags().
-	// This will be a union of our CooldownTags and the Cooldown GE's cooldown tags.
-	UPROPERTY(Transient)
-	FGameplayTagContainer TempCooldownTags;
-
-	const virtual FGameplayTagContainer* GetCooldownTags() const override;
+	UPROPERTY(EditDefaultsOnly, Category = "Cooldown")
+	TSubclassOf<UGameplayEffect> CooldownEffectClass;
 	
 	virtual void ApplyCooldown(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	                           FGameplayAbilityActivationInfo ActivationInfo) const override;
+
+	bool CheckCooldown(const FGameplayAbilitySpecHandle Handle,
+									   const FGameplayAbilityActorInfo* ActorInfo) const;
+
+	virtual float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const override;
 
 protected:
 	FGameplayEventData CurrentEventData;

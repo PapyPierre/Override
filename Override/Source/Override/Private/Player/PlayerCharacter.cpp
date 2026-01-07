@@ -5,7 +5,8 @@
 #include "Engine/Engine.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "Hacks/GameplayHackTargetData.h"
+#include "Abilities/FAbilitySlotData.h"
+#include "Abilities/GameplayHackTargetData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/MovementStats.h"
@@ -23,6 +24,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	GetCharacterMovement()->SetIsReplicated(true);
 
 	TargetingComponent = CreateDefaultSubobject<UTargetingComponent>(TEXT("Targeting Component"));
+	AbilitySlotComponent = CreateDefaultSubobject<UAbilitySlotComponent>(TEXT("Ability Slot Component"));
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
@@ -219,12 +221,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		if (Ability1Action)
+		{
 			EnhancedInput->BindAction(Ability1Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::UseAbility1);
+			                          &APlayerCharacter::UseAbility, 1);
+		}
+
 
 		if (Ability2Action)
 			EnhancedInput->BindAction(Ability2Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::UseAbility2);
+			                          &APlayerCharacter::UseAbility, 2);
 	}
 }
 
@@ -244,6 +249,13 @@ void APlayerCharacter::InitAbilitySystem()
 		}
 	}
 
+	AbilitySlotComponent->Init();
+
+	if (HasAuthority())
+	{
+		GiveCharacterAbilities();
+	}
+
 	OnPostAbilitySystemInit();
 }
 
@@ -256,6 +268,32 @@ void APlayerCharacter::Launch(const FVector& Force)
 ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 {
 	return GetPlayerState<ACustomPlayerState>();
+}
+
+void APlayerCharacter::UseAbility(int index)
+{
+	if (ACustomPlayerState* PS = GetCustomPlayerState())
+	{
+		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+		{
+			if (AbilitySlotComponent && ASC)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Try to use ability %i"), index);
+
+				FAbilitySlotData SlotData = AbilitySlotComponent->GetAbilityInSlot(index);
+
+				if (SlotData.AbilityHandle.IsValid())
+				{
+					//ASC->TryActivateAbility(SlotData.AbilityHandle);
+
+					SendAbilityEventWithData(SlotData.InputTag, TargetingComponent->GetPointInSight(),
+					                         TargetingComponent->CurrentTargets);
+
+					OnAbilityActivated(index);
+				}
+			}
+		}
+	}
 }
 
 void APlayerCharacter::UseAbility1()
@@ -271,7 +309,7 @@ void APlayerCharacter::UseAbility2()
 }
 
 void APlayerCharacter::SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight,
-                                             TArray<AActor*> Targets)
+                                                TArray<AActor*> Targets)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
@@ -310,6 +348,20 @@ void APlayerCharacter::SendAbilityEventWithData(FGameplayTag EventTag, FVector C
 	EventData.TargetData = Handle;
 
 	ASC->HandleGameplayEvent(EventTag, &EventData);
+}
+
+void APlayerCharacter::GiveCharacterAbilities()
+{
+	if (!GetAbilitySystemComponent()) return;
+
+	int i = 1;
+	for (TSubclassOf<UGA_BaseAbility>& Ability : CharacterAbilities)
+	{
+		if (i > 2) return;
+
+		AbilitySlotComponent->AssignAbilityToSlot(Ability, i);
+		i++;
+	}
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

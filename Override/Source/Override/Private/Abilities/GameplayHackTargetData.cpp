@@ -1,4 +1,4 @@
-#include "Hacks/GameplayHackTargetData.h"
+#include "Abilities/GameplayHackTargetData.h"
 
 bool FGameplayHackTargetData::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
 {

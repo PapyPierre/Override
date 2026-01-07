@@ -8,13 +8,14 @@
 #include "CameraManager.h"
 #include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
+#include "Abilities/AbilitySlotComponent.h"
 #include "PlayerCharacter.generated.h"
 
 class UInputMappingContext;
 class UInputAction;
 
 UCLASS()
-class OVERRIDE_API  APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
+class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 	
@@ -43,15 +44,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* Ability2Action;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	UPROPERTY(EditDefaultsOnly, Category = "Ability")
 	FGameplayTag Ability1Tag;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	UPROPERTY(EditDefaultsOnly, Category = "Ability")
 	FGameplayTag Ability2Tag;
+
+	UPROPERTY()
+	UAbilitySlotComponent* AbilitySlotComponent;
 
 	UFUNCTION(BlueprintCallable)
 	void SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh,  TArray<AActor*> Targets);
-	
+	void GiveCharacterAbilities();
+
 #pragma endregion
 
 #pragma region Components
@@ -136,8 +141,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	ACustomPlayerState* GetCustomPlayerState() const;
+	void UseAbility(int index);
+
+protected:
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability")
+	TArray<TSubclassOf<UGA_BaseAbility>> CharacterAbilities;
 	
-protected:	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;
