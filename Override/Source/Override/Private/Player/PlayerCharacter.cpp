@@ -157,6 +157,8 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	if (PlayerMovementComponent->TimeSliding > 0)
 	{
 		PlayerMovementComponent->bResetSlide = false;
+		if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
+			PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
 	}
 	
 	if (IsLocallyControlled())

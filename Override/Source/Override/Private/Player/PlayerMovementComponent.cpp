@@ -237,14 +237,13 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		
 		// HARD STOP, conditions to immediately stop the slide 
 		bool bStopSliding =
-			!bWantsToCrouch ||
+			(!bWantsToCrouch && IsMovingOnGround()) ||
 			Impact.Z >= SlopeToleranceValue ||
 			Velocity.IsNearlyZero();       
 
 		// SOFT STOP : conditions to start the easing
 		bool bShouldStopSliding =
 			TimeSliding >= BoostSlidingTime;
-
 		
 		if (FMath::IsNearlyZero(Impact.Z))
 		{
@@ -268,9 +267,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 			float Alpha = (Speed - MinSpeed) / (MaxSpeed - MinSpeed);
 			Alpha = FMath::Clamp(Alpha, 0.f, 1.f);
-			const float PlayRate = FMath::Lerp(1.f, 0.5f, Alpha);
-
-			UE_LOG(LogTemp, Warning, TEXT("PlayRate: %f"), PlayRate);
+			const float PlayRate = FMath::Lerp(1.f, 0.7f, Alpha);
 			
 			VelocityEaseTimeline.SetPlayRate(PlayRate);
 			VelocityEaseTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
@@ -378,6 +375,11 @@ void UPlayerMovementComponent::Server_GetForwardCamera_Implementation(FVector Di
 	DirectionMelee = Direction;
 }
 
+void UPlayerMovementComponent::OnDelayFinished()
+{
+	bIsMelee = false;
+}
+
 void UPlayerMovementComponent::MeleeVelocityUpdate(float Value)
 {
 }
@@ -410,7 +412,14 @@ void UPlayerMovementComponent::StopMeleeVelocityEaseTimeline()
 	GroundFriction = DefaultGroundFriction;
 	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
 	GravityScale = 2.0f	;
-	bIsMelee = false;
+	
+	CharacterRef->GetWorldTimerManager().SetTimer(
+		SimpleDelayHandle,
+		this,
+		&UPlayerMovementComponent::OnDelayFinished,
+		0.2f,
+		false
+	);
 }
 
 void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -712,7 +721,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				{
 					AddImpulse(Impact, true);
 				}
-				
+				UE_LOG(LogTemp, Warning, TEXT("Slide Impulse: %f"), Impact.Size());
 				bIsSliding = true;
 				VelocityAtCrouch = FVector::ZeroVector;
 				bResetSlide = false;
@@ -824,6 +833,8 @@ bool UPlayerMovementComponent::CanAttemptJump() const
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 {
+	if (VelocityEaseTimeline.IsPlaying())
+		VelocityEaseTimeline.SetPlayRate(0);
 	return Super::DoJump(bReplayingMoves, DeltaTime);
 }
 
@@ -1118,6 +1129,7 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
+	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
 	DOREPLIFETIME(UPlayerMovementComponent, bGrabbedLedge);
 	DOREPLIFETIME(UPlayerMovementComponent, bIsSliding);
 }
