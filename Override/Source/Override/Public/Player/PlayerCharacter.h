@@ -79,8 +79,7 @@ public:
 
 #pragma region FOV
 	float DefaultFOV;
-	float SprintFOV;
-	float SlideFOV;
+	float MaxFOV;
 
 	float FOVInterpSlideSpeed;
 	float FOVInterpSprintSpeed;

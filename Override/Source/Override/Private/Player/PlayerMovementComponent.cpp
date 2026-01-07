@@ -243,8 +243,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 		// SOFT STOP : conditions to start the easing
 		bool bShouldStopSliding =
-			TimeSliding >= BoostSlidingTime ||
-			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < MaxWalkSpeed * 0.75f);
+			TimeSliding >= BoostSlidingTime;
 
 		
 		if (FMath::IsNearlyZero(Impact.Z))
@@ -262,7 +261,19 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		
 		if (bShouldStopSliding && !bPendingCancelSlide)
 		{
-			VelocityEaseTimeline.SetPlayRate(1);
+			const float Speed = Velocity.Size();
+
+			const float MinSpeed = MovementData->MaxVelocityForSlide;
+			const float MaxSpeed = MovementData->MaxVelocityForSlide * 1.5f;
+
+			float Alpha = (Speed - MinSpeed) / (MaxSpeed - MinSpeed);
+			Alpha = FMath::Clamp(Alpha, 0.f, 1.f);
+			const float PlayRate = FMath::Lerp(1.f, 0.5f, Alpha);
+
+			UE_LOG(LogTemp, Warning, TEXT("PlayRate: %f"), PlayRate);
+			
+			VelocityEaseTimeline.SetPlayRate(PlayRate);
+			VelocityEaseTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
 			StartVelocityEase(Velocity.GetSafeNormal() * DefaultMaxWalkSpeedCrouched);
 		}
 		
@@ -696,11 +707,12 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				BrakingDecelerationWalking = 1400;
 				MaxWalkSpeedCrouched = 0.0;
 				Impact *= SlideImpulse;
+				
 				if (Velocity.Size() < MaxVelocityForSlide)
 				{
 					AddImpulse(Impact, true);
-					DebugPrintClientIds();
 				}
+				
 				bIsSliding = true;
 				VelocityAtCrouch = FVector::ZeroVector;
 				bResetSlide = false;
@@ -741,8 +753,6 @@ void UPlayerMovementComponent::StartVelocityEase(const FVector& NewTargetVelocit
     
 	if (VelocityEaseCurve)
 	{
-		float InitialTime = EaseOutTime;
-		VelocityEaseTimeline.SetPlayRate(InitialTime / EaseOutTime); 
 		VelocityEaseTimeline.PlayFromStart();
 		bPendingCancelSlide = true;
 	}
