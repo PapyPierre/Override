@@ -237,13 +237,14 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		
 		// HARD STOP, conditions to immediately stop the slide 
 		bool bStopSliding =
-			(!bWantsToCrouch && IsMovingOnGround()) ||
+			!bWantsToCrouch ||
 			Impact.Z >= SlopeToleranceValue ||
-			Velocity.IsNearlyZero();       
-
+			(Velocity.Size() < DefaultMaxWalkSpeed && !IsMovingOnGround());
+		
 		// SOFT STOP : conditions to start the easing
 		bool bShouldStopSliding =
-			TimeSliding >= BoostSlidingTime;
+			TimeSliding >= BoostSlidingTime ||
+			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < MaxWalkSpeed * 0.75f);
 		
 		if (FMath::IsNearlyZero(Impact.Z))
 		{
@@ -357,6 +358,8 @@ void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 	if (CharacterRef->IsLocallyControlled())
 	{
 		DirectionMelee = CharacterRef->GetLastMovementInputVector() * MeleeImpulse;
+		if (DirectionMelee == FVector::ZeroVector)
+			DirectionMelee = CharacterRef->GetActorForwardVector() * MeleeImpulse;
 		Server_GetForwardCamera(DirectionMelee);
 	}
 
@@ -714,7 +717,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 			if (Impact.Z <= SlopeToleranceValue) {
 				GroundFriction = 0.0;
 				BrakingDecelerationWalking = 1400;
-				MaxWalkSpeedCrouched = 0.0;
+				MaxWalkSpeedCrouched = 1.0;
 				Impact *= SlideImpulse;
 				
 				if (Velocity.Size() < MaxVelocityForSlide)
@@ -781,7 +784,7 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	bResult &= Velocity.Size() > 0;
+	bResult &= Velocity.Size() > 200;
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	bResult &= bResetSlide;
 	return bResult;
