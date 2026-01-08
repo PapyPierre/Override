@@ -721,7 +721,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				{
 					AddImpulse(Impact, true);
 				}
-				UE_LOG(LogTemp, Warning, TEXT("Slide Impulse: %f"), Impact.Size());
+				
 				bIsSliding = true;
 				VelocityAtCrouch = FVector::ZeroVector;
 				bResetSlide = false;
