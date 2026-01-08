@@ -358,6 +358,8 @@ void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 	if (CharacterRef->IsLocallyControlled())
 	{
 		DirectionMelee = CharacterRef->GetLastMovementInputVector() * MeleeImpulse;
+		if (DirectionMelee == FVector::ZeroVector)
+			DirectionMelee = CharacterRef->GetActorForwardVector() * MeleeImpulse;
 		Server_GetForwardCamera(DirectionMelee);
 	}
 
