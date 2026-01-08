@@ -48,12 +48,15 @@ public:
 	float MeleeImpulse = 2000.f;
 	
 	FVector DirectionMelee;
+	FTimerHandle SimpleDelayHandle;
 
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
+	void OnDelayFinished();
+
+	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC", Replicated)
 	bool bIsMelee = false;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
-	bool bWantsToMelee;
+	bool bWantsToDash;
 
 	UFUNCTION()
 	void MeleeVelocityUpdate(float Value);
@@ -85,6 +88,7 @@ public:
 	float SlideImpulse;
 	float SlopeToleranceValue;
 	float MinDiffVelocityToAllowSlide;
+	float MaxVelocityForSlide;
 	
 	float TimeToWaitBetweenSlide = 0;
 	
