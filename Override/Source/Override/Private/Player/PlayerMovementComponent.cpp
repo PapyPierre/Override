@@ -781,7 +781,7 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	bResult &= Velocity.Size() > 0;
+	bResult &= Velocity.Size() > 200;
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	bResult &= bResetSlide;
 	return bResult;
