@@ -22,7 +22,7 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 
 	const float Speed = PlayerMovementComponent->Velocity.Size();
 
-	const float MinSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
+	const float MinSpeed = 0;
 	const float MaxSpeed = PlayerMovementComponent->MovementData->MaxVelocityForSlide;
 
 	float Alpha = (Speed - MinSpeed) / (MaxSpeed - MinSpeed);
