@@ -52,9 +52,9 @@ public:
 
 	UPROPERTY()
 	UAbilitySlotComponent* AbilitySlotComponent;
+	
+	void ActivateAbilityInSlot(int32 SlotIndex, FVector CurrentPointInSight);
 
-	UFUNCTION(BlueprintCallable)
-	void SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh,  TArray<AActor*> Targets);
 	void GiveCharacterAbilities();
 
 #pragma endregion
@@ -178,9 +178,6 @@ private:
 	void SetControllerRef();
 	
 	void InitAbilitySystem();
-	
-	void UseAbility1();
-	void UseAbility2();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

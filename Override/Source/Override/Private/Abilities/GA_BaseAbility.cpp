@@ -2,7 +2,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/GameplayHackTargetData.h"
+#include "Abilities/CustomAbilityTargetData.h"
 #include "Modulations/Modulation.h"
 
 class AModulation;

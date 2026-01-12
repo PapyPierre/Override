@@ -5,8 +5,8 @@
 #include "Engine/Engine.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Abilities/CustomAbilityTargetData.h"
 #include "Abilities/FAbilitySlotData.h"
-#include "Abilities/GameplayHackTargetData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/MovementStats.h"
@@ -223,13 +223,13 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		if (Ability1Action)
 		{
 			EnhancedInput->BindAction(Ability1Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::UseAbility, 1);
+			                          &APlayerCharacter::UseAbility, 0);
 		}
 
 
 		if (Ability2Action)
 			EnhancedInput->BindAction(Ability2Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::UseAbility, 2);
+			                          &APlayerCharacter::UseAbility, 1);
 	}
 }
 
@@ -251,11 +251,8 @@ void APlayerCharacter::InitAbilitySystem()
 
 	AbilitySlotComponent->Init();
 
-	if (HasAuthority())
-	{
-		GiveCharacterAbilities();
-	}
-
+	GiveCharacterAbilities();
+	
 	OnPostAbilitySystemInit();
 }
 
@@ -278,90 +275,81 @@ void APlayerCharacter::UseAbility(int index)
 		{
 			if (AbilitySlotComponent && ASC)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Try to use ability %i"), index);
+				UE_LOG(LogTemp, Log, TEXT("Try to use ability %i"), index + 1);
+				
+				ActivateAbilityInSlot(index, TargetingComponent->GetPointInSight());
 
-				FAbilitySlotData SlotData = AbilitySlotComponent->GetAbilityInSlot(index);
-
-				if (SlotData.AbilityHandle.IsValid())
-				{
-					//ASC->TryActivateAbility(SlotData.AbilityHandle);
-
-					SendAbilityEventWithData(SlotData.InputTag, TargetingComponent->GetPointInSight(),
-					                         TargetingComponent->CurrentTargets);
-
-					OnAbilityActivated(index);
-				}
+				OnAbilityActivated(index);
 			}
 		}
 	}
 }
 
-void APlayerCharacter::UseAbility1()
-{
-	SendAbilityEventWithData(Ability1Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
-	OnAbilityActivated(1);
-}
-
-void APlayerCharacter::UseAbility2()
-{
-	SendAbilityEventWithData(Ability2Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
-	OnAbilityActivated(2);
-}
-
-void APlayerCharacter::SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight,
-                                                TArray<AActor*> Targets)
+void APlayerCharacter::ActivateAbilityInSlot(int32 SlotIndex, FVector CurrentPointInSight)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-
-	if (HasAuthority())
+	
+	if (!ASC || !AbilitySlotComponent)
 	{
-		// Should not be read
-		UE_LOG(LogTemp, Warning, TEXT("SERVER : Send event %s"), *EventTag.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CLIENT : Send event %s"), *EventTag.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Missing ASC or AbilitySlotComponent"));
 	}
 
-	FGameplayEventData EventData;
-	EventData.Instigator = this;
-	EventData.Target = this;
-	EventData.EventTag = EventTag;
-
-	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-	ContextHandle.AddOrigin(CurrentPointInSight);
-	EventData.ContextHandle = ContextHandle;
-
-	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
-
-	if (Targets.Num() > 0)
+	const FAbilitySlotData SlotData = AbilitySlotComponent->GetAbilityInSlot(SlotIndex);
+	
+	if (!SlotData.AbilityHandle.IsValid())
 	{
-		for (AActor* Target : Targets)
+		UE_LOG(LogTemp, Warning, TEXT("No ability handle in slot %d"), SlotIndex + 1);
+	}
+
+	FGameplayAbilitySpec* Spec = ASC->FindAbilitySpecFromHandle(SlotData.AbilityHandle);
+	if (!Spec)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Could not find ability spec for slot %d"), SlotIndex + 1);
+	}
+
+	FCustomAbilityTargetData* TargetData = new FCustomAbilityTargetData();
+
+	if (TargetingComponent->CurrentTargets.Num() > 0)
+	{
+		for (const AActor* Target : TargetingComponent->CurrentTargets)
 		{
-			if (Target) HackTargetData->Targets.Add(Target);
+			if (Target) TargetData->Targets.Add(const_cast<AActor*>(Target));
 		}
 	}
 
-	FGameplayAbilityTargetDataHandle Handle;
-	Handle.Add(HackTargetData);
-	EventData.TargetData = Handle;
+	FGameplayAbilityTargetDataHandle TargetDataHandle;
+	TargetDataHandle.Add(TargetData);
 
-	ASC->HandleGameplayEvent(EventTag, &EventData);
+	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+	ContextHandle.AddOrigin(CurrentPointInSight);
+	
+	if (!Spec->GameplayEventData.IsValid())
+	{
+		Spec->GameplayEventData = MakeShared<FGameplayEventData>();
+	}
+
+	Spec->GameplayEventData->Instigator = this;
+	Spec->GameplayEventData->Target = this;
+	Spec->GameplayEventData->TargetData = TargetDataHandle;
+	Spec->GameplayEventData->ContextHandle = ContextHandle;
+	
+	SetupAbilityDataInSpec(SlotIndex, CurrentPointInSight, Targets);
+	ASC->AbilityLocalInputPressed(SlotIndex);
 }
+
 
 void APlayerCharacter::GiveCharacterAbilities()
 {
-	if (!GetAbilitySystemComponent()) return;
+	if (!GetAbilitySystemComponent() || !HasAuthority()) return;
 
-	int i = 1;
-	for (TSubclassOf<UGA_BaseAbility>& Ability : CharacterAbilities)
+	for (int i = 0; i < CharacterAbilities.Num(); ++i)
 	{
-		if (i > 2) return;
+		if (i >= AbilitySlotComponent->MaxSlots) return;
 
-		AbilitySlotComponent->AssignAbilityToSlot(Ability, i);
-		i++;
+		AbilitySlotComponent->AssignAbilityToSlot(CharacterAbilities[i], i);
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("Gave all character abilities"));
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

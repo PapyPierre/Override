@@ -38,15 +38,14 @@ void UAbilitySlotComponent::AssignAbilityToSlot(TSubclassOf<UGameplayAbility> Ab
 
 	RemoveAbilityFromSlot(SlotIndex);
 
-	FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, static_cast<int32>(SlotIndex));
+	FGameplayAbilitySpec AbilitySpec(AbilityClass,1, SlotIndex);
 	AbilitySpec.InputID = SlotIndex;
 
-	FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(AbilitySpec);
-
 	AbilitySlots[SlotIndex].AbilityClass = AbilityClass;
-	AbilitySlots[SlotIndex].AbilityHandle = Handle;
+	AbilitySlots[SlotIndex].AbilityHandle = ASC->GiveAbility(AbilitySpec);
 
-	UE_LOG(LogTemp, Log, TEXT("Gave: %s to %s"), *AbilityClass->GetName(), *GetOwner()->GetName());
+	UE_LOG(LogTemp, Log, TEXT("Gave: %s to %s, handle: %s"),
+	       *AbilityClass->GetName(), *GetOwner()->GetName(), *AbilitySlots[SlotIndex].AbilityHandle.ToString());
 }
 
 void UAbilitySlotComponent::RemoveAbilityFromSlot(int32 SlotIndex)
@@ -82,5 +81,6 @@ FAbilitySlotData UAbilitySlotComponent::GetAbilityInSlot(int32 SlotIndex) const
 	{
 		return AbilitySlots[SlotIndex];
 	}
+
 	return FAbilitySlotData();
 }

@@ -1,12 +1,12 @@
 #include "Modulations/Modulation.h"
 #include "AbilitySystemComponent.h"
 #include "Attribute/UHealthAttributeSet.h"
-#include "Abilities/GameplayHackTargetData.h"
+#include "Abilities/CustomAbilityTargetData.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Modulations/ModulationGroup.h"
 #include <Net/UnrealNetwork.h>
 
-struct FGameplayHackTargetData;
+struct FCustomAbilityTargetData;
 
 AModulation::AModulation()
 {
