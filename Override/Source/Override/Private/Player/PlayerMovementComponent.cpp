@@ -307,8 +307,9 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 	
 #pragma endregion
-/*
+
 #pragma region DEBUG
+	/*
 		/////////GROSSE ZONE DE DEBUG
 		if (GEngine)
 		{
@@ -353,8 +354,8 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
-	
-#pragma endregion*/
+	*/
+#pragma endregion
 		
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
