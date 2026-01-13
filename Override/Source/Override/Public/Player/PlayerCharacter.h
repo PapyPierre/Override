@@ -92,6 +92,9 @@ public:
 	FTimerHandle JumpDelayHandle;
 	
 	float DefaultCoyoteTime = 0.5f;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector LastGroundedPosition;
 	
 	UFUNCTION()
 	void OnJumpDelayFinished();

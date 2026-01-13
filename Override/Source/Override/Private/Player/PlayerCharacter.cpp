@@ -148,13 +148,18 @@ void APlayerCharacter::Tick(float DeltaTime)
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-
+	
 	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
 	{
 		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
 	}
-	
-	PlayerMovementComponent->TargetEaseVelocity = GetActorForwardVector() * PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
+
+	PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
+
+	if (PlayerMovementComponent->TimeSliding <= 0)
+	{
+		PlayerMovementComponent->bResetSlide = true;
+	}
 	
 	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
 	{
@@ -177,6 +182,8 @@ void APlayerCharacter::Falling()
 {
 	JumpCurrentCount--;
 
+	LastGroundedPosition = GetActorLocation();
+	
 	GetWorldTimerManager().SetTimer(
 		JumpDelayHandle,
 		this,
