@@ -52,8 +52,9 @@ public:
 
 	UPROPERTY()
 	UAbilitySlotComponent* AbilitySlotComponent;
-	
-	void ActivateAbilityInSlot(int32 SlotIndex, FVector CurrentPointInSight);
+
+	UFUNCTION(Server, Reliable)
+	void ActivateAbilityInSlotRPC(int32 SlotIndex, FVector CurrentPointInSight, const TArray<AActor*>& Targets);
 
 	void GiveCharacterAbilities();
 

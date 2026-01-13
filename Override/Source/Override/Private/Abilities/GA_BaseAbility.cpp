@@ -80,10 +80,93 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                       const FGameplayAbilityActivationInfo ActivationInfo,
                                       const FGameplayEventData* TriggerEventData)
 {
-	if (TriggerEventData) CurrentEventData = *TriggerEventData;
+	if (!HasAuthority(&ActivationInfo)) return;
+	
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+	{
+		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
+		return;
+	}
+	
+	FVector Location = FVector::ZeroVector;
+	TArray<AActor*> Targets;
 
-	UE_LOG(LogTemp, Warning, TEXT("SERVER:  %s Activate %s"), *CurrentEventData.Instigator.GetName(),
-	       *CurrentEventData.EventTag.ToString());
+	FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
 
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	if (Spec)
+	{
+		UE_LOG(LogTemp, Log, TEXT("ABILITY : Spec found from Handle!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ABILITY : Could not find Spec from Handle!"));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
+	if (Spec && Spec->GameplayEventData.IsValid())
+	{
+		UE_LOG(LogTemp, Log, TEXT("ABILITY : GameplayEventData is valid"));
+		
+		if (Spec->GameplayEventData->ContextHandle.IsValid())
+		{
+			Location = Spec->GameplayEventData->ContextHandle.GetOrigin();
+			UE_LOG(LogTemp, Log, TEXT("ABILITY : Extracted Location: %s"), 
+				 *Location.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("ABILITY : ContextHandle is INVALID!"));
+		}
+		
+		const FGameplayAbilityTargetDataHandle& TargetDataHandle = Spec->GameplayEventData->TargetData;
+
+		if (TargetDataHandle.IsValid(0))
+		{
+			UE_LOG(LogTemp, Log, TEXT("ABILITY : TargetDataHandle is valid"));
+			
+			const FCustomAbilityTargetData* CustomData = 
+				static_cast<const FCustomAbilityTargetData*>(TargetDataHandle.Get(0));
+
+			if (CustomData)
+			{
+				for (TWeakObjectPtr<AActor> TargetPtr : CustomData->Targets)
+				{
+					if (AActor* Target = TargetPtr.Get())
+					{
+						Targets.Add(Target);
+						UE_LOG(LogTemp, Log, TEXT("ABILITY : Found target: %s"), 
+												  *Target->GetName());
+					}
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("ABILITY : Failed to cast to FCustomAbilityTargetData!"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("ABILITY : TargetDataHandle is INVALID at index 0!"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ABILITY : GameplayEventData is INVALID!"));
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("ABILITY : Calling OnAbilityActivated with Location=%s, Targets=%d"),
+			   *Location.ToString(), Targets.Num());
+	
+	OnAbilityActivated(Location, Targets);
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER:  %s Activate %s"), *ActorInfo->OwnerActor->GetName(),
+				   *this->GetName());
+	
+	ApplyCooldown(Handle, ActorInfo, ActivationInfo);
+}
+
+void UGA_BaseAbility::OnAbilityActivated_Implementation(FVector Location, const TArray<AActor*>& Targets)
+{
+	
 }

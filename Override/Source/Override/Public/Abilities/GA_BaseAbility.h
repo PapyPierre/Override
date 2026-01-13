@@ -39,4 +39,7 @@ protected:
 								 const FGameplayAbilityActorInfo* ActorInfo, 
 								 const FGameplayAbilityActivationInfo ActivationInfo, 
 								 const FGameplayEventData* TriggerEventData) override;
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
+	void OnAbilityActivated(FVector Location, const TArray<AActor*>& Targets);
 };
