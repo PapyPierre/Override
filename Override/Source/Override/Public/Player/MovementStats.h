@@ -66,6 +66,10 @@ public:
 	float FirstJumpZVelocity = 800.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	float CoyoteTime= 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
+	float JumpResetTime = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
+	UCurveFloat* JumpCurve;
 #pragma endregion
 
 #pragma region Parkour

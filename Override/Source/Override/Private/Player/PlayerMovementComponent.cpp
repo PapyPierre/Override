@@ -25,6 +25,8 @@ void UPlayerMovementComponent::BeginPlay()
 		//Jump
 		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
 		CoyoteTime = MovementData->CoyoteTime;
+		JumpCurve = MovementData->JumpCurve;
+		JumpResetTime = MovementData->JumpResetTime;
 
 		//Melee
 		EaseOutTimeMelee = MovementData->EaseOutTimeMelee;
@@ -78,15 +80,30 @@ void UPlayerMovementComponent::BeginPlay()
 		DashMeleeTimeline.AddInterpFloat(VelocityEaseCurve, TimelineMeleeCallback);
 		DashMeleeTimeline.SetLooping(false);
 	}
+
+	if (JumpCurve)
+	{
+		FOnTimelineEvent TimelineJumpCallbackFinished;
+		TimelineJumpCallbackFinished.BindUFunction(this, FName("OnJumpTimelineFinished"));
+		JumpTimeline.SetTimelineFinishedFunc(TimelineJumpCallbackFinished);
+		JumpTimeline.SetTimelineLength(JumpResetTime);
+		JumpTimeline.SetPlayRate(1);
+		JumpTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
+		JumpTimeline.SetLooping(false);
+	}
 }
 
 void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
 	FActorComponentTickFunction* ThisTickFunction)
 {
-	VelocityEaseTimeline.TickTimeline(DeltaTime);
+	if (IsMovingOnGround() && !(VelocityEaseTimeline.IsReversing() && VelocityEaseTimeline.GetPlaybackPosition() < 0.1))
+		VelocityEaseTimeline.TickTimeline(DeltaTime);
+	
 	DashMeleeTimeline.TickTimeline(DeltaTime);
-	FrameCounter++;
+	JumpTimeline.TickTimeline(DeltaTime);
 
+	FrameCounter++;
+	
 	if (FrameCounter > 1000000)
 	{
 		FrameCounter = 0;
@@ -227,57 +244,50 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 
 #pragma region Slide Verification
-	
-	if (bIsSliding)
+	if (CharacterOwner->HasAuthority())
 	{
-		if (FrameCounter % 3 == 0)
+		if (bIsSliding)
 		{
-			SlideLineTrace();
-		}
+			if (FrameCounter % 3 == 0)
+			{
+				SlideLineTrace();
+			}
 		
-		// HARD STOP, conditions to immediately stop the slide 
-		bool bStopSliding =
-			!bWantsToCrouch ||
-			Impact.Z >= SlopeToleranceValue ||
-			(Velocity.Size() < DefaultMaxWalkSpeed && !IsMovingOnGround());
+			// HARD STOP, conditions to immediately stop the slide 
+			bool bStopSliding =
+				(!bWantsToCrouch && IsMovingOnGround()) ||
+				Impact.Z >= SlopeToleranceValue ||
+				(Velocity.IsNearlyZero(DefaultMaxWalkSpeedCrouched * 2) && !IsMovingOnGround()) ||
+					Velocity.Size() < DefaultMaxWalkSpeedCrouched * 0.75;       
 		
-		// SOFT STOP : conditions to start the easing
-		bool bShouldStopSliding =
-			TimeSliding >= BoostSlidingTime ||
-			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < MaxWalkSpeed * 0.75f);
+			// SOFT STOP, conditions to start the easing
+			bool bShouldStopSliding =
+				TimeSliding >= BoostSlidingTime ||
+				(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < MaxWalkSpeed * 0.75f);
 		
-		if (FMath::IsNearlyZero(Impact.Z))
-		{
-			if (IsMovingOnGround())
-				TimeSliding += DeltaTime;
-		}
+			if (FMath::IsNearlyZero(Impact.Z))
+			{
+				if (IsMovingOnGround())
+					TimeSliding += DeltaTime;
+			}
 
-		if (Impact.Z <= SlopeToleranceValue *- 1 && VelocityEaseTimeline.IsPlaying())
-		{
-			bPendingCancelSlide = false;
-			VelocityEaseTimeline.SetNewTime(0);
-			VelocityEaseTimeline.SetPlayRate(0);
-		}
+			if (Impact.Z <= SlopeToleranceValue *- 1 && VelocityEaseTimeline.IsPlaying())
+			{
+				bPendingCancelSlide = false;
+				bShouldStopSliding = false;
+				VelocityEaseTimeline.Reverse();
+			}
 		
-		if (bShouldStopSliding && !bPendingCancelSlide)
-		{
-			const float Speed = Velocity.Size();
-
-			const float MinSpeed = MovementData->MaxVelocityForSlide;
-			const float MaxSpeed = MovementData->MaxVelocityForSlide * 1.5f;
-
-			float Alpha = (Speed - MinSpeed) / (MaxSpeed - MinSpeed);
-			Alpha = FMath::Clamp(Alpha, 0.f, 1.f);
-			const float PlayRate = FMath::Lerp(1.f, 0.7f, Alpha);
-			
-			VelocityEaseTimeline.SetPlayRate(PlayRate);
-			VelocityEaseTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
-			StartVelocityEase(Velocity.GetSafeNormal() * DefaultMaxWalkSpeedCrouched);
-		}
+			if (bShouldStopSliding && !bPendingCancelSlide)
+			{
+				VelocityEaseTimeline.SetPlayRate(1);
+				StartVelocityEase(Velocity.GetSafeNormal() * DefaultMaxWalkSpeedCrouched);
+			}
 		
-		if (bStopSliding)
-		{
-			StopVelocityEaseTimeline();
+			if (bStopSliding)
+			{
+				StopVelocityEaseTimeline();
+			}
 		}
 	}
 	
@@ -297,58 +307,54 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 	
 #pragma endregion
-
+/*
 #pragma region DEBUG
-	/*
-	/////////GROSSE ZONE DE DEBUG
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(1132, 5.f, FColor::Green, FString::Printf(TEXT("is Sliding ?: %s"), bIsSliding ? TEXT("true") : TEXT("false")));
-		GEngine->AddOnScreenDebugMessage(113642, 5.f, FColor::Green, FString::Printf(TEXT("is PendingSlide ?: %s"), bPendingCancelSlide ? TEXT("true") : TEXT("false")));
-		GEngine->AddOnScreenDebugMessage(6541, 5.0, FColor::Blue, "TimeSliding: " + FString::SanitizeFloat(TimeSliding));
-		GEngine->AddOnScreenDebugMessage(1, 5.0, FColor::Red, "Speed: " + FString::SanitizeFloat(Velocity.Size()));
-	}
-	if (CharacterRef)
-	{
-		if (UCharacterMovementComponent* const MoveComp = CharacterRef->GetCharacterMovement())
+		/////////GROSSE ZONE DE DEBUG
+		if (GEngine)
 		{
-			// Récupérer le mode de mouvement
-			EMovementMode MoveMode = CharacterOwner->GetCharacterMovement()->MovementMode;
-			uint8 CustomMode = CharacterOwner->GetCharacterMovement()->CustomMovementMode;
-
-			// Créer une chaîne lisible
-			FString ModeStr;
-
-			if (MoveMode == MOVE_Custom)
-			{
-				switch (CustomMode)
-				{
-				case CMOVE_Slide:
-					ModeStr = TEXT("Slide");
-					break;
-				case CMOVE_Sprint:
-					ModeStr = TEXT("Sprint");
-					break;
-					// ajoute ici tous tes CMOVE_XXX
-				default:
-					ModeStr = FString::Printf(TEXT("Custom_%d"), CustomMode);
-					break;
-				}
-			}
-			else
-			{
-				// Modes natifs
-				ModeStr = UCharacterMovementComponent::GetMovementName();
-			}
-
-			// Affichage debug
-			GEngine->AddOnScreenDebugMessage(9001, 5.0f, FColor::Yellow, FString::Printf(TEXT("MovementMode: %s"), *ModeStr));
-			GEngine->AddOnScreenDebugMessage(9002, 5.0f, FColor::Cyan, FString::Printf(TEXT("MaxWalkSpeed: %.1f"), MoveComp->MaxWalkSpeed));
+			GEngine->AddOnScreenDebugMessage(1132, 5.f, FColor::Green, FString::Printf(TEXT("is Sliding ?: %s"), bIsSliding ? TEXT("true") : TEXT("false")));
+			GEngine->AddOnScreenDebugMessage(113642, 5.f, FColor::Green, FString::Printf(TEXT("is PendingSlide ?: %s"), bPendingCancelSlide ? TEXT("true") : TEXT("false")));
+			GEngine->AddOnScreenDebugMessage(6541, 5.0, FColor::Blue, "TimeSliding: " + FString::SanitizeFloat(TimeSliding));
+			GEngine->AddOnScreenDebugMessage(1, 5.0, FColor::Red, "Speed: " + FString::SanitizeFloat(Velocity.Size()));
 		}
-	}
+		if (CharacterRef)
+		{
+			if (UCharacterMovementComponent* const MoveComp = CharacterRef->GetCharacterMovement())
+			{
+				// Récupérer le mode de mouvement
+				EMovementMode MoveMode = CharacterOwner->GetCharacterMovement()->MovementMode;
+				uint8 CustomMode = CharacterOwner->GetCharacterMovement()->CustomMovementMode;
+
+				// Créer une chaîne lisible
+				FString ModeStr;
+
+				if (MoveMode == MOVE_Custom)
+				{
+					switch (CustomMode)
+					{
+					case CMOVE_Slide:
+						ModeStr = TEXT("Slide");
+						break;
+					default:
+						ModeStr = FString::Printf(TEXT("Custom_%d"), CustomMode);
+						break;
+					}
+				}
+				else
+				{
+					// Modes natifs
+					ModeStr = UCharacterMovementComponent::GetMovementName();
+				}
+
+				// Affichage debug
+				GEngine->AddOnScreenDebugMessage(9001, 5.0f, FColor::Yellow, FString::Printf(TEXT("MovementMode: %s"), *ModeStr));
+				GEngine->AddOnScreenDebugMessage(9002, 5.0f, FColor::Cyan, FString::Printf(TEXT("MaxWalkSpeed: %.1f"), MoveComp->MaxWalkSpeed));
+			}
+		}
+	
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
-	*/
-#pragma endregion
+	
+#pragma endregion*/
 		
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
@@ -717,7 +723,6 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 			if (Impact.Z <= SlopeToleranceValue) {
 				GroundFriction = 0.0;
 				BrakingDecelerationWalking = 1400;
-				MaxWalkSpeedCrouched = 1.0;
 				Impact *= SlideImpulse;
 				
 				if (Velocity.Size() < MaxVelocityForSlide)
@@ -750,11 +755,6 @@ bool UPlayerMovementComponent::SlideLineTrace()
 
 void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 {
-	if (!IsMovingOnGround())
-	{
-		return;
-	}
-	
 	Velocity = FMath::Lerp(InitialEaseVelocity, TargetEaseVelocity, Value);
 }
 
@@ -795,6 +795,11 @@ bool UPlayerMovementComponent::IsSliding() const
 	return bIsSliding;
 }
 
+void UPlayerMovementComponent::OnJumpTimelineFinished()
+{
+	JumpCount = 0;
+}
+
 void UPlayerMovementComponent::ResetSlideValues()
 {
 	GroundFriction = DefaultGroundFriction;
@@ -830,14 +835,30 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 bool UPlayerMovementComponent::CanAttemptJump() const
 {
 	return IsJumpAllowed() &&
-		   (IsMovingOnGround() || IsFalling()) &&
-			   (IsSliding() || !bWantsToCrouch);
+		   (IsMovingOnGround() || IsFalling());
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 {
 	if (VelocityEaseTimeline.IsPlaying())
 		VelocityEaseTimeline.SetPlayRate(0);
+
+	if (CharacterOwner->CanJump())
+	{
+		float JumpHeight = JumpCurve->GetFloatValue(JumpCount);
+		JumpCount++;
+
+		JumpZVelocity = JumpHeight;
+
+		if (JumpTimeline.IsPlaying())
+			JumpTimeline.Stop();
+
+		if (!IsSliding() && IsCrouching())
+		{
+			JumpZVelocity = 300;
+		}
+	}
+	
 	return Super::DoJump(bReplayingMoves, DeltaTime);
 }
 
@@ -1135,6 +1156,8 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
 	DOREPLIFETIME(UPlayerMovementComponent, bGrabbedLedge);
 	DOREPLIFETIME(UPlayerMovementComponent, bIsSliding);
+	DOREPLIFETIME(UPlayerMovementComponent, bPendingCancelSlide);
+	DOREPLIFETIME(UPlayerMovementComponent, TimeSliding);
 }
 
 
