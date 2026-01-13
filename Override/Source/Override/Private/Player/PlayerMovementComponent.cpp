@@ -278,7 +278,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				TimeSliding >= BoostSlidingTime ||
 				(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < MaxWalkSpeed * 0.75f);
 		
-			if (FMath::IsNearlyZero(Impact.Z))
+			if (FMath::IsNearlyZero(Impact.Z) || (Impact.Z >= SlopeToleranceValue && !VelocityEaseTimeline.IsPlaying()))
 			{
 				if (IsMovingOnGround())
 					TimeSliding += DeltaTime;
@@ -293,7 +293,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 			if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Prout"));
 				VelocityEaseTimeline.SetPlayRate(2);
 			}
 			else if (VelocityEaseTimeline.IsPlaying())
@@ -309,7 +308,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			{
 				StopVelocityEaseTimeline();
 			}
-		}
+		}	
 	
 	
 	if (TimeToWaitBetweenSlide >= 0)
@@ -775,7 +774,37 @@ bool UPlayerMovementComponent::SlideLineTrace()
 void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 {
 	Velocity = FMath::Lerp(InitialEaseVelocity, TargetEaseVelocity, Value);
-	if (CharacterRef->HasAuthority())
+
+	if (CharacterRef && CharacterRef->HasAuthority())
+	{
+		FVector Start = CharacterRef->GetActorLocation();
+
+		// Scale pour que le point soit lisible en world
+		float DebugScale = 0.1f; // ajuste si besoin
+		FVector PointLocation = Start + Velocity * DebugScale;
+
+		// Point bleu bien visible
+		DrawDebugPoint(
+			CharacterRef->GetWorld(),
+			PointLocation,
+			20.f,          // taille du point
+			FColor::Blue,
+			false,
+			5.0f           // durée en secondes
+		);
+
+		// Optionnel : ligne entre le joueur et le point
+		DrawDebugLine(
+			CharacterRef->GetWorld(),
+			Start,
+			PointLocation,
+			FColor::Cyan,
+			false,
+			5.0f,
+			0,
+			2.0f
+		);
+
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(
@@ -783,13 +812,15 @@ void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 				5.f,
 				FColor::Green,
 				FString::Printf(
-					TEXT("TargetEaseVelocity: X=%f Y=%f Z=%f"),
+					TEXT("Velocity: X=%f Y=%f Z=%f"),
 					Velocity.X,
 					Velocity.Y,
 					Velocity.Z
 				)
 			);
 		}
+	}
+
 }
 
 void UPlayerMovementComponent::StartVelocityEase(const FVector& NewTargetVelocity)
