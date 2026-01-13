@@ -98,6 +98,22 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	if (IsMovingOnGround() && !(VelocityEaseTimeline.IsReversing() && VelocityEaseTimeline.GetPlaybackPosition() < 0.1))
 		VelocityEaseTimeline.TickTimeline(DeltaTime);
+
+	if (CharacterRef->HasAuthority())
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				1313131,
+				5.f,
+				FColor::Green,
+				FString::Printf(
+					TEXT("TargetEaseVelocity: X=%f Y=%f Z=%f"),
+					TargetEaseVelocity.X,
+					TargetEaseVelocity.Y,
+					TargetEaseVelocity.Z
+				)
+			);
+		}
 	
 	DashMeleeTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
@@ -244,8 +260,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 
 #pragma region Slide Verification
-	if (CharacterOwner->HasAuthority())
-	{
 		if (bIsSliding)
 		{
 			if (FrameCounter % 3 == 0)
@@ -256,7 +270,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			// HARD STOP, conditions to immediately stop the slide 
 			bool bStopSliding =
 				(!bWantsToCrouch && IsMovingOnGround()) ||
-				Impact.Z >= SlopeToleranceValue ||
 				(Velocity.IsNearlyZero(DefaultMaxWalkSpeedCrouched * 2) && !IsMovingOnGround()) ||
 					Velocity.Size() < DefaultMaxWalkSpeedCrouched * 0.75;       
 		
@@ -277,6 +290,14 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				bShouldStopSliding = false;
 				VelocityEaseTimeline.Reverse();
 			}
+
+			if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Prout"));
+				VelocityEaseTimeline.SetPlayRate(2);
+			}
+			else if (VelocityEaseTimeline.IsPlaying())
+				VelocityEaseTimeline.SetPlayRate(1);
 		
 			if (bShouldStopSliding && !bPendingCancelSlide)
 			{
@@ -289,7 +310,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				StopVelocityEaseTimeline();
 			}
 		}
-	}
+	
 	
 	if (TimeToWaitBetweenSlide >= 0)
 	{
@@ -309,7 +330,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 #pragma endregion
 
 #pragma region DEBUG
-	/*
 		/////////GROSSE ZONE DE DEBUG
 		if (GEngine)
 		{
@@ -352,9 +372,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				GEngine->AddOnScreenDebugMessage(9002, 5.0f, FColor::Cyan, FString::Printf(TEXT("MaxWalkSpeed: %.1f"), MoveComp->MaxWalkSpeed));
 			}
 		}
-	
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
-	*/
 #pragma endregion
 		
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -757,6 +775,21 @@ bool UPlayerMovementComponent::SlideLineTrace()
 void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 {
 	Velocity = FMath::Lerp(InitialEaseVelocity, TargetEaseVelocity, Value);
+	if (CharacterRef->HasAuthority())
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				131313211,
+				5.f,
+				FColor::Green,
+				FString::Printf(
+					TEXT("TargetEaseVelocity: X=%f Y=%f Z=%f"),
+					Velocity.X,
+					Velocity.Y,
+					Velocity.Z
+				)
+			);
+		}
 }
 
 void UPlayerMovementComponent::StartVelocityEase(const FVector& NewTargetVelocity)
@@ -1156,7 +1189,6 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
 	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
 	DOREPLIFETIME(UPlayerMovementComponent, bGrabbedLedge);
-	DOREPLIFETIME(UPlayerMovementComponent, bIsSliding);
 	DOREPLIFETIME(UPlayerMovementComponent, bPendingCancelSlide);
 	DOREPLIFETIME(UPlayerMovementComponent, TimeSliding);
 }

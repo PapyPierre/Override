@@ -73,7 +73,7 @@ public:
 	UPROPERTY(Replicated)
 	float TimeSliding = 0.f;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsSliding = false;
 	bool bResetSlide = false;
 

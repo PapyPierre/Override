@@ -152,8 +152,9 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
 	{
 		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
-		PlayerMovementComponent->TargetEaseVelocity = GetActorForwardVector() * PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
 	}
+	
+	PlayerMovementComponent->TargetEaseVelocity = GetActorForwardVector() * PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
 	
 	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
 	{
@@ -168,7 +169,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	if (IsLocallyControlled())
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
-		                                             FRotator::ZeroRotator);
+													 FRotator::ZeroRotator);
 	}
 }
 
