@@ -1,6 +1,6 @@
-#include "Hacks/GameplayHackTargetData.h"
+#include "Abilities/CustomAbilityTargetData.h"
 
-bool FGameplayHackTargetData::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
+bool FCustomAbilityTargetData::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
 {
 	int32 NumTargets = Targets.Num();
 	Ar << NumTargets;
