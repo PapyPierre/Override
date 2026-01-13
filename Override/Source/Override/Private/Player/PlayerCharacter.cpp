@@ -149,16 +149,20 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 
-	if (PlayerMovementComponent->bWantsToCrouch)
+	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
 	{
-		PlayerMovementComponent->bResetSlide = true;
+		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
+		PlayerMovementComponent->TargetEaseVelocity = GetActorForwardVector() * PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
 	}
-
-	if (PlayerMovementComponent->TimeSliding > 0)
+	
+	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
 	{
-		PlayerMovementComponent->bResetSlide = false;
-		if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
-			PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
+		PlayerMovementComponent->JumpTimeline.PlayFromStart();
+	}
+	else
+	{
+		PlayerMovementComponent->JumpTimeline.Stop();
+		PlayerMovementComponent->JumpTimeline.PlayFromStart();
 	}
 	
 	if (IsLocallyControlled())

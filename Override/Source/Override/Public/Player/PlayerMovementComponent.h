@@ -70,13 +70,16 @@ public:
 
 #pragma region Slide
 
+	UPROPERTY(Replicated)
 	float TimeSliding = 0.f;
 	
 	UPROPERTY(Replicated)
 	bool bIsSliding = false;
 	bool bResetSlide = false;
-	
+
+	UPROPERTY(Replicated)
 	bool bPendingCancelSlide = false;
+	
 	bool bCoolDownFinished = false;
 	
 	UPROPERTY(Replicated)
@@ -125,11 +128,17 @@ public:
 	float CoyoteTime;
 	
 	FVector InitialHorizontalVelocity;
-	int32 JumpCount;
+	int JumpCount = 0;
+	float JumpResetTime;
 	
 	float DefaultAirControl = 0;
 	float DefaultBrakingDecelerationFalling = 0;
 
+	UCurveFloat* JumpCurve;
+	FTimeline JumpTimeline;
+
+	UFUNCTION()
+	void OnJumpTimelineFinished();
 #pragma endregion
 
 #pragma region Parkour
