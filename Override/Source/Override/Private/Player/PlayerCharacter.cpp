@@ -155,13 +155,11 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	{
 		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
 	}
+	
+	if (PlayerMovementComponent->bResetSlideCrouch)
+		PlayerMovementComponent->bResetSlideLanded = true;
 
 	PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
-
-	if (PlayerMovementComponent->TimeSliding <= 0)
-	{
-		PlayerMovementComponent->bResetSlide = true;
-	}
 	
 	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
 	{

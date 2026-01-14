@@ -75,12 +75,13 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsSliding = false;
-	bool bResetSlide = false;
+	bool bResetSlideCrouch = false;
+	bool bResetSlideLanded = true;
 
 	UPROPERTY(Replicated)
 	bool bPendingCancelSlide = false;
 	
-	bool bCoolDownFinished = false;
+	bool bCoolDownFinished = true;
 	
 	UPROPERTY(Replicated)
 	FVector VelocityAtCrouch;

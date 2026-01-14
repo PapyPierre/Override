@@ -56,6 +56,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ActivateAbilityInSlotRPC(int32 SlotIndex, FVector CurrentPointInSight, const TArray<AActor*>& Targets);
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Ability")
+	TArray<TSubclassOf<UGA_BaseAbility>> CharacterAbilities;
+	
 	void GiveCharacterAbilities();
 
 #pragma endregion
@@ -147,8 +150,7 @@ public:
 	void UseAbility(int index);
 
 protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability")
-	TArray<TSubclassOf<UGA_BaseAbility>> CharacterAbilities;
+	
 	
 	virtual void BeginPlay() override;
 
