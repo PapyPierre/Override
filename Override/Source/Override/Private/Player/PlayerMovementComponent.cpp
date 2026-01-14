@@ -311,18 +311,14 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}	
 	
 	
-	if (TimeToWaitBetweenSlide >= 0)
+	if (TimeToWaitBetweenSlide >= 0 && !IsCrouching())
 	{
 		TimeToWaitBetweenSlide -= DeltaTime;
 		bCoolDownFinished = false;
 	}
-	else
+	else if (TimeToWaitBetweenSlide > 0 && !bCoolDownFinished)
 	{
-		if (!bCoolDownFinished)
-		{
-			if (CharacterRef->HasAuthority())
-				VelocityAtCrouch = FVector::ZeroVector;
-		}
+		TimeToWaitBetweenSlide = SlidingCoolDown;
 		bCoolDownFinished = true;
 	}
 	
@@ -750,7 +746,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				
 				bIsSliding = true;
 				VelocityAtCrouch = FVector::ZeroVector;
-				bResetSlide = false;
+				bResetSlideCrouch = false;
 			}
 		}
 	}
@@ -849,9 +845,10 @@ bool UPlayerMovementComponent::CanSlide()
 {
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	bResult &= Velocity.Size() > 200;
+	bResult &= VelocityAtCrouch.Size()	 > 200;
 	bResult &= Impact.Z <= SlopeToleranceValue;
-	bResult &= bResetSlide;
+	bResult &= bResetSlideCrouch;
+	bResult &= bResetSlideLanded;
 	return bResult;
 }
 
@@ -983,12 +980,8 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 		return;
 	}
 	
-	bResetSlide	= true;
-	if (CanSlide())
-		bResetSlide	= true;
-	else
-		bResetSlide	= false;
-
+	bResetSlideCrouch	= true;
+	
 	// See if collision is already at desired size.
 	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == GetCrouchedHalfHeight())
 	{
