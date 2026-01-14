@@ -55,25 +55,3 @@ bool ACustomPlayerState::GetCdRemainingForTag(FGameplayTagContainer CdTags, floa
 	return false;
 }
 
-void ACustomPlayerState::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	if (HasAuthority())
-	{
-		GiveCharacterAbilities();
-	}
-}
-
-void ACustomPlayerState::GiveCharacterAbilities()
-{
-	if (!GetAbilitySystemComponent()) return;
-
-	for (TSubclassOf<UGA_BaseAbility>& Ability : CharacterAbilities)
-	{
-		FGameplayAbilitySpec AbilitySpec(Ability, 1, INDEX_NONE, this);
-		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(AbilitySpec);
-
-		UE_LOG(LogTemp, Log, TEXT("Server gave: %s to %s"), *Ability->GetName(), *this->GetName());
-	}
-}

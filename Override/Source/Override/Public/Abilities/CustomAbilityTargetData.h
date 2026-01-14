@@ -3,15 +3,15 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "UObject/Object.h"
-#include "GameplayHackTargetData.generated.h"
+#include "CustomAbilityTargetData.generated.h"
 
 USTRUCT(BlueprintType)
-struct OVERRIDE_API FGameplayHackTargetData : public FGameplayAbilityTargetData
+struct OVERRIDE_API FCustomAbilityTargetData : public FGameplayAbilityTargetData
 {
 	GENERATED_BODY()
 	
 public:
-	FGameplayHackTargetData() {}
+	FCustomAbilityTargetData() {}
 	
 	TArray<TWeakObjectPtr<AActor>> Targets;
 
@@ -22,7 +22,7 @@ public:
 
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
-		return FGameplayHackTargetData::StaticStruct();
+		return FCustomAbilityTargetData::StaticStruct();
 	}
 
 	virtual FGameplayAbilityTargetDataHandle CloneFrom(const FGameplayAbilityTargetDataHandle& SourceHandle) const
@@ -30,9 +30,9 @@ public:
 		FGameplayAbilityTargetDataHandle ReturnHandle;
 		for (int32 i = 0; i < SourceHandle.Num(); i++)
 		{
-			if (const FGameplayHackTargetData* SourceData = static_cast<const FGameplayHackTargetData*>(SourceHandle.Get(i)))
+			if (const FCustomAbilityTargetData* SourceData = static_cast<const FCustomAbilityTargetData*>(SourceHandle.Get(i)))
 			{
-				FGameplayHackTargetData* NewData = new FGameplayHackTargetData();
+				FCustomAbilityTargetData* NewData = new FCustomAbilityTargetData();
 				NewData->Targets = SourceData->Targets;
 				ReturnHandle.Add(NewData);
 			}
@@ -44,7 +44,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayHackTargetData> : public TStructOpsTypeTraitsBase2<FGameplayHackTargetData>
+struct TStructOpsTypeTraits<FCustomAbilityTargetData> : public TStructOpsTypeTraitsBase2<FCustomAbilityTargetData>
 {
 	enum
 	{

@@ -5,7 +5,8 @@
 #include "Engine/Engine.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "Hacks/GameplayHackTargetData.h"
+#include "Abilities/CustomAbilityTargetData.h"
+#include "Abilities/FAbilitySlotData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/MovementStats.h"
@@ -23,6 +24,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	GetCharacterMovement()->SetIsReplicated(true);
 
 	TargetingComponent = CreateDefaultSubobject<UTargetingComponent>(TEXT("Targeting Component"));
+	AbilitySlotComponent = CreateDefaultSubobject<UAbilitySlotComponent>(TEXT("Ability Slot Component"));
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
@@ -233,12 +235,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		if (Ability1Action)
+		{
 			EnhancedInput->BindAction(Ability1Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::UseAbility1);
+			                          &APlayerCharacter::UseAbility, 0);
+		}
+
 
 		if (Ability2Action)
 			EnhancedInput->BindAction(Ability2Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::UseAbility2);
+			                          &APlayerCharacter::UseAbility, 1);
 	}
 }
 
@@ -258,6 +263,10 @@ void APlayerCharacter::InitAbilitySystem()
 		}
 	}
 
+	AbilitySlotComponent->Init();
+
+	GiveCharacterAbilities();
+
 	OnPostAbilitySystemInit();
 }
 
@@ -272,58 +281,159 @@ ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 	return GetPlayerState<ACustomPlayerState>();
 }
 
-void APlayerCharacter::UseAbility1()
+void APlayerCharacter::UseAbility(int index)
 {
-	SendAbilityEventWithData(Ability1Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
-	OnAbilityActivated(1);
+	if (ACustomPlayerState* PS = GetCustomPlayerState())
+	{
+		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+		{
+			if (AbilitySlotComponent && ASC)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Try to use ability %i"), index + 1);
+
+				ActivateAbilityInSlotRPC(index, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
+
+				OnAbilityActivated(index);
+			}
+		}
+	}
 }
 
-void APlayerCharacter::UseAbility2()
-{
-	SendAbilityEventWithData(Ability2Tag, TargetingComponent->GetPointInSight(), TargetingComponent->CurrentTargets);
-	OnAbilityActivated(2);
-}
-
-void APlayerCharacter::SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSight,
-                                             TArray<AActor*> Targets)
+void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, FVector CurrentPointInSight, const TArray<AActor*>& Targets)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
 
-	if (HasAuthority())
+	if (!ASC || !AbilitySlotComponent)
 	{
-		// Should not be read
-		UE_LOG(LogTemp, Warning, TEXT("SERVER : Send event %s"), *EventTag.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CLIENT : Send event %s"), *EventTag.ToString());
+		UE_LOG(LogTemp, Error, TEXT("Missing ASC or AbilitySlotComponent"));
+		return;
 	}
 
-	FGameplayEventData EventData;
-	EventData.Instigator = this;
-	EventData.Target = this;
-	EventData.EventTag = EventTag;
+	FGameplayAbilitySpec* AbilitySpec = nullptr;
 
-	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-	ContextHandle.AddOrigin(CurrentPointInSight);
-	EventData.ContextHandle = ContextHandle;
-
-	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
-
-	if (Targets.Num() > 0)
+	for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
 	{
-		for (AActor* Target : Targets)
+		if (Spec.InputID == SlotIndex)
 		{
-			if (Target) HackTargetData->Targets.Add(Target);
+			AbilitySpec = &Spec;
+			break;
 		}
 	}
 
-	FGameplayAbilityTargetDataHandle Handle;
-	Handle.Add(HackTargetData);
-	EventData.TargetData = Handle;
+	if (!AbilitySpec)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SERVER : No ability found in slot %d"), SlotIndex);
+		return;
+	}
 
-	ASC->HandleGameplayEvent(EventTag, &EventData);
+	UE_LOG(LogTemp, Log, TEXT("SERVER : Found ability in slot %d, preparing data"), SlotIndex);
+
+	FCustomAbilityTargetData* TargetData = new FCustomAbilityTargetData();
+
+	if (Targets.Num() > 0)
+	{
+		for (const AActor* Target : Targets)
+		{
+			if (Target)
+			{
+				TargetData->Targets.Add(const_cast<AActor*>(Target));
+				UE_LOG(LogTemp, Log, TEXT("SERVER : Added target: %s"), *Target->GetName());
+			}
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER : Total targets: %d"), TargetData->Targets.Num());
+
+	FGameplayAbilityTargetDataHandle TargetDataHandle;
+	TargetDataHandle.Add(TargetData);
+
+	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+	ContextHandle.AddOrigin(CurrentPointInSight);
+	UE_LOG(LogTemp, Log, TEXT("SERVER : Origin point: %s"), *CurrentPointInSight.ToString());
+
+	if (!AbilitySpec->GameplayEventData.IsValid())
+	{
+		AbilitySpec->GameplayEventData = MakeShared<FGameplayEventData>();
+		UE_LOG(LogTemp, Log, TEXT("SERVER : Created new GameplayEventData"));
+	}
+
+	AbilitySpec->GameplayEventData->Instigator = this;
+	AbilitySpec->GameplayEventData->Target = this;
+	AbilitySpec->GameplayEventData->TargetData = TargetDataHandle;
+	AbilitySpec->GameplayEventData->ContextHandle = ContextHandle;
+
+	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
+	{
+		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
+		UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored origin: %s"),
+		       *StoredOrigin.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SERVER : ContextHandle is INVALID after setting!"));
+	}
+
+	if (AbilitySpec->GameplayEventData->TargetData.IsValid(0))
+	{
+		const FCustomAbilityTargetData* StoredData =
+			static_cast<const FCustomAbilityTargetData*>(
+				AbilitySpec->GameplayEventData->TargetData.Get(0)
+			);
+
+		if (StoredData)
+		{
+			UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored targets: %d"),
+			       StoredData->Targets.Num());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SERVER : TargetData is INVALID after setting!"));
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER : Calling TryActivateAbility..."));
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER : Received CurrentPointInSight = %s"), 
+		   *CurrentPointInSight.ToString());
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER : Number of targets = %d"), 
+		   TargetingComponent->CurrentTargets.Num());
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER : TargetData->Targets.Num() = %d"), 
+		   TargetData->Targets.Num());
+
+	if (ContextHandle.IsValid())
+	{
+		FVector Origin = ContextHandle.GetOrigin();
+		UE_LOG(LogTemp, Log, TEXT("SERVER : ContextHandle origin = %s"), *Origin.ToString());
+	}
+
+	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
+	{
+		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
+		UE_LOG(LogTemp, Log, TEXT("SERVER : Stored in Spec, origin = %s"), 
+			   *StoredOrigin.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SERVER : ContextHandle INVALID after storing!"));
+	}
+	
+	ASC->TryActivateAbility(AbilitySpec->Handle);
+}
+
+void APlayerCharacter::GiveCharacterAbilities()
+{
+	if (!GetAbilitySystemComponent() || !HasAuthority()) return;
+
+	for (int i = 0; i < CharacterAbilities.Num(); ++i)
+	{
+		if (i >= AbilitySlotComponent->MaxSlots) return;
+
+		AbilitySlotComponent->AssignAbilityToSlot(CharacterAbilities[i], i);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Gave all character abilities"));
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

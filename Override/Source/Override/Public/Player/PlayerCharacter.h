@@ -8,13 +8,14 @@
 #include "CameraManager.h"
 #include "Components/TargetingComponent.h"
 #include "Interface/Targetable.h"
+#include "Abilities/AbilitySlotComponent.h"
 #include "PlayerCharacter.generated.h"
 
 class UInputMappingContext;
 class UInputAction;
 
 UCLASS()
-class OVERRIDE_API  APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
+class OVERRIDE_API APlayerCharacter : public ACharacter, public ITargetable, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 	
@@ -43,15 +44,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* Ability2Action;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	UPROPERTY(EditDefaultsOnly, Category = "Ability")
 	FGameplayTag Ability1Tag;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Hack")
+	UPROPERTY(EditDefaultsOnly, Category = "Ability")
 	FGameplayTag Ability2Tag;
 
-	UFUNCTION(BlueprintCallable)
-	void SendAbilityEventWithData(FGameplayTag EventTag, FVector CurrentPointInSigh,  TArray<AActor*> Targets);
-	
+	UPROPERTY()
+	UAbilitySlotComponent* AbilitySlotComponent;
+
+	UFUNCTION(Server, Reliable)
+	void ActivateAbilityInSlotRPC(int32 SlotIndex, FVector CurrentPointInSight, const TArray<AActor*>& Targets);
+
+	void GiveCharacterAbilities();
+
 #pragma endregion
 
 #pragma region Components
@@ -138,8 +144,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	ACustomPlayerState* GetCustomPlayerState() const;
+	void UseAbility(int index);
+
+protected:
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability")
+	TArray<TSubclassOf<UGA_BaseAbility>> CharacterAbilities;
 	
-protected:	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;
@@ -171,9 +181,6 @@ private:
 	void SetControllerRef();
 	
 	void InitAbilitySystem();
-	
-	void UseAbility1();
-	void UseAbility2();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
