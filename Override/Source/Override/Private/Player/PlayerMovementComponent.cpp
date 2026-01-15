@@ -98,22 +98,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	if (IsMovingOnGround() && !(VelocityEaseTimeline.IsReversing() && VelocityEaseTimeline.GetPlaybackPosition() < 0.1))
 		VelocityEaseTimeline.TickTimeline(DeltaTime);
-
-	if (CharacterRef->HasAuthority())
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				1313131,
-				5.f,
-				FColor::Green,
-				FString::Printf(
-					TEXT("TargetEaseVelocity: X=%f Y=%f Z=%f"),
-					TargetEaseVelocity.X,
-					TargetEaseVelocity.Y,
-					TargetEaseVelocity.Z
-				)
-			);
-		}
 	
 	DashMeleeTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
@@ -326,6 +310,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 #pragma region DEBUG
 		/////////GROSSE ZONE DE DEBUG
+		/*
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(1132, 5.f, FColor::Green, FString::Printf(TEXT("is Sliding ?: %s"), bIsSliding ? TEXT("true") : TEXT("false")));
@@ -367,6 +352,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				GEngine->AddOnScreenDebugMessage(9002, 5.0f, FColor::Cyan, FString::Printf(TEXT("MaxWalkSpeed: %.1f"), MoveComp->MaxWalkSpeed));
 			}
 		}
+		*/
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
 #pragma endregion
 		
@@ -771,7 +757,7 @@ void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 {
 	Velocity = FMath::Lerp(InitialEaseVelocity, TargetEaseVelocity, Value);
 
-	if (CharacterRef && CharacterRef->HasAuthority())
+	/*if (CharacterRef && CharacterRef->HasAuthority())
 	{
 		FVector Start = CharacterRef->GetActorLocation();
 
@@ -815,7 +801,7 @@ void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 				)
 			);
 		}
-	}
+	}*/
 
 }
 
