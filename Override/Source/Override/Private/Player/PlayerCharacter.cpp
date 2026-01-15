@@ -109,6 +109,8 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
+	UE_LOG(LogTemp, Log, TEXT("On possessed by %s"), *NewController->GetName());
+	
 	// Server-side
 	SetControllerRef();
 
@@ -265,8 +267,6 @@ void APlayerCharacter::InitAbilitySystem()
 
 	AbilitySlotComponent->Init();
 
-	GiveCharacterAbilities();
-
 	OnPostAbilitySystemInit();
 }
 
@@ -422,15 +422,17 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 	ASC->TryActivateAbility(AbilitySpec->Handle);
 }
 
-void APlayerCharacter::GiveCharacterAbilities()
+void APlayerCharacter::GiveCharacterAbilities(TArray<TSubclassOf<UGA_BaseAbility>> Abilities)
 {
 	if (!GetAbilitySystemComponent() || !HasAuthority()) return;
 
-	for (int i = 0; i < CharacterAbilities.Num(); ++i)
+	for (int i = 0; i < Abilities.Num(); ++i)
 	{
+		UE_LOG(LogTemp, Log, TEXT("Gave ability: %s"), *Abilities[i]->GetName());
+		
 		if (i >= AbilitySlotComponent->MaxSlots) return;
-
-		AbilitySlotComponent->AssignAbilityToSlot(CharacterAbilities[i], i);
+		
+		AbilitySlotComponent->AssignAbilityToSlot(Abilities[i], i);
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Gave all character abilities"));
