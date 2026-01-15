@@ -56,10 +56,8 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ActivateAbilityInSlotRPC(int32 SlotIndex, FVector CurrentPointInSight, const TArray<AActor*>& Targets);
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Ability")
-	TArray<TSubclassOf<UGA_BaseAbility>> CharacterAbilities;
-	
-	void GiveCharacterAbilities();
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void GiveCharacterAbilities(TArray<TSubclassOf<UGA_BaseAbility>> Abilities);
 
 #pragma endregion
 
