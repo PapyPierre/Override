@@ -27,8 +27,9 @@ public:
 	virtual void ApplyCooldown(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	                           FGameplayAbilityActivationInfo ActivationInfo) const override;
 
-	bool CheckCooldown(const FGameplayAbilitySpecHandle Handle,
-									   const FGameplayAbilityActorInfo* ActorInfo) const;
+	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle,
+	                           const FGameplayAbilityActorInfo* ActorInfo,
+	                           FGameplayTagContainer* OptionalRelevantTags) const override;
 
 	virtual float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const override;
 
