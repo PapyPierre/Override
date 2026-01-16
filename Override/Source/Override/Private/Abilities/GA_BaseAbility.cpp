@@ -15,24 +15,6 @@ UGA_BaseAbility::UGA_BaseAbility()
 void UGA_BaseAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                  const FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	/*
-	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
-	
-	if (CooldownGE)
-	{
-		FGameplayEffectSpecHandle SpecHandle =
-			MakeOutgoingGameplayEffectSpec(CooldownGE->GetClass(), GetAbilityLevel());
-		
-		SpecHandle.Data.Get()->DynamicGrantedTags.AppendTags(CooldownTags);
-		
-		SpecHandle.Data.Get()->SetSetByCallerMagnitude(
-			FGameplayTag::RequestGameplayTag(FName(CooldownTags.First().GetTagName())),
-			CooldownDuration.GetValueAtLevel(GetAbilityLevel()));
-		
-		ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
-	}
-	*/
-
 	if (!CooldownEffectClass) return;
 	
 	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownEffectClass, GetAbilityLevel());
@@ -47,14 +29,18 @@ void UGA_BaseAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, con
 }
 
 bool UGA_BaseAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle,
-									   const FGameplayAbilityActorInfo* ActorInfo) const
+									   const FGameplayAbilityActorInfo* ActorInfo,
+								   FGameplayTagContainer* OptionalRelevantTags) const
 {
+	const bool bParentCooldown = Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
+	
 	if (CooldownTag.IsValid() && ActorInfo->AbilitySystemComponent.IsValid())
 	{
-		return !ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag(CooldownTag);
+		const bool bCustomCooldown = !ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag(CooldownTag);
+		return bParentCooldown && bCustomCooldown;
 	}
 	
-	return true;
+	return bParentCooldown;
 }
 
 float UGA_BaseAbility::GetCooldownTimeRemaining(
@@ -87,7 +73,7 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
 		return;
 	}
-	
+
 	FVector Location = FVector::ZeroVector;
 	TArray<AActor*> Targets;
 
