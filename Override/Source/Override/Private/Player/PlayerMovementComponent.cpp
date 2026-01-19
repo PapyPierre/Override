@@ -31,16 +31,6 @@ void UPlayerMovementComponent::BeginPlay()
 		//Melee
 		EaseOutTimeMelee = MovementData->EaseOutTimeMelee;
 		MeleeImpulse = MovementData->MeleeImpulse;
-
-		//Parkour
-		MaxVaultThickness = MovementData->MaxVaultThickness;
-		MaxVaultHeight = MovementData->MaxVaultHeight;
-		RaycastStartHeight = MovementData->RaycastStartHeight;
-		RaycastEndHeight = MovementData->RaycastEndHeight;
-
-		EdgeClimbMontage = MovementData->EdgeClimbMontage;
-		VaultMontage = MovementData->VaultMontage;
-		ParkourDistanceDetection = MovementData->ParkourDistanceDetection;
 	}
 
 	//SET DEFAULT VALUE TO KEEP ORIGINAL
@@ -109,140 +99,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		FrameCounter = 0;
 	}
 
-	if (FrameCounter % 9 == 0)
-	{
-#pragma region Parkour Verification
-	
-		CharaLocation = CharacterRef->GetActorLocation();
-		CharaForward = CharacterRef->GetActorForwardVector();
-		CharaUp = CharacterRef->GetActorUpVector();
-
-#pragma region WALL CLIMB DETECTION
-		if ((Velocity.Z < 0.0f || Velocity.Z > 0.0f) && !bGrabbedLedge)
-		{
-			FCollisionShape Shape = FCollisionShape::MakeBox(FVector(20, 5, 20));
-			FQuat BoxRotation = CharacterRef->GetActorQuat();
-
-			FVector StartLocation = (CharaLocation + CharaForward * (ParkourDistanceDetection / 2)) + CharaUp * RaycastStartHeight;
-			FVector EndLocation   = (CharaLocation + CharaForward * (ParkourDistanceDetection / 2)) + CharaUp * RaycastEndHeight;
-
-			FCollisionObjectQueryParams ObjectQuery;
-			ObjectQuery.AddObjectTypesToQuery(ECC_WorldStatic);
-			ObjectQuery.AddObjectTypesToQuery(ECC_GameTraceChannel1);
-
-			bool bHit = GetWorld()->SweepSingleByObjectType(
-				SweepResult,
-				StartLocation,
-				EndLocation,
-				BoxRotation,
-				ObjectQuery,
-				Shape,
-				TraceParams
-			);
-
-			// ======= DEBUG =======
-			if (bDebugLedge)
-			{
-				DrawDebugBox(
-					GetWorld(),
-					(StartLocation + EndLocation) / 2,
-					FVector(20, 5, 20),
-					BoxRotation,
-					FColor::Red,
-					false,
-					2.0f,
-					0,
-					1.0f
-				);
-				DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Red, false, 2.0f, 0, 1.0f);
-			}
-			// =====================
-
-			if (bHit && SweepResult.Distance > 0)
-			{
-				FVector OriginBounds;
-				FVector BoxExtent;
-				SweepResult.GetActor()->GetActorBounds(false, OriginBounds, BoxExtent);
-
-				FVector Start = SweepResult.ImpactPoint + CharaForward * 10;
-				Start.Z -= BoxExtent.Z / 2;
-
-				FHitResult HitVertical;
-				if (CharacterRef->HasAuthority())
-				{
-					// ===== SECOND TRACE VERTICAL =====
-					bool bWallVerticalHit = GetWorld()->LineTraceSingleByObjectType(
-						HitVertical,
-						Start + CharaUp * 500.f,
-						Start,
-						ObjectQuery,
-						TraceParams
-					);
-
-					// ===== DEBUG VERTICAL =====
-					if (bDebugLedge)
-					{
-						DrawDebugLine(GetWorld(), Start + CharaUp * 500.f, Start, FColor::Purple, false, 20.0f, 0, 1.0f);
-						if (bWallVerticalHit)
-						{
-							DrawDebugSphere(GetWorld(), HitVertical.ImpactPoint, 10.0f, 12, FColor::Cyan, false, 20.0f);
-						}
-					}
-					// =====================
-				}
-
-				// Ignorer les Players
-				if (HitVertical.bBlockingHit && HitVertical.GetActor() && HitVertical.GetActor()->IsA(APlayerCharacter::StaticClass()))
-				{
-					HitVertical.bBlockingHit = false;
-				}
-
-
-				if (EdgeClimbMontage && CharacterRef && CharacterRef->GetMesh() && HitVertical.bBlockingHit)
-				{
-					StopMovementImmediately();
-					SetMovementMode(MOVE_None);
-					if (AnimInstance && CharacterRef->HasAuthority())
-					{
-						MultiPlayerHitWall = SweepResult.GetActor();
-						bGrabbedLedge = true;
-
-						UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent();
-						float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
-							
-						FVector TargetRelativeLocation = FVector(HitVertical.ImpactPoint.X, HitVertical.ImpactPoint.Y, HitVertical.ImpactPoint.Z + HalfHeight);
-							
-						Multicast_CapsuleMoveTo(Capsule, TargetRelativeLocation);
-							
-						FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageWallClimbEnded);
-						Multicast_PlayWallClimbMontage(EdgeClimbMontage, EndFuncName,MultiPlayerHitWall,this->CharacterRef);
-					}
-				}
-			}
-		}
-
-
-#pragma endregion
-
-		else
-		{
-			if (HitSecondWallActor && !bMontagePending && CharacterRef->IsLocallyControlled() && !bGrabbedLedge)
-			{
-				UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent();
-				UPrimitiveComponent* WallComp = HitSecondWallActor->FindComponentByClass<UPrimitiveComponent>();
-				if (Capsule && WallComp)
-				{
-					Capsule->MoveIgnoreActors.Add(HitSecondWallActor);
-				}
-				FVector EndLocation = CharaLocation + (IncomingWallThickness * 2) * CharaForward;
-				Server_CallVaultAnimation(HitSecondWallActor, EndLocation);
-				bMontagePending = true;
-			}
-		} 
-	
-#pragma endregion
-	}
-
 #pragma region Slide Verification
 		if (bIsSliding)
 		{
@@ -275,13 +131,15 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				VelocityEaseTimeline.Reverse();
 			}
 
-			if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
+			else if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
 			{
 				VelocityEaseTimeline.SetPlayRate(2);
 			}
 			else if (VelocityEaseTimeline.IsPlaying())
+			{
 				VelocityEaseTimeline.SetPlayRate(1);
-		
+			}
+			
 			if (bShouldStopSliding && !bPendingCancelSlide)
 			{
 				VelocityEaseTimeline.SetPlayRate(1);
@@ -310,7 +168,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 #pragma region DEBUG
 		/////////GROSSE ZONE DE DEBUG
-		/*
+	
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(1132, 5.f, FColor::Green, FString::Printf(TEXT("is Sliding ?: %s"), bIsSliding ? TEXT("true") : TEXT("false")));
@@ -352,7 +210,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				GEngine->AddOnScreenDebugMessage(9002, 5.0f, FColor::Cyan, FString::Printf(TEXT("MaxWalkSpeed: %.1f"), MoveComp->MaxWalkSpeed));
 			}
 		}
-		*/
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
 #pragma endregion
 		
@@ -430,253 +287,6 @@ void UPlayerMovementComponent::StopMeleeVelocityEaseTimeline()
 		false
 	);
 }
-
-void UPlayerMovementComponent::OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (MultiPlayerHitWall)
-	{
-		if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
-		{
-			Capsule->MoveIgnoreActors.Remove(MultiPlayerHitWall);
-		}
-	}
-	
-	bGrabbedLedge = false;
-	bMontagePending = false;
-	MultiPlayerHitWall = nullptr;
-	SetMovementMode(MOVE_Walking);
-}
-
-void UPlayerMovementComponent::Multicast_PlayWallClimbMontage_Implementation(UAnimMontage* Montage, FName EndCallbackFunctionName, AActor* Wall, APlayerCharacter* Player)
-{
-	if (!CharacterRef) return;
-	if (!Wall || !Player) return;
-
-	AnimInstance = CharacterRef->GetMesh()->GetAnimInstance();
-	if (!AnimInstance || !Montage) return;
-
-	AnimInstance->Montage_Play(Montage);
-
-	if (!EndCallbackFunctionName.IsNone())
-	{
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUFunction(this, EndCallbackFunctionName);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
-	}
-	
-	UCapsuleComponent* Capsule = Player->GetCapsuleComponent();
-	UPrimitiveComponent* WallComp = Wall->FindComponentByClass<UPrimitiveComponent>();
-	if (Capsule && WallComp)
-	{
-		MultiPlayerHitWall = Wall;
-		Capsule->MoveIgnoreActors.Add(Wall);
-	}
-}
-
-
-void UPlayerMovementComponent::Server_CallVaultAnimation_Implementation(AActor* Actor, FVector EndLocation)
-{
-	HitSecondWallActor = Actor;
-	FName EndFuncName = GET_FUNCTION_NAME_CHECKED(UPlayerMovementComponent, OnMontageVaultEnded);
-	Multicast_CapsuleMoveTo(this->CharacterRef->GetCapsuleComponent(),EndLocation);
-	Multicast_PlayWallClimbMontage(VaultMontage, EndFuncName, HitSecondWallActor, this->CharacterRef);
-}
-
-void UPlayerMovementComponent::Multicast_CapsuleMoveTo_Implementation(UCapsuleComponent* Capsule, FVector Location)
-{
-	FLatentActionInfo JumpDelayInfo;
-	JumpDelayInfo.CallbackTarget = this;
-	JumpDelayInfo.ExecutionFunction = NAME_None;
-	JumpDelayInfo.ExecutionFunction = FName("OnMoveNoOp");
-	JumpDelayInfo.UUID = 999;
-	JumpDelayInfo.Linkage = 0;
-	JumpDelayInfo.UUID = 1;
-	
-	UKismetSystemLibrary::MoveComponentTo(
-		Capsule,
-		Location,
-		CharacterRef->GetActorRotation(),
-		true, true, 1.0, false,
-		EMoveComponentAction::Move,
-		JumpDelayInfo
-	);
-}
-
-void UPlayerMovementComponent::OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (MultiPlayerHitWall)
-	{
-		if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
-		{
-			Capsule->MoveIgnoreActors.Remove(MultiPlayerHitWall);
-		}
-	}
-	
-	bMontagePending = false;
-	HitSecondWallActor = nullptr;
-	MultiPlayerHitWall = nullptr;
-}
-
-void UPlayerMovementComponent::RPC_WallClimbMoveTo_Implementation(AActor* Wall)
-{
-	MultiPlayerHitWall = Wall;
-	
-	if (UCapsuleComponent* Capsule = CharacterRef->GetCapsuleComponent())
-	{
-		UPrimitiveComponent* WallComp = Wall->FindComponentByClass<UPrimitiveComponent>();
-		if (Capsule && WallComp)
-		{
-			Capsule->MoveIgnoreActors.Add(Wall);
-		}
-	}
-}
-
-bool UPlayerMovementComponent::CanVaultOrClimb()
-{
-	float Thickness = 0.f;
-	float Height = 0.f;
-
-	AActor* HitWall = ParkourWallDetection(Thickness, Height);
-
-	if (!HitWall)
-	{
-		return false;
-	}
-
-	if (IsCrouching())
-		return false;
-
-	if (Thickness < MaxVaultThickness && Height < MaxVaultHeight)
-	{
-		HitSecondWallActor = HitWall;
-		IncomingWallThickness = Thickness;
-		return true;
-	}
-
-	return false;
-}
-
-AActor* UPlayerMovementComponent::ParkourWallDetection(float& Thickness, float& Height)
-{	
-    FVector Start = CharaLocation;
-    FVector End   = Start + CharaForward * ParkourDistanceDetection;
-
-    FCollisionObjectQueryParams ObjQuery;
-    ObjQuery.AddObjectTypesToQuery(ECC_WorldStatic);
-	ObjQuery.AddObjectTypesToQuery(ECC_GameTraceChannel1);
-
-    // ===== WALL RANGE DETECTION =====
-    FHitResult FrontWallHit;
-    bool bWallInFront = GetWorld()->LineTraceSingleByObjectType(
-        FrontWallHit,
-        Start,
-        End,
-        ObjQuery,
-        TraceParams
-    );
-
-    // Ignorer les Players
-    if (bWallInFront && FrontWallHit.GetActor() && FrontWallHit.GetActor()->IsA(APlayerCharacter::StaticClass()))
-    {
-        bWallInFront = false;
-    }
-
-    // ===== DEBUG FRONT WALL =====
-    if (bDebugLedge)
-    {
-        DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.0f, 0, 1.0f);
-        if (bWallInFront)
-        {
-            DrawDebugSphere(GetWorld(), FrontWallHit.ImpactPoint, 5.0f, 12, FColor::Red, false, 2.0f);
-        }
-    }
-    // ================================
-
-    if (bWallInFront)
-    {
-        Start = FrontWallHit.ImpactPoint + CharaForward * 5;
-
-        // ===== SECOND TRACE HORIZONTAL =====
-        FHitResult HitHorizontal;
-        bool bWallHorizontalHit = GetWorld()->LineTraceSingleByObjectType(
-            HitHorizontal,
-            End,
-            Start,
-            ObjQuery,
-            TraceParams
-        );
-
-        // Ignorer les Players
-        if (bWallHorizontalHit && HitHorizontal.GetActor() && HitHorizontal.GetActor()->IsA(APlayerCharacter::StaticClass()))
-        {
-            bWallHorizontalHit = false;
-        }
-
-        // ===== DEBUG HORIZONTAL =====
-        if (bDebugLedge)
-        {
-            DrawDebugLine(GetWorld(), End, Start, FColor::Green, false, 2.0f, 0, 1.0f);
-            if (bWallHorizontalHit)
-            {
-                DrawDebugSphere(GetWorld(), HitHorizontal.ImpactPoint, 5.0f, 12, FColor::Green, false, 2.0f);
-            }
-        }
-        // ==================================
-
-        // ===== SECOND TRACE VERTICAL =====
-        FHitResult HitVertical;
-        bool bWallVerticalHit = GetWorld()->LineTraceSingleByObjectType(
-            HitVertical,
-            Start + CharaUp * 500.f,
-            Start,
-            ObjQuery,
-            TraceParams
-        );
-
-        // Ignorer les Players
-        if (bWallVerticalHit && HitVertical.GetActor() && HitVertical.GetActor()->IsA(APlayerCharacter::StaticClass()))
-        {
-            bWallVerticalHit = false;
-        }
-
-        // ===== DEBUG VERTICAL =====
-        if (bDebugLedge)
-        {
-            DrawDebugLine(GetWorld(), Start + CharaUp * 500.f, Start, FColor::Blue, false, 2.0f, 0, 1.0f);
-            if (bWallVerticalHit)
-            {
-                DrawDebugSphere(GetWorld(), HitVertical.ImpactPoint, 5.0f, 12, FColor::Blue, false, 2.0f);
-            }
-        }
-        // ==================================
-
-        // ===== CALCULS DE THICKNESS ET HEIGHT =====
-        if (bWallHorizontalHit)
-        {
-            if (FrontWallHit.GetComponent() != HitHorizontal.GetComponent())
-            {
-                UE_LOG(LogTemp, Warning, TEXT("Traces hit different objects"));
-                return nullptr;
-            }
-            Thickness = FVector::Distance(FrontWallHit.ImpactPoint, HitHorizontal.ImpactPoint);
-        }
-
-        if (bWallVerticalHit)
-        {
-            if (FrontWallHit.GetComponent() != HitVertical.GetComponent())
-            {
-                UE_LOG(LogTemp, Warning, TEXT("Traces hit different objects"));
-                return nullptr;
-            }
-            Height = FVector::Distance(FrontWallHit.ImpactPoint, HitVertical.ImpactPoint);
-        }
-
-        return FrontWallHit.GetActor();
-    }
-
-    return nullptr;
-}
-
 
 void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 {
@@ -756,7 +366,7 @@ bool UPlayerMovementComponent::SlideLineTrace()
 void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 {
 	Velocity = FMath::Lerp(InitialEaseVelocity, TargetEaseVelocity, Value);
-
+	
 	/*if (CharacterRef && CharacterRef->HasAuthority())
 	{
 		FVector Start = CharacterRef->GetActorLocation();
@@ -802,7 +412,6 @@ void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 			);
 		}
 	}*/
-
 }
 
 void UPlayerMovementComponent::StartVelocityEase(const FVector& NewTargetVelocity)
@@ -1198,11 +807,9 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
 	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
-	DOREPLIFETIME(UPlayerMovementComponent, bGrabbedLedge);
 	DOREPLIFETIME(UPlayerMovementComponent, bPendingCancelSlide);
 	DOREPLIFETIME(UPlayerMovementComponent, TimeSliding);
 }
-
 
 //Fonction de debug bien sympa
 void UPlayerMovementComponent::DebugPrintClientIds()
