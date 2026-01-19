@@ -142,52 +142,6 @@ public:
 	void OnJumpTimelineFinished();
 #pragma endregion
 
-#pragma region Parkour
-
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = "CMC|EdgeGrab")
-	bool bGrabbedLedge = false;
-	
-	float MaxVaultThickness;
-	float MaxVaultHeight;
-	float RaycastStartHeight;
-	float RaycastEndHeight;
-	
-	UAnimMontage* EdgeClimbMontage;
-	UAnimMontage* VaultMontage;
-	float ParkourDistanceDetection = 70.f;
-
-	float IncomingWallThickness;
-
-	UFUNCTION()
-	void OnMoveNoOp() {}
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName, AActor* Wall, APlayerCharacter* Player);
-	
-	UFUNCTION(Client, Reliable)
-	void RPC_WallClimbMoveTo(AActor* Wall);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_CapsuleMoveTo(UCapsuleComponent* Capsule, FVector Location);
-
-	UFUNCTION(Server, Reliable)
-	void Server_CallVaultAnimation(AActor* Actor , FVector EndLocation);
-	
-	UFUNCTION()
-	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
-	UFUNCTION()
-	void OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	bool CanVaultOrClimb();
-	AActor* ParkourWallDetection(float &Thickness, float &Height);
-	FHitResult SweepResult;
-	AActor* HitSecondWallActor;
-	AActor* MultiPlayerHitWall;
-	bool bMontagePending = false;
-	bool bDebugLedge = false;
-	
-#pragma endregion
-
 private:
 	virtual void BeginPlay() override;
 
