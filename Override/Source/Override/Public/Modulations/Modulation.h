@@ -67,7 +67,7 @@ public:
 	bool IsDemat;
 
 	UPROPERTY(EditAnywhere, Category="Default")
-	float CooldownDuration = 2;
+	float CooldownDuration = 0;
 
 	UPROPERTY(EditAnywhere, Category="Default")
 	float LockDuration = 2;
@@ -92,7 +92,11 @@ public:
 #pragma endregion
 
 protected:
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category="Default")
+	bool nextMoveIsA;
+	
 	virtual void BeginPlay() override;
+	
 	void UpdateCurrentEnd();
 
 	void HandleMovement(float DeltaTime);
@@ -122,8 +126,9 @@ private:
 	float CastingTime;
 
 	ModState PreviousState;
-	
-	void StopMovement();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void RPC_StopMovement();
 	
 	void ApplyImpulseOnPlayer() const;
 

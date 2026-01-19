@@ -62,12 +62,12 @@ void AModulation::HandleMovement(float DeltaTime)
 
 	const float Speed = ModSpeedCurve->FloatCurve.Eval(LerpTime);
 	LerpTime = FMath::Min(LerpTime + DeltaTime * Speed, 1.f);
-	
-	SetActorTransform(UKismetMathLibrary::TLerp(CurrentStart, CurrentEnd, LerpTime), true);
-	
-	if (LerpTime < 1) return;
 
-	StopMovement();
+	SetActorTransform(UKismetMathLibrary::TLerp(CurrentStart, CurrentEnd, LerpTime), true);
+
+	if (LerpTime < 1 || !HasAuthority()) return;
+
+	RPC_StopMovement();
 	UpdateCurrentEnd();
 }
 
@@ -138,7 +138,7 @@ void AModulation::StartCastingGE(TSubclassOf<UGameplayEffect> GameplayEffect, fl
 	HackCastingDuration = CastDuration;
 }
 
-void AModulation::StopMovement()
+void AModulation::RPC_StopMovement_Implementation()
 {
 	LerpTime = 0;
 
@@ -146,6 +146,8 @@ void AModulation::StopMovement()
 	{
 		ApplyImpulseOnPlayer();
 	}
+
+	nextMoveIsA = !nextMoveIsA;
 
 	RPC_ChangeState(ModState::InCD);
 }
