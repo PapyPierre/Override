@@ -160,7 +160,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 
-	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
+	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying() && PlayerMovementComponent->Impact.Z >= PlayerMovementComponent->SlopeToleranceValue *- 1 )
 	{
 		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
 	}
@@ -204,10 +204,7 @@ void APlayerCharacter::Falling()
 
 void APlayerCharacter::Jump()
 {
-	if (!PlayerMovementComponent->CanVaultOrClimb())
-	{
-		Super::Jump();
-	}
+	Super::Jump();
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const
