@@ -16,7 +16,7 @@ class OVERRIDE_API IPingable
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Pingable")
-	void Ping(float LifeTime);
+	void Ping(float LifeTime, int MyTeam = -1);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Pingable")
 	void StopPing();
