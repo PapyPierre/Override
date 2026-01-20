@@ -77,8 +77,6 @@ public:
 	bool bIsSliding = false;
 	bool bResetSlideCrouch = false;
 	bool bResetSlideLanded = true;
-
-	UPROPERTY(Replicated)
 	bool bPendingCancelSlide = false;
 	
 	bool bCoolDownFinished = true;

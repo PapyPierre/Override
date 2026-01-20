@@ -160,16 +160,24 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 
-	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying() && PlayerMovementComponent->Impact.Z >= PlayerMovementComponent->SlopeToleranceValue *- 1 )
+	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
 	{
 		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
+		if (PlayerMovementComponent->Impact.Z <= PlayerMovementComponent->SlopeToleranceValue *- 1)
+		{
+			PlayerMovementComponent->VelocityEaseTimeline.SetPlaybackPosition(0.5f, true);
+			PlayerMovementComponent->SetMovementMode(MOVE_Custom, CMOVE_Slide);
+		}
+		else
+		{
+			PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
+			PlayerMovementComponent->TargetEaseVelocity = PlayerMovementComponent->InitialEaseVelocity.GetSafeNormal() * PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
+		}
 	}
 
 	if (PlayerMovementComponent->bResetSlideCrouch)
 		PlayerMovementComponent->bResetSlideLanded = true;
-
-	PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
-
+	
 	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
 	{
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
