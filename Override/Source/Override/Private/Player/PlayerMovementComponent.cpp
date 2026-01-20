@@ -131,7 +131,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				VelocityEaseTimeline.Reverse();
 			}
 
-			else if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
+			if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
 			{
 				VelocityEaseTimeline.SetPlayRate(2);
 			}
@@ -556,11 +556,6 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 	{
 		CharacterRef->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 	}
-
-	if (MovementMode  == EMovementMode::MOVE_Falling)
-	{
-		InitialHorizontalVelocity = FVector(Velocity.X, Velocity.Y, 0.f);
-	}
 }
 
 void UPlayerMovementComponent::Crouch(bool bClientSimulation)
@@ -807,7 +802,6 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
 	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
-	DOREPLIFETIME(UPlayerMovementComponent, bPendingCancelSlide);
 	DOREPLIFETIME(UPlayerMovementComponent, TimeSliding);
 }
 
