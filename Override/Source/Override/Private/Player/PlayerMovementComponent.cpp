@@ -131,7 +131,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				VelocityEaseTimeline.Reverse();
 			}
 
-			else if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
+			if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
 			{
 				VelocityEaseTimeline.SetPlayRate(2);
 			}
@@ -168,7 +168,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 #pragma region DEBUG
 		/////////GROSSE ZONE DE DEBUG
-	
+	/*
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(1132, 5.f, FColor::Green, FString::Printf(TEXT("is Sliding ?: %s"), bIsSliding ? TEXT("true") : TEXT("false")));
@@ -210,6 +210,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				GEngine->AddOnScreenDebugMessage(9002, 5.0f, FColor::Cyan, FString::Printf(TEXT("MaxWalkSpeed: %.1f"), MoveComp->MaxWalkSpeed));
 			}
 		}
+		*/
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
 #pragma endregion
 		
@@ -556,11 +557,6 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 	{
 		CharacterRef->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 	}
-
-	if (MovementMode  == EMovementMode::MOVE_Falling)
-	{
-		InitialHorizontalVelocity = FVector(Velocity.X, Velocity.Y, 0.f);
-	}
 }
 
 void UPlayerMovementComponent::Crouch(bool bClientSimulation)
@@ -807,7 +803,6 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
 	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
-	DOREPLIFETIME(UPlayerMovementComponent, bPendingCancelSlide);
 	DOREPLIFETIME(UPlayerMovementComponent, TimeSliding);
 }
 
