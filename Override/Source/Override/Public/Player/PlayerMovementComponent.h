@@ -76,7 +76,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsSliding = false;
 	bool bResetSlideCrouch = false;
-	bool bResetSlideLanded = true;
+	bool bResetSlideLanded = true;	
 	bool bPendingCancelSlide = false;
 	
 	bool bCoolDownFinished = true;
