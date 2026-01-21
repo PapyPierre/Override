@@ -41,4 +41,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
 	int GameTime = 480;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
+	float MaxSpawnObjDistance = 4000;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
+	float MinSpawnObjDistance = 1000;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
+	float EnemiesSpawnInhibitRange = 1500;
 };
