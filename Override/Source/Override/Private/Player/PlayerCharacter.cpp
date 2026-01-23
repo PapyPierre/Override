@@ -188,7 +188,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
 	}
 
-	if (IsLocallyControlled())
+	if (IsLocallyControlled() && FirstPersonCameraComponent)
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
 		                                             FRotator::ZeroRotator);
