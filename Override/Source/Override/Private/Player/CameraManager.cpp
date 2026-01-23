@@ -34,17 +34,21 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 		Alpha
 	);
 
-	if (!PlayerMovementComponent->IsMovingOnGround())
-	{
-		TargetFOV = CurrentFOV;
-	}
-	
 	// Aim
 	if (PlayerCharacter->bIsAimingWeapon)
 	{
 		TargetFOV = PlayerCharacter->AimFOV;
 		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
 		LastFOV = 1;
+	}
+	else if (!PlayerMovementComponent->IsMovingOnGround())
+		TargetFOV = PlayerCharacter->DefaultFOV;
+	else
+	{
+		if (!PlayerMovementComponent->IsMovingOnGround())
+		{
+			TargetFOV = CurrentFOV;
+		}
 	}
 
 	if (LastFOV == 1)
