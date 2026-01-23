@@ -15,6 +15,9 @@ CameraManager::~CameraManager()
 
 void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent, float DeltaTime)
 {
+	if (!PlayerCharacter->FirstPersonCameraComponent)
+		return;
+	
 	CameraShake(PlayerCharacter, PlayerMovementComponent);
 
 	float CurrentFOV = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
@@ -60,6 +63,9 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 
 void CameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent)
 {
+	if (!PlayerCharacter->FirstPersonCameraComponent)
+		return;
+	
 	if (PlayerMovementComponent->IsMovingOnGround())
 	{
 		if (PlayerCharacter->GetVelocity().Size() == 0.0)
