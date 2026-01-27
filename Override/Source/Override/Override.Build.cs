@@ -19,7 +19,9 @@ public class Override : ModuleRules
 			"HTTP",
 			"Json",
 			"JsonUtilities", 
-			"HTTPServer"
+			"HTTPServer",
+			"Sockets",
+			"Networking"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule" });
