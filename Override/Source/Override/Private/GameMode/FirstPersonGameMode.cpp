@@ -8,33 +8,40 @@
 void AFirstPersonGameMode::SendDataToDB()
 {
 	FSocket* Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)
-	->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
-	
+		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
+
 	FIPv4Address IP;
-	FIPv4Address::Parse(TEXT("89.234.148.195"), IP);
+	FIPv4Address::Parse(TEXT("10.51.1.68"), IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
 	Addr->SetIp(IP.Value);
 	Addr->SetPort(5000);
 
+	UE_LOG(LogTemp, Log, TEXT("Trying to connect to %s in order to send match data"),
+	       *Addr->ToString(true));
+	
 	if (Socket->Connect(*Addr))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Connected to %s successfully in order to send match data"),
-			*Addr->ToString(true));
+		       *Addr->ToString(true));
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to connected to %s, will not send match data"),
-			*Addr->ToString(true));
+		       *Addr->ToString(true));
+		return;
 	}
 
-	const FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
+	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
+
+	if (Version == "") Version = TEXT("editor");
 	
 	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
 	Json->SetStringField("action", "set_match_info");
 	Json->SetStringField("version_id", Version);
 	Json->SetStringField("token", "override_db_token");
+	
 
 	FString Payload;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
@@ -46,7 +53,7 @@ void AFirstPersonGameMode::SendDataToDB()
 
 	int32 Sent = 0;
 	Socket->Send(Data.GetData(), Data.Num(), Sent);
-	
+
 	uint32 Size;
 	Socket->HasPendingData(Size);
 
@@ -57,16 +64,16 @@ void AFirstPersonGameMode::SendDataToDB()
 	Socket->Recv(Buffer.GetData(), Buffer.Num(), Read);
 
 	const FString Response = FString(UTF8_TO_TCHAR(Buffer.GetData()));
-	
+
 	TSharedPtr<FJsonObject> ResponseJson;
 	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response);
 
 	FJsonSerializer::Deserialize(Reader, ResponseJson);
 
-	int32 MatchId = ResponseJson->GetIntegerField((TCHAR*) "match_id");
+	int32 MatchId = ResponseJson->Values["match_id"].Get()->AsNumber();
 
-	UE_LOG(LogTemp, Log, TEXT("%i data successfully sent to database server"), MatchId);
-	
+	UE_LOG(LogTemp, Log, TEXT("Match %i data successfully sent to database server"), MatchId);
+
 	Socket->Close();
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 }
@@ -115,5 +122,5 @@ FString AFirstPersonGameMode::GetVersionFromFile(const FString& FilePath)
 		}
 	}
 
-	return FString::Printf(TEXT("%d.%d.%d.%d"),Major, Minor, Revision, Patch);
+	return FString::Printf(TEXT("%d.%d.%d.%d"), Major, Minor, Revision, Patch);
 }
