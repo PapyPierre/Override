@@ -90,7 +90,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeLanding;
 #pragma endregion
-	
+		
 #pragma region WallRun
 	FHitResult WallRunHitResult;
 #pragma endregion
