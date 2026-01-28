@@ -4,6 +4,7 @@
 #include "SocketSubsystem.h"
 #include "IPAddress.h"
 #include "Networking.h"
+#include "GameMode/OverrideGameInstance.h"
 
 void AFirstPersonGameMode::SendDataToDB()
 {
@@ -11,7 +12,7 @@ void AFirstPersonGameMode::SendDataToDB()
 		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
 
 	FIPv4Address IP;
-	FIPv4Address::Parse(TEXT("10.51.1.68"), IP);
+	FIPv4Address::Parse(TEXT("10.51.1.111"), IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
@@ -41,8 +42,38 @@ void AFirstPersonGameMode::SendDataToDB()
 	Json->SetStringField("action", "set_match_info");
 	Json->SetStringField("version_id", Version);
 	Json->SetStringField("token", "override_db_token");
-	
 
+	UGameInstance* GameInst = GetGameInstance();
+	UOverrideGameInstance* OverrideGameInst = Cast<UOverrideGameInstance>(GameInst);
+
+	TArray<TSharedPtr<FJsonValue>> PlayersArray;
+
+	for (const FMatchPlayerData& Player : OverrideGameInst->MatchPlayers)
+	{
+		TSharedPtr<FJsonObject> PlayerObj = MakeShared<FJsonObject>();
+
+		PlayerObj->SetNumberField(TEXT("player_id"), Player.PlayerId);
+		PlayerObj->SetNumberField(TEXT("team_id"), Player.TeamId);
+
+		TArray<TSharedPtr<FJsonValue>> PositionsArray;
+
+		for (const FPlayerPosition& Pos : Player.Positions)
+		{
+			TArray<TSharedPtr<FJsonValue>> PosArray;
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Time));
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.X));
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.Y));
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.Z));
+
+			PositionsArray.Add(MakeShared<FJsonValueArray>(PosArray));
+		}
+
+		PlayerObj->SetArrayField(TEXT("positions"), PositionsArray);
+		PlayersArray.Add(MakeShared<FJsonValueObject>(PlayerObj));
+	}
+
+	Json->SetArrayField(TEXT("players"), PlayersArray);
+	
 	FString Payload;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
 	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
@@ -70,10 +101,16 @@ void AFirstPersonGameMode::SendDataToDB()
 
 	FJsonSerializer::Deserialize(Reader, ResponseJson);
 
-	int32 MatchId = ResponseJson->Values["match_id"].Get()->AsNumber();
-
-	UE_LOG(LogTemp, Log, TEXT("Match %i data successfully sent to database server"), MatchId);
-
+	if (ResponseJson->Values["match_id"] != nullptr)
+	{
+		int32 MatchId = ResponseJson->Values["match_id"].Get()->AsNumber();
+		UE_LOG(LogTemp, Log, TEXT("Match %i data successfully sent to database server"), MatchId);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Match_id in DB response"));
+	}
+	
 	Socket->Close();
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 }

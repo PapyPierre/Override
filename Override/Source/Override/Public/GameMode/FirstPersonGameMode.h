@@ -11,7 +11,7 @@ class OVERRIDE_API AFirstPersonGameMode : public AGameModeBase
 
 protected:
 	UFUNCTION(BlueprintCallable)
-	static void SendDataToDB();
+	void SendDataToDB();
 
 private:
 	static FString GetVersionFromFile(const FString& FilePath);
