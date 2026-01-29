@@ -24,6 +24,12 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	float MaxRange = 1000;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	float FastReload = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	float SlowReload = 1.5f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	float RPM = 750;
