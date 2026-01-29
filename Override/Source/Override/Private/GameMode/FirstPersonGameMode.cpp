@@ -4,6 +4,8 @@
 #include "SocketSubsystem.h"
 #include "IPAddress.h"
 #include "Networking.h"
+#include "GameMode/OverrideGameInstance.h"
+#include "winsock.h"
 
 void AFirstPersonGameMode::SendDataToDB()
 {
@@ -11,16 +13,15 @@ void AFirstPersonGameMode::SendDataToDB()
 		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
 
 	FIPv4Address IP;
-	FIPv4Address::Parse(TEXT("10.51.1.68"), IP);
+	FIPv4Address::Parse(TEXT("10.51.1.111"), IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
+
+#undef SetPort // In winsock.h to avoid conflicts
 
 	Addr->SetIp(IP.Value);
 	Addr->SetPort(5000);
 
-	UE_LOG(LogTemp, Log, TEXT("Trying to connect to %s in order to send match data"),
-	       *Addr->ToString(true));
-	
 	if (Socket->Connect(*Addr))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Connected to %s successfully in order to send match data"),
@@ -33,49 +34,113 @@ void AFirstPersonGameMode::SendDataToDB()
 		return;
 	}
 
+	// BUILD JSON
 	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
+	if (Version.IsEmpty()) Version = TEXT("editor");
 
-	if (Version == "") Version = TEXT("editor");
-	
 	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
 	Json->SetStringField("action", "set_match_info");
 	Json->SetStringField("version_id", Version);
 	Json->SetStringField("token", "override_db_token");
-	
+
+	UOverrideGameInstance* GameInst = Cast<UOverrideGameInstance>(GetGameInstance());
+
+	TArray<TSharedPtr<FJsonValue>> PlayersArray;
+
+	for (const FMatchPlayerData& Player : GameInst->MatchPlayers)
+	{
+		TSharedPtr<FJsonObject> PlayerObj = MakeShared<FJsonObject>();
+		PlayerObj->SetNumberField(TEXT("player_id"), Player.PlayerId);
+		PlayerObj->SetNumberField(TEXT("team_id"), Player.TeamId);
+
+		TArray<TSharedPtr<FJsonValue>> PositionsArray;
+		for (const FPlayerPosition& Pos : Player.Positions)
+		{
+			TArray<TSharedPtr<FJsonValue>> PosArray;
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Time));
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.X));
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.Y));
+			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.Z));
+
+			PositionsArray.Add(MakeShared<FJsonValueArray>(PosArray));
+		}
+
+		PlayerObj->SetArrayField(TEXT("positions"), PositionsArray);
+		PlayersArray.Add(MakeShared<FJsonValueObject>(PlayerObj));
+	}
+
+	Json->SetArrayField(TEXT("players"), PlayersArray);
 
 	FString Payload;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
 	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
 
-	TArray<uint8> Data;
-	const FTCHARToUTF8 Convert(*Payload);
-	Data.Append((uint8*)Convert.Get(), Convert.Length());
+	// SEND
+	FTCHARToUTF8 Convert(*Payload);
+	int32 PayloadSize = Convert.Length();
+
+	uint32 NetSize = htonl(PayloadSize);
 
 	int32 Sent = 0;
-	Socket->Send(Data.GetData(), Data.Num(), Sent);
+	Socket->Send((uint8*)&NetSize, sizeof(uint32), Sent);
+	Socket->Send((uint8*)Convert.Get(), PayloadSize, Sent);
 
-	uint32 Size;
-	Socket->HasPendingData(Size);
+	FPlatformProcess::Sleep(0.05f);
 
-	TArray<uint8> Buffer;
-	Buffer.SetNumUninitialized(Size);
+	// RECEIVE
+	FString Response;
+	RecvAll(Socket, Response);
 
-	int32 Read = 0;
-	Socket->Recv(Buffer.GetData(), Buffer.Num(), Read);
+	if (Response.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
+		goto cleanup;
+	}
 
-	const FString Response = FString(UTF8_TO_TCHAR(Buffer.GetData()));
+	UE_LOG(LogTemp, Log, TEXT("DB server response:\n%s"), *Response);
 
-	TSharedPtr<FJsonObject> ResponseJson;
-	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response);
+	if (TSharedPtr<FJsonObject> ResponseJson; !ParseJsonSafe(Response, ResponseJson))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid JSON from DB server"));
+	}
 
-	FJsonSerializer::Deserialize(Reader, ResponseJson);
-
-	int32 MatchId = ResponseJson->Values["match_id"].Get()->AsNumber();
-
-	UE_LOG(LogTemp, Log, TEXT("Match %i data successfully sent to database server"), MatchId);
-
+cleanup:
 	Socket->Close();
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+}
+
+bool AFirstPersonGameMode::RecvAll(FSocket* Socket, FString& OutResponse)
+{
+	OutResponse.Empty();
+
+	uint32 PendingSize = 0;
+	while (Socket->HasPendingData(PendingSize))
+	{
+		TArray<uint8> Buffer;
+		Buffer.SetNumUninitialized(FMath::Min(PendingSize, 65536u));
+
+		int32 BytesRead = 0;
+		if (!Socket->Recv(Buffer.GetData(), Buffer.Num(), BytesRead))
+		{
+			return false;
+		}
+
+		if (BytesRead > 0)
+		{
+			OutResponse.Append(FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(Buffer.GetData()))));
+		}
+	}
+
+	return true;
+}
+
+bool AFirstPersonGameMode::ParseJsonSafe(const FString& JsonString, TSharedPtr<FJsonObject>& OutJson)
+{
+	if (JsonString.IsEmpty())return false;
+
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+
+	return FJsonSerializer::Deserialize(Reader, OutJson) && OutJson.IsValid();
 }
 
 FString AFirstPersonGameMode::GetVersionFromFile(const FString& FilePath)
