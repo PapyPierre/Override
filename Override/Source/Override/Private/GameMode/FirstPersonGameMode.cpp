@@ -19,9 +19,6 @@ void AFirstPersonGameMode::SendDataToDB()
 	Addr->SetIp(IP.Value);
 	Addr->SetPort(5000);
 
-	UE_LOG(LogTemp, Log, TEXT("Trying to connect to %s in order to send match data"),
-	       *Addr->ToString(true));
-	
 	if (Socket->Connect(*Addr))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Connected to %s successfully in order to send match data"),
@@ -33,30 +30,27 @@ void AFirstPersonGameMode::SendDataToDB()
 		       *Addr->ToString(true));
 		return;
 	}
-
-	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
-
-	if (Version == "") Version = TEXT("editor");
 	
+	// BUILD JSON
+	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
+	if (Version.IsEmpty()) Version = TEXT("editor");
+
 	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
 	Json->SetStringField("action", "set_match_info");
 	Json->SetStringField("version_id", Version);
 	Json->SetStringField("token", "override_db_token");
-
-	UGameInstance* GameInst = GetGameInstance();
-	UOverrideGameInstance* OverrideGameInst = Cast<UOverrideGameInstance>(GameInst);
+	
+	UOverrideGameInstance* GameInst = Cast<UOverrideGameInstance>(GetGameInstance());
 
 	TArray<TSharedPtr<FJsonValue>> PlayersArray;
 
-	for (const FMatchPlayerData& Player : OverrideGameInst->MatchPlayers)
+	for (const FMatchPlayerData& Player : GameInst->MatchPlayers)
 	{
 		TSharedPtr<FJsonObject> PlayerObj = MakeShared<FJsonObject>();
-
 		PlayerObj->SetNumberField(TEXT("player_id"), Player.PlayerId);
 		PlayerObj->SetNumberField(TEXT("team_id"), Player.TeamId);
 
 		TArray<TSharedPtr<FJsonValue>> PositionsArray;
-
 		for (const FPlayerPosition& Pos : Player.Positions)
 		{
 			TArray<TSharedPtr<FJsonValue>> PosArray;
@@ -73,46 +67,72 @@ void AFirstPersonGameMode::SendDataToDB()
 	}
 
 	Json->SetArrayField(TEXT("players"), PlayersArray);
-	
+
 	FString Payload;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
 	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
 
-	TArray<uint8> Data;
-	const FTCHARToUTF8 Convert(*Payload);
-	Data.Append((uint8*)Convert.Get(), Convert.Length());
-
+	// SEND
+	FTCHARToUTF8 Convert(*Payload);
 	int32 Sent = 0;
-	Socket->Send(Data.GetData(), Data.Num(), Sent);
+	Socket->Send((uint8*)Convert.Get(), Convert.Length(), Sent);
 
-	uint32 Size;
-	Socket->HasPendingData(Size);
+	FPlatformProcess::Sleep(0.05f);
 
-	TArray<uint8> Buffer;
-	Buffer.SetNumUninitialized(Size);
-
-	int32 Read = 0;
-	Socket->Recv(Buffer.GetData(), Buffer.Num(), Read);
-
-	const FString Response = FString(UTF8_TO_TCHAR(Buffer.GetData()));
-
-	TSharedPtr<FJsonObject> ResponseJson;
-	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response);
-
-	FJsonSerializer::Deserialize(Reader, ResponseJson);
-
-	if (ResponseJson->Values["match_id"] != nullptr)
-	{
-		int32 MatchId = ResponseJson->Values["match_id"].Get()->AsNumber();
-		UE_LOG(LogTemp, Log, TEXT("Match %i data successfully sent to database server"), MatchId);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No Match_id in DB response"));
-	}
+	// RECEIVE
+	FString Response;
+	RecvAll(Socket, Response);
 	
-	Socket->Close();
+	if (Response.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
+		goto cleanup;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("DB server response:\n%s"), *Response);
+
+	if (TSharedPtr<FJsonObject> ResponseJson; !ParseJsonSafe(Response, ResponseJson))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid JSON from DB server"));
+	}
+
+	cleanup:
+		Socket->Close();
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+}
+
+bool AFirstPersonGameMode::RecvAll(FSocket* Socket, FString& OutResponse)
+{
+	OutResponse.Empty();
+
+	uint32 PendingSize = 0;
+	while (Socket->HasPendingData(PendingSize))
+	{
+		TArray<uint8> Buffer;
+		Buffer.SetNumUninitialized(FMath::Min(PendingSize, 65536u));
+
+		int32 BytesRead = 0;
+		if (!Socket->Recv(Buffer.GetData(), Buffer.Num(), BytesRead))
+		{
+			return false;
+		}
+
+		if (BytesRead > 0)
+		{
+			OutResponse.Append(FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(Buffer.GetData()))));
+		}
+	}
+
+	return true;
+}
+
+bool AFirstPersonGameMode::ParseJsonSafe(const FString& JsonString, TSharedPtr<FJsonObject>& OutJson)
+{
+	if (JsonString.IsEmpty())return false;
+
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+
+	return FJsonSerializer::Deserialize(Reader, OutJson) && OutJson.IsValid();
 }
 
 FString AFirstPersonGameMode::GetVersionFromFile(const FString& FilePath)
