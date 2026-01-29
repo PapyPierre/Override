@@ -5,6 +5,7 @@
 #include "IPAddress.h"
 #include "Networking.h"
 #include "GameMode/OverrideGameInstance.h"
+#include "winsock.h"
 
 void AFirstPersonGameMode::SendDataToDB()
 {
@@ -15,6 +16,8 @@ void AFirstPersonGameMode::SendDataToDB()
 	FIPv4Address::Parse(TEXT("10.51.1.111"), IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
+
+#undef SetPort // In winsock.h to avoid conflicts
 
 	Addr->SetIp(IP.Value);
 	Addr->SetPort(5000);
@@ -30,7 +33,7 @@ void AFirstPersonGameMode::SendDataToDB()
 		       *Addr->ToString(true));
 		return;
 	}
-	
+
 	// BUILD JSON
 	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
 	if (Version.IsEmpty()) Version = TEXT("editor");
@@ -39,7 +42,7 @@ void AFirstPersonGameMode::SendDataToDB()
 	Json->SetStringField("action", "set_match_info");
 	Json->SetStringField("version_id", Version);
 	Json->SetStringField("token", "override_db_token");
-	
+
 	UOverrideGameInstance* GameInst = Cast<UOverrideGameInstance>(GetGameInstance());
 
 	TArray<TSharedPtr<FJsonValue>> PlayersArray;
@@ -74,15 +77,20 @@ void AFirstPersonGameMode::SendDataToDB()
 
 	// SEND
 	FTCHARToUTF8 Convert(*Payload);
+	int32 PayloadSize = Convert.Length();
+
+	uint32 NetSize = htonl(PayloadSize);
+
 	int32 Sent = 0;
-	Socket->Send((uint8*)Convert.Get(), Convert.Length(), Sent);
+	Socket->Send((uint8*)&NetSize, sizeof(uint32), Sent);
+	Socket->Send((uint8*)Convert.Get(), PayloadSize, Sent);
 
 	FPlatformProcess::Sleep(0.05f);
 
 	// RECEIVE
 	FString Response;
 	RecvAll(Socket, Response);
-	
+
 	if (Response.IsEmpty())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
@@ -96,8 +104,8 @@ void AFirstPersonGameMode::SendDataToDB()
 		UE_LOG(LogTemp, Error, TEXT("Invalid JSON from DB server"));
 	}
 
-	cleanup:
-		Socket->Close();
+cleanup:
+	Socket->Close();
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 }
 
