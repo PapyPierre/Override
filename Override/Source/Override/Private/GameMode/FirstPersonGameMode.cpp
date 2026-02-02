@@ -13,7 +13,7 @@ void AFirstPersonGameMode::SendDataToDB()
 		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
 
 	FIPv4Address IP;
-	FIPv4Address::Parse(TEXT("10.51.1.111"), IP);
+	FIPv4Address::Parse(TEXT("10.51.0.140"), IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
@@ -75,19 +75,10 @@ void AFirstPersonGameMode::SendDataToDB()
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
 	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
 
-	// SEND
-	FTCHARToUTF8 Convert(*Payload);
-	int32 PayloadSize = Convert.Length();
-
-	uint32 NetSize = htonl(PayloadSize);
-
-	int32 Sent = 0;
-	Socket->Send((uint8*)&NetSize, sizeof(uint32), Sent);
-	Socket->Send((uint8*)Convert.Get(), PayloadSize, Sent);
+	SendDataToDB(Socket, Payload);
 
 	FPlatformProcess::Sleep(0.05f);
-
-	// RECEIVE
+	
 	FString Response;
 	RecvAll(Socket, Response);
 
@@ -109,28 +100,68 @@ cleanup:
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 }
 
+bool AFirstPersonGameMode::SendDataToDB(FSocket* Socket, FString Payload)
+{
+	FTCHARToUTF8 Convert(*Payload);
+	int32 PayloadSize = Convert.Length();
+
+	uint32 NetSize = htonl(PayloadSize);
+
+	int32 Sent = 0;
+	Socket->Send((uint8*)&NetSize, sizeof(uint32), Sent);
+	Socket->Send((uint8*)Convert.Get(), PayloadSize, Sent);
+	
+	return true;
+}
+
 bool AFirstPersonGameMode::RecvAll(FSocket* Socket, FString& OutResponse)
 {
 	OutResponse.Empty();
-
-	uint32 PendingSize = 0;
-	while (Socket->HasPendingData(PendingSize))
+	
+	uint32 NetSize = 0;
+	if (!RecvData(Socket, (uint8*)&NetSize, sizeof(uint32)))
 	{
-		TArray<uint8> Buffer;
-		Buffer.SetNumUninitialized(FMath::Min(PendingSize, 65536u));
-
-		int32 BytesRead = 0;
-		if (!Socket->Recv(Buffer.GetData(), Buffer.Num(), BytesRead))
-		{
-			return false;
-		}
-
-		if (BytesRead > 0)
-		{
-			OutResponse.Append(FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(Buffer.GetData()))));
-		}
+		UE_LOG(LogTemp, Error, TEXT("Failed to read response size"));
+		return false;
 	}
 
+	const uint32 PayloadSize = ntohl(NetSize);
+
+	if (PayloadSize == 0 || PayloadSize > 5 * 1024 * 1024)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid payload size: %u"), PayloadSize);
+		return false;
+	}
+	
+	TArray<uint8> Buffer;
+	Buffer.SetNumUninitialized(PayloadSize);
+
+	if (!RecvData(Socket, Buffer.GetData(), PayloadSize))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to read response payload"));
+		return false;
+	}
+	
+	OutResponse = FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(Buffer.GetData())));
+
+	return true;
+}
+
+bool AFirstPersonGameMode::RecvData(FSocket* Socket, uint8* Data, int32 Size)
+{
+	int32 Total = 0;
+
+	while (Total < Size)
+	{
+		int32 Read = 0;
+		if (!Socket->Recv(Data + Total, Size - Total, Read))
+			return false;
+
+		if (Read <= 0)
+			return false;
+
+		Total += Read;
+	}
 	return true;
 }
 

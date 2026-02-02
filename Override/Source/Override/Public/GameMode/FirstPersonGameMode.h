@@ -12,8 +12,10 @@ class OVERRIDE_API AFirstPersonGameMode : public AGameModeBase
 protected:
 	UFUNCTION(BlueprintCallable)
 	void SendDataToDB();
-	
+	static bool SendDataToDB(FSocket* Socket, FString Payload);
+
 	static bool RecvAll(FSocket* Socket, FString& OutResponse);
+	static bool RecvData(FSocket* Socket, uint8* Data, int32 Size);
 
 	static bool ParseJsonSafe(const FString& JsonString, TSharedPtr<FJsonObject>& OutJson);
 
