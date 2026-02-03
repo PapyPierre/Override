@@ -73,6 +73,18 @@ void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, F
 	AMatchActor* MatchActor = World->SpawnActor<AMatchActor>();
 	MatchActor->Players = MatchPlayersData;
 	MatchActor->RerunConstructionScripts();
+	SpawnedActors.Add(MatchActor);
+}
+
+void FOverrideEditorModule::ClearVisualization()
+{
+	for (AMatchActor* MatchActor : SpawnedActors)
+	{
+		MatchActor->Clear();
+		MatchActor->Destroy();
+	}
+
+	SpawnedActors.Empty();
 }
 
 void FOverrideEditorModule::ShutdownModule()
