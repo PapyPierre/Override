@@ -11,7 +11,7 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 		MakeShared<FString>("All"),
 		MakeShared<FString>("Editor")
 	};
-	
+
 	MatchIds = {
 		MakeShared<FString>("All"),
 		MakeShared<FString>("28")
@@ -42,7 +42,7 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SVerticalBox)
-		
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(5)
@@ -72,8 +72,8 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 					.Text_Lambda([this]()
 					{
 						return SelectedVersionId.IsValid()
-							? FText::FromString(*SelectedVersionId)
-							: FText::FromString("Select version id");
+							       ? FText::FromString(*SelectedVersionId)
+							       : FText::FromString("Select version id");
 					})
 				]
 			]
@@ -108,8 +108,8 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 					.Text_Lambda([this]()
 					{
 						return SelectedMatchId.IsValid()
-							? FText::FromString(*SelectedMatchId)
-							: FText::FromString("Select match id");
+							       ? FText::FromString(*SelectedMatchId)
+							       : FText::FromString("Select match id");
 					})
 				]
 			]
@@ -144,8 +144,8 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 					.Text_Lambda([this]()
 					{
 						return SelectedPlayerId.IsValid()
-							? FText::FromString(*SelectedPlayerId)
-							: FText::FromString("Select player id");
+							       ? FText::FromString(*SelectedPlayerId)
+							       : FText::FromString("Select player id");
 					})
 				]
 			]
@@ -180,21 +180,40 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 					.Text_Lambda([this]()
 					{
 						return SelectedTeamId.IsValid()
-							? FText::FromString(*SelectedTeamId)
-							: FText::FromString("Select team id");
+							       ? FText::FromString(*SelectedTeamId)
+							       : FText::FromString("Select team id");
 					})
 				]
 			]
 		]
-		
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(5)
 		[
-			SNew(SButton)
-			.Text(FText::FromString("Visualize"))
-			.HAlign(HAlign_Center)
-			.OnClicked(this, &STchoupiVisualizerWidget::OnVisualizeClicked)
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(5)
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Visualize"))
+				.HAlign(HAlign_Center)
+				.OnClicked(this, &STchoupiVisualizerWidget::OnVisualizeClicked)
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(5)
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Clear"))
+				.HAlign(HAlign_Center)
+				.OnClicked(this, &STchoupiVisualizerWidget::OnClearClicked)
+			]
 		]
 	];
 }
@@ -251,6 +270,10 @@ FReply STchoupiVisualizerWidget::OnVisualizeClicked()
 
 FReply STchoupiVisualizerWidget::OnClearClicked()
 {
+	if (EditorModule)
+	{
+		EditorModule->ClearVisualization();
+	}
 	
 	return FReply::Handled();
 }
