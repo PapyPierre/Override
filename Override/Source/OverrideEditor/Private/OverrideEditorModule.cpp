@@ -28,6 +28,18 @@ void FOverrideEditorModule::StartupModule()
 	LevelEditor.GetMenuExtensibilityManager()->AddExtender(Extender);
 }
 
+void FOverrideEditorModule::UpdateLists(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds)
+{
+	VersionIds.Empty();
+	MatchIds.Empty();
+	
+	VersionIds.Add(MakeShared<FString>("All"));
+	MatchIds.Add(MakeShared<FString>("All"));
+	
+	FMatchDataFetcher MatchDataFetcher;
+	MatchDataFetcher.FetchMatchList(VersionIds, MatchIds);
+}
+
 // When the given menu entry is clicked, invoke the tab
 void FOverrideEditorModule::AddMenuEntry(FMenuBuilder& Builder)
 {
@@ -58,7 +70,7 @@ TSharedRef<SDockTab> FOverrideEditorModule::SpawnTab(const FSpawnTabArgs& Args)
 
 const FName FOverrideEditorModule::TabName("Tchoupi Visualizer");
 
-void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID)
+void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID, bool SeeThrough)
 {
 	UE_LOG(LogTemp, Log, TEXT("Trying to visualizing players positions of match %s"), *MatchID);
 
@@ -72,6 +84,7 @@ void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, F
 
 	AMatchActor* MatchActor = World->SpawnActor<AMatchActor>();
 	MatchActor->Players = MatchPlayersData;
+	MatchActor->SeeThrough = SeeThrough;
 	MatchActor->RerunConstructionScripts();
 	SpawnedActors.Add(MatchActor);
 }

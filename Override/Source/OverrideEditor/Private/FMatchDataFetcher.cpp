@@ -1,18 +1,20 @@
 #include "FMatchDataFetcher.h"
+
+#include <string>
+
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "winsock.h"
 #include "GameMode/MatchPlayerData.h"
 
-bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString PlayerId, FString TeamId,
-                                   TArray<FMatchPlayerData>& OutPlayers)
+FSocket* FMatchDataFetcher::CreateSocket()
 {
 	FSocket* Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)
 		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
 
 	FIPv4Address IP;
-	FIPv4Address::Parse(TEXT("10.51.0.140"), IP);
+	FIPv4Address::Parse(TEXT("10.51.1.111"), IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
@@ -23,13 +25,27 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 
 	if (Socket->Connect(*Addr))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Connected to %s successfully in order to fetch match data"),
-		       *Addr->ToString(true));
+		UE_LOG(LogTemp, Log, TEXT("Socket connected to %s successfully"),
+			   *Addr->ToString(true));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to connected to %s, will not fetch match data"),
-		       *Addr->ToString(true));
+		UE_LOG(LogTemp, Error, TEXT("Failed to connected to %s"),
+			   *Addr->ToString(true));
+		return nullptr;
+	}
+
+	return Socket;
+}
+
+bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString PlayerId, FString TeamId,
+                                   TArray<FMatchPlayerData>& OutPlayers)
+{
+	FSocket* Socket = CreateSocket();
+
+	if (Socket == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Socket is null, will not fetch match data"));
 		return false;
 	}
 
@@ -64,7 +80,9 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 
 	if (!ParseJsonSafe(Response, ResponseJson))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Invalid JSON"));
+		UE_LOG(LogTemp, Error, TEXT("Invalid JSON: %s"), *Response);
+		CloseSocket(Socket);
+		return false;
 	}
 
 	const TArray<TSharedPtr<FJsonValue>>& Array = ResponseJson->AsArray();
@@ -74,12 +92,12 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 	{
 		TSharedPtr<FJsonObject> Obj = Value->AsObject();
 
-		const int32 PlayerId = Obj->GetIntegerField(TEXT("player_id"));
-		const int32 TeamId   = Obj->GetIntegerField(TEXT("team_id"));
+		const int32 Player_Id = Obj->GetIntegerField(TEXT("player_id"));
+		const int32 Team_Id   = Obj->GetIntegerField(TEXT("team_id"));
 
-		FMatchPlayerData& PlayerData = PlayersById.FindOrAdd(PlayerId);
-		PlayerData.PlayerId = PlayerId;
-		PlayerData.TeamId   = TeamId;
+		FMatchPlayerData& PlayerData = PlayersById.FindOrAdd(Player_Id);
+		PlayerData.PlayerId = Player_Id;
+		PlayerData.TeamId   = Team_Id;
 
 		FPlayerPosition Pos;
 		Pos.Time = Obj->GetIntegerField(TEXT("pos_id")); 
@@ -173,9 +191,15 @@ bool FMatchDataFetcher::RecvData(FSocket* Socket, uint8* Data, int32 Size)
 bool FMatchDataFetcher::ParseJsonSafe(const FString& JsonString, TSharedPtr<FJsonValue>& OutRoot)
 {
 	if (JsonString.IsEmpty()) return false;
-	
-	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
 
+	int32 EndIndex;
+	FString FixedJson;
+	
+	if (JsonString.FindLastChar(TEXT(']'), EndIndex)) FixedJson = JsonString.Left(EndIndex + 1);
+	else FixedJson = JsonString;
+	
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FixedJson);
+	
 	return FJsonSerializer::Deserialize(Reader, OutRoot);
 }
 
@@ -187,4 +211,62 @@ bool FMatchDataFetcher::ParseJsonArraySafe(const FString& JsonString, TArray<TSh
 		TJsonReaderFactory<>::Create(JsonString);
 
 	return FJsonSerializer::Deserialize(Reader, OutArray);
+}
+
+bool FMatchDataFetcher::FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds)
+{
+	FSocket* Socket = CreateSocket();
+
+	if (Socket == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Socket is null, will not fetch match list"));
+		return false;
+	}
+
+	// BUILD JSON
+	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
+	Json->SetStringField("action", "get_match_list");
+	Json->SetStringField("token", "override_db_token");
+
+	FString Payload;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
+	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
+
+	SendDataToDB(Socket, Payload);
+
+	FPlatformProcess::Sleep(0.05f);
+
+	FString Response;
+	RecvAll(Socket, Response);
+	
+	if (Response.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
+		CloseSocket(Socket);
+		return false;
+	}
+
+	TSharedPtr<FJsonValue> ResponseJson;
+
+	if (!ParseJsonSafe(Response, ResponseJson))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid JSON: %s"), *Response);
+		CloseSocket(Socket);
+		return false;
+	}
+	
+	for (const TSharedPtr<FJsonValue>& MatchInfo : ResponseJson->AsArray())
+	{
+		TArray<TSharedPtr<FJsonValue>> InfoAsArray = MatchInfo->AsArray();
+
+		const TSharedPtr<FJsonValue> Match = InfoAsArray[0];
+		const TSharedPtr<FJsonValue> Version = InfoAsArray[1];
+		
+		VersionIds.AddUnique(MakeShared<FString>(Version->AsString()));
+		MatchIds.AddUnique(MakeShared<FString>(Match->AsString()));
+	}
+
+	CloseSocket(Socket);
+
+	return true;
 }
