@@ -6,32 +6,24 @@
 void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 {
 	EditorModule = InArgs._EditorModule;
-
-	VersionIds = {
-		MakeShared<FString>("All"),
-		MakeShared<FString>("Editor")
-	};
-
-	MatchIds = {
-		MakeShared<FString>("All"),
-		MakeShared<FString>("28")
-	};
+	
+	EditorModule->UpdateLists(VersionIds, MatchIds);
 
 	PlayerIds = {
 		MakeShared<FString>("All"),
-		MakeShared<FString>("0"),
 		MakeShared<FString>("1"),
 		MakeShared<FString>("2"),
 		MakeShared<FString>("3"),
 		MakeShared<FString>("4"),
-		MakeShared<FString>("5")
+		MakeShared<FString>("5"),
+		MakeShared<FString>("6")
 	};
 
 	TeamIds = {
 		MakeShared<FString>("All"),
-		MakeShared<FString>("0"),
 		MakeShared<FString>("1"),
-		MakeShared<FString>("2")
+		MakeShared<FString>("2"),
+		MakeShared<FString>("3")
 	};
 
 	SelectedVersionId = VersionIds[0];
@@ -198,6 +190,30 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			.Padding(5)
 			[
+				SNew(STextBlock)
+				.Text(FText::FromString("See Through Gizmos"))
+			]
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			.Padding(5)
+			[
+				SNew(SCheckBox)
+				.OnCheckStateChanged(this, &STchoupiVisualizerWidget::OnSeeThroughChecked)
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(5)
+			[
 				SNew(SButton)
 				.Text(FText::FromString("Visualize"))
 				.HAlign(HAlign_Center)
@@ -213,6 +229,17 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 				.Text(FText::FromString("Clear"))
 				.HAlign(HAlign_Center)
 				.OnClicked(this, &STchoupiVisualizerWidget::OnClearClicked)
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(5)
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Update Data"))
+				.HAlign(HAlign_Center)
+				.OnClicked(this, &STchoupiVisualizerWidget::OnUpdateClicked)
 			]
 		]
 	];
@@ -262,7 +289,8 @@ FReply STchoupiVisualizerWidget::OnVisualizeClicked()
 {
 	if (EditorModule && SelectedMatchId.IsValid())
 	{
-		EditorModule->VisualizeMatch(*SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId);
+		EditorModule->VisualizeMatch(*SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId,
+		                             SeeThrough);
 	}
 
 	return FReply::Handled();
@@ -274,6 +302,21 @@ FReply STchoupiVisualizerWidget::OnClearClicked()
 	{
 		EditorModule->ClearVisualization();
 	}
+
+	return FReply::Handled();
+}
+
+FReply STchoupiVisualizerWidget::OnUpdateClicked()
+{
+	if (EditorModule)
+	{
+		EditorModule->UpdateLists(VersionIds, MatchIds);
+	}
 	
 	return FReply::Handled();
+}
+
+void STchoupiVisualizerWidget::OnSeeThroughChecked(ECheckBoxState CheckBoxState)
+{
+	SeeThrough = CheckBoxState == ECheckBoxState::Checked;
 }
