@@ -14,6 +14,8 @@ public:
 	UPROPERTY()
 	TArray<FMatchPlayerData> Players;
 
+	bool SeeThrough;
+
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual bool ShouldTickIfViewportsOnly() const override { return true; }
 

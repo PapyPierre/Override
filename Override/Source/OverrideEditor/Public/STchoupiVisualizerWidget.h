@@ -26,6 +26,8 @@ private:
 	TArray<TSharedPtr<FString>> TeamIds;
 	TSharedPtr<FString> SelectedTeamId;
 
+	bool SeeThrough = false;
+
 	TSharedRef<SWidget> GenerateVersionItem(TSharedPtr<FString> Item);
 	void OnVersionSelected(TSharedPtr<FString> Item, ESelectInfo::Type);
 
@@ -41,6 +43,10 @@ private:
 	FReply OnVisualizeClicked();
 
 	FReply OnClearClicked();
+
+	FReply OnUpdateClicked();
+
+	void OnSeeThroughChecked(ECheckBoxState CheckBoxState);
 
 	FOverrideEditorModule* EditorModule = nullptr;
 };
