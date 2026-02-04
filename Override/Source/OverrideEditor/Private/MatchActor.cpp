@@ -29,7 +29,9 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 			Color = FColor::Black;
 			break;
 		}
-
+		
+		int Depth = SeeThrough ? 100 : 0;
+		
 		for (int32 i = 1; i < Player.Positions.Num(); ++i)
 		{
 			DrawDebugLine(
@@ -39,14 +41,14 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 				Color,
 				true,
 				-1.f,
-				0,
-				3.f
+				Depth,
+				8
 			);
 
 			DrawDebugPoint(
 				GetWorld(),
 				Player.Positions[i].Position,
-				8.f,
+				12.f,
 				Color,
 				true
 			);

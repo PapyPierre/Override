@@ -13,13 +13,15 @@ public:
 	TArray<AMatchActor*> SpawnedActors;
 	
 	virtual void StartupModule() override;
+
+	static void UpdateLists(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds);
 	
 	void AddMenuEntry(FMenuBuilder& Builder);
 	void OpenVisualizerTab();
 
 	TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args);
 
-	void VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID);
+	void VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID, bool SeeThrough);
 
 	void ClearVisualization();
 

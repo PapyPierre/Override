@@ -5,8 +5,10 @@ struct FMatchPlayerData;
 class FMatchDataFetcher
 {
 public:
+	static FSocket* CreateSocket();
 	static bool FetchMatch(FString VersionId, FString MatchId, FString PlayerId, FString TeamId,
 		TArray<FMatchPlayerData>& OutPlayers);
+	static bool FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds);
 	static void CloseSocket(FSocket* Socket);
 	static bool SendDataToDB(FSocket* Socket, FString Payload);
 	static bool RecvAll(FSocket* Socket, FString& OutResponse);
