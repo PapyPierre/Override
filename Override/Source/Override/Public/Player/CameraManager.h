@@ -18,6 +18,7 @@ public:
 	~CameraManager();
 
 	int LastFOV = 0;
+	bool bWasAiming = false;
 	
 	void SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent, float DeltaTime);
 	void CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent);

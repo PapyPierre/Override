@@ -490,15 +490,15 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	
 	if (ForwardDot > 0.5f)
 	{
-		return BaseSpeed;
+		return Super::GetMaxSpeed();
 	}
 	else if (ForwardDot < -0.5f)
 	{
-		return BaseSpeed * BackwardSpeed;
+		return Super::GetMaxSpeed() * BackwardSpeed;
 	}
 	else
 	{
-		return BaseSpeed * SideSpeed;
+		return Super::GetMaxSpeed() * SideSpeed;
 	}
 }
 
