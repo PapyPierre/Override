@@ -11,6 +11,13 @@ class OVERRIDE_API UMovementStats : public UDataAsset
 	
 	
 public:
+
+#pragma region Movement
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed")
+	float SpeedBackwardReduction = 0.7;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed")
+	float SpeedSideReduction = 0.8;
+#pragma endregion
 	
 #pragma region Camera
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
@@ -70,26 +77,6 @@ public:
 	float JumpResetTime = 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	UCurveFloat* JumpCurve;
-#pragma endregion
-
-#pragma region Parkour
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float MaxVaultThickness = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float MaxVaultHeight = 50.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float RaycastStartHeight = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float RaycastEndHeight = 50.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	UAnimMontage* EdgeClimbMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	UAnimMontage* VaultMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float ParkourDistanceDetection = 70.f;
-
-	
 #pragma endregion
 
 #pragma region Ping

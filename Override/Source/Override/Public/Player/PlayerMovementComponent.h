@@ -33,6 +33,9 @@ public:
 	float DefaultBrakingDecelerationWalking;
 	float DefaultMaxWalkSpeedCrouched;
 	float DefaultMaxWalkSpeed;
+
+	float BackwardSpeed;
+	float SideSpeed;
 	
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
