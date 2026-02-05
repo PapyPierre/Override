@@ -13,6 +13,10 @@ void UPlayerMovementComponent::BeginPlay()
 	//INITIALIZE DATA ASSET
 	if (MovementData)
 	{
+		//Speed
+		BackwardSpeed = MovementData->SpeedBackwardReduction;
+		SideSpeed = MovementData->SpeedSideReduction;
+		
 		//Slide
 		SlidingCoolDown = MovementData->SlidingCoolDown;
 		BoostSlidingTime = MovementData->BoostSlidingTime;
@@ -474,8 +478,28 @@ bool UPlayerMovementComponent::IsCustomMovementModeOn(uint8 customMovementMode) 
 }
 
 float UPlayerMovementComponent::GetMaxSpeed() const
-{	
-	return Super::GetMaxSpeed();
+{
+	float BaseSpeed = DefaultMaxWalkSpeed;
+	
+	FVector VelocityDir = Velocity.GetSafeNormal2D();
+	if (VelocityDir.IsNearlyZero())
+		return BaseSpeed;
+
+	FVector Forward = CharacterRef->GetActorForwardVector();
+	float ForwardDot = FVector::DotProduct(Forward, VelocityDir);
+	
+	if (ForwardDot > 0.5f)
+	{
+		return Super::GetMaxSpeed();
+	}
+	else if (ForwardDot < -0.5f)
+	{
+		return Super::GetMaxSpeed() * BackwardSpeed;
+	}
+	else
+	{
+		return Super::GetMaxSpeed() * SideSpeed;
+	}
 }
 
 bool UPlayerMovementComponent::IsMovingOnGround() const

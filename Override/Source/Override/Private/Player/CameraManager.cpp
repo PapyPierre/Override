@@ -17,8 +17,6 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 {
 	if (!PlayerCharacter->FirstPersonCameraComponent)
 		return;
-	
-	CameraShake(PlayerCharacter, PlayerMovementComponent);
 
 	float CurrentFOV = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
 	float InterpSpeed = PlayerCharacter->FOVInterpNormalSpeed;
@@ -36,7 +34,20 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 		PlayerCharacter->MaxFOV,
 		Alpha
 	);
-
+	
+	if (!PlayerCharacter->PlayerMovementComponent->IsMovingOnGround() && !PlayerCharacter->bIsAimingWeapon && !bWasAiming)
+	{
+		return;
+	}
+	else if (PlayerCharacter->bIsAimingWeapon != bWasAiming)
+	{
+		PlayerCharacter->FirstPersonCameraComponent->SetFOV(TargetFOV);
+		bWasAiming = PlayerCharacter->bIsAimingWeapon;
+		return;
+	}
+	
+	CameraShake(PlayerCharacter, PlayerMovementComponent);
+	
 	// Aim
 	if (PlayerCharacter->bIsAimingWeapon)
 	{
@@ -44,21 +55,13 @@ void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovem
 		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
 		LastFOV = 1;
 	}
-	else if (!PlayerMovementComponent->IsMovingOnGround())
-		TargetFOV = PlayerCharacter->DefaultFOV;
-	else
-	{
-		if (!PlayerMovementComponent->IsMovingOnGround())
-		{
-			TargetFOV = CurrentFOV;
-		}
-	}
-
+	
 	if (LastFOV == 1)
 		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
 	
 	float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, InterpSpeed);
 	PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);
+	bWasAiming = PlayerCharacter->bIsAimingWeapon;
 }
 
 void CameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent)
