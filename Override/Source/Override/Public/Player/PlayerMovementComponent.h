@@ -20,8 +20,7 @@ UCLASS()
 class OVERRIDE_API UPlayerMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
-	
-	
+
 public:
 	APlayerCharacter* CharacterRef;
 	
@@ -36,21 +35,27 @@ public:
 
 	float BackwardSpeed;
 	float SideSpeed;
-	
-	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
-	virtual float GetMaxSpeed() const override;
+	FVector CharaLocation;
+	FVector CharaForward;
+	FVector CharaUp;
+
+	FCollisionQueryParams TraceParams;
+
+	UAnimInstance* AnimInstance;
 
 	virtual bool IsMovingOnGround() const override;
 
-#pragma region Melee
+#pragma region Dash
 	UPROPERTY()
-	FTimeline DashMeleeTimeline;
+	FTimeline DashTimeline;
 	
-	float EaseOutTimeMelee = 0.15f;
-	float MeleeImpulse = 2000.f;
+	float EaseOutTimeDash = 0.15f;
+	float DashImpulse = 2000.f;
 	
-	FVector DirectionMelee;
+    uint8 bWantsToDodge : 1;
+	
+	FVector MoveDirectionMelee;
 	FTimerHandle SimpleDelayHandle;
 
 	void OnDelayFinished();
@@ -61,14 +66,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
 	bool bWantsToDash;
 
-	UFUNCTION()
-	void MeleeVelocityUpdate(float Value);
-
-	UFUNCTION(Server, Reliable)
-	void Server_GetForwardCamera(FVector Direction);
+	UFUNCTION(Server, Unreliable, WithValidation)
+	void Server_GetInputLastDirection(const FVector& Direction);
 
 	UFUNCTION()
-	void StopMeleeVelocityEaseTimeline();
+	void StopDashVelocityEaseTimeline();
 #pragma endregion
 
 #pragma region Slide
@@ -113,12 +115,14 @@ public:
 	UFUNCTION()
 	void EaseVelocityUpdate(float Value);
 
-	void StartVelocityEase(const FVector& NewTargetVelocity);
-
 	UFUNCTION()
 	void StopVelocityEaseTimeline();
+	
+	void StartVelocityEase(const FVector& NewTargetVelocity);
 
 	bool CanSlide();
+
+	void ResetSlideValues();
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
@@ -148,8 +152,7 @@ private:
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
-
-
+	
 	virtual void PhysMelee(float DeltaTime, int32 Iterations);
 	
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
@@ -160,8 +163,6 @@ private:
 
 	virtual void PhysFalling(float DeltaTime, int32 Iterations) override;
 	
-	void ResetSlideValues();
-	
 	virtual bool DoJump(bool bReplayingMoves,  float DeltaTime) override;
 
 	virtual bool CanAttemptJump() const override;
@@ -170,18 +171,54 @@ private:
 
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
 
+	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
+
+	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
+
+	virtual float GetMaxSpeed() const override;
+	
+	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+
 	virtual void Crouch(bool bClientSimulation = true) override;
 
 	virtual void UnCrouch(bool bClientSimulation = true) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void DebugPrintClientIds();
+};
 
-	FVector CharaLocation;
-	FVector CharaForward;
-	FVector CharaUp;
+class FSavedMove_MyMovement : public FSavedMove_Character
+{
+public:
 
-	FCollisionQueryParams TraceParams;
+	typedef FSavedMove_Character Super;
 
-	UAnimInstance* AnimInstance;
+	FVector SavedMoveDirection;
+	uint8 bSavedWantsToDodge : 1;
+
+	///@brief Resets all saved variables.
+	virtual void Clear() override;
+
+	///@brief Store input commands in the compressed flags.
+	virtual uint8 GetCompressedFlags() const override;
+
+	///@brief This is used to check whether or not two moves can be combined into one.
+	///Basically you just check to make sure that the saved variables are the same.
+	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* Character, float MaxDelta) const override;
+
+	///@brief Sets up the move before sending it to the server.
+	virtual void SetMoveFor(ACharacter* Character, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData) override;
+	///@brief Sets variables on character movement component before making a predictive correction.
+	virtual void PrepMoveFor(class ACharacter* Character) override;
+};
+
+class FNetworkPredictionData_Client_MyMovement : public FNetworkPredictionData_Client_Character
+{
+public:
+	FNetworkPredictionData_Client_MyMovement(const UCharacterMovementComponent& ClientMovement);
+
+	typedef FNetworkPredictionData_Client_Character Super;
+
+	///@brief Allocates a new copy of our custom saved move
+	virtual FSavedMovePtr AllocateNewMove() override;
 };
