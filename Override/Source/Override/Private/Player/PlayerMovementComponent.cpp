@@ -33,8 +33,8 @@ void UPlayerMovementComponent::BeginPlay()
 		JumpResetTime = MovementData->JumpResetTime;
 
 		//Melee
-		EaseOutTimeMelee = MovementData->EaseOutTimeMelee;
-		MeleeImpulse = MovementData->MeleeImpulse;
+		EaseOutTimeDash = MovementData->EaseOutTimeMelee;
+		DashImpulse = MovementData->MeleeImpulse;
 	}
 
 	//SET DEFAULT VALUE TO KEEP ORIGINAL
@@ -65,14 +65,12 @@ void UPlayerMovementComponent::BeginPlay()
 
 		FOnTimelineFloat TimelineMeleeCallback;
 		FOnTimelineEvent TimelineMeleeCallbackFinished;
-		TimelineMeleeCallback.BindUFunction(this, FName("MeleeVelocityUpdate"));
-		TimelineMeleeCallbackFinished.BindUFunction(this, FName("StopMeleeVelocityEaseTimeline"));
-		DashMeleeTimeline.SetTimelineFinishedFunc(TimelineMeleeCallbackFinished);
-		DashMeleeTimeline.SetTimelineLength(EaseOutTimeMelee);
-		DashMeleeTimeline.SetPlayRate(1);
-		DashMeleeTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
-		DashMeleeTimeline.AddInterpFloat(VelocityEaseCurve, TimelineMeleeCallback);
-		DashMeleeTimeline.SetLooping(false);
+		TimelineMeleeCallbackFinished.BindUFunction(this, FName("StopDashVelocityEaseTimeline"));
+		DashTimeline.SetTimelineFinishedFunc(TimelineMeleeCallbackFinished);
+		DashTimeline.SetTimelineLength(EaseOutTimeDash);
+		DashTimeline.SetPlayRate(1);
+		DashTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
+		DashTimeline.SetLooping(false);
 	}
 
 	if (JumpCurve)
@@ -93,7 +91,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	if (IsMovingOnGround() && !(VelocityEaseTimeline.IsReversing() && VelocityEaseTimeline.GetPlaybackPosition() < 0.1))
 		VelocityEaseTimeline.TickTimeline(DeltaTime);
 	
-	DashMeleeTimeline.TickTimeline(DeltaTime);
+	DashTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
 
 	FrameCounter++;
@@ -223,74 +221,45 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 {
-	if (CharacterRef->IsLocallyControlled())
-	{
-		DirectionMelee = CharacterRef->GetLastMovementInputVector().GetSafeNormal() * MeleeImpulse;
-		if (DirectionMelee == FVector::ZeroVector)
-			DirectionMelee = CharacterRef->GetActorForwardVector() * MeleeImpulse;
-		Server_GetForwardCamera(DirectionMelee);
-	}
 
+	DebugPrintClientIds();
+	UE_LOG(LogTemp, Warning, TEXT("Direction: %s"), *MoveDirectionMelee.ToString());
+	
+	Launch(MoveDirectionMelee * DashImpulse);
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 1400;
-	AddImpulse(DirectionMelee, true);
-	GravityScale = 0.0;
-	DashMeleeTimeline.PlayFromStart();
 	SetMovementMode(MOVE_Walking);
 	bWantsToDash = false;
 	bIsMelee = true;
+	
+	CharacterRef->GetWorldTimerManager().SetTimer(
+	SimpleDelayHandle,
+	this,
+	&UPlayerMovementComponent::OnDelayFinished,
+	0.2f,
+	false
+);
 }
 
-void UPlayerMovementComponent::Server_GetForwardCamera_Implementation(FVector Direction)
+void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
 {
-	DirectionMelee = Direction;
+	MoveDirectionMelee = Direction;
+}
+
+bool UPlayerMovementComponent::Server_GetInputLastDirection_Validate(const FVector& Direction)
+{
+	return true;
 }
 
 void UPlayerMovementComponent::OnDelayFinished()
 {
 	bIsMelee = false;
-}
-
-void UPlayerMovementComponent::MeleeVelocityUpdate(float Value)
-{
-}
-
-void UPlayerMovementComponent::StopMeleeVelocityEaseTimeline()
-{	
-	if (!IsMovingOnGround())
-	{
-		FVector Vel = Velocity;
-
-		FVector HorizontalVel = Vel;
-		HorizontalVel.Z = 0.f;
-
-		float MaxAirSpeed = MaxFlySpeed;
-
-		if (HorizontalVel.Size() > MaxAirSpeed)
-		{
-			HorizontalVel = HorizontalVel.GetSafeNormal() * MaxAirSpeed;
-		}
-		
-		float DesiredFallSpeed = JumpZVelocity * 0.6f;
-
-		Vel.Z = FMath::Min(Vel.Z, DesiredFallSpeed);
-		Vel.X = HorizontalVel.X;
-		Vel.Y = HorizontalVel.Y;
-
-		Velocity = Vel;
-	}
-
 	GroundFriction = DefaultGroundFriction;
 	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
-	GravityScale = 2.0f	;
-	
-	CharacterRef->GetWorldTimerManager().SetTimer(
-		SimpleDelayHandle,
-		this,
-		&UPlayerMovementComponent::OnDelayFinished,
-		0.2f,
-		false
-	);
+}
+
+void UPlayerMovementComponent::StopDashVelocityEaseTimeline()
+{	
 }
 
 void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
@@ -313,8 +282,6 @@ void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 {
 	Super::PhysWalking(DeltaTime, Iterations);
 }
-
-#pragma endregion
 
 #pragma region Slide
 void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
@@ -547,6 +514,19 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
                                                  const FVector& OldVelocity)
 {
+
+	if (PawnOwner->IsLocallyControlled())
+	{
+		MoveDirectionMelee = PawnOwner->GetLastMovementInputVector().GetSafeNormal();
+		if (MoveDirectionMelee == FVector::ZeroVector)
+			MoveDirectionMelee = CharacterRef->GetActorForwardVector();
+	}
+	//Send movement vector to server
+	if (!PawnOwner->HasAuthority())
+	{
+		Server_GetInputLastDirection(MoveDirectionMelee);
+	}
+	
 	if (bWantsToDash)
 	{
 		SetMovementMode(MOVE_Custom, CMOVE_Melee);
@@ -581,6 +561,82 @@ void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovem
 	{
 		CharacterRef->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 	}
+}
+
+void UPlayerMovementComponent::UpdateFromCompressedFlags(uint8 Flags)//Client only
+{
+	Super::UpdateFromCompressedFlags(Flags);    
+}
+
+class FNetworkPredictionData_Client* UPlayerMovementComponent::GetPredictionData_Client() const
+{
+	if (!ClientPredictionData)
+	{
+		UPlayerMovementComponent* MutableThis = const_cast<UPlayerMovementComponent*>(this);
+
+		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_MyMovement(*this);
+		MutableThis->ClientPredictionData->MaxSmoothNetUpdateDist = 92.f;
+		MutableThis->ClientPredictionData->NoSmoothNetUpdateDist = 140.f;
+	}
+
+	return ClientPredictionData;
+}
+
+void FSavedMove_MyMovement::Clear()
+{
+	Super::Clear();
+
+	SavedMoveDirection = FVector::ZeroVector;
+}
+
+uint8 FSavedMove_MyMovement::GetCompressedFlags() const
+{
+	uint8 Result = Super::GetCompressedFlags();
+	return Result;
+}
+
+bool FSavedMove_MyMovement::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* Character, float MaxDelta) const
+{
+	if (SavedMoveDirection != ((FSavedMove_MyMovement*)&NewMove)->SavedMoveDirection)
+	{
+		return false;
+	}
+
+	return Super::CanCombineWith(NewMove, Character, MaxDelta);
+}
+
+void FSavedMove_MyMovement::SetMoveFor(ACharacter* Character, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData)
+{
+	Super::SetMoveFor(Character, InDeltaTime, NewAccel, ClientData);
+
+	UPlayerMovementComponent* CharMov = Cast<UPlayerMovementComponent>(Character->GetCharacterMovement());
+	if (CharMov)
+	{
+		SavedMoveDirection = CharMov->MoveDirectionMelee;
+	}
+}
+
+void FSavedMove_MyMovement::PrepMoveFor(class ACharacter* Character)
+{
+	Super::PrepMoveFor(Character);
+
+	UPlayerMovementComponent* CharMov = Cast<UPlayerMovementComponent>(Character->GetCharacterMovement());
+	if (CharMov)
+	{
+		CharMov->MoveDirectionMelee = SavedMoveDirection;
+	}
+}
+
+
+FNetworkPredictionData_Client_MyMovement::FNetworkPredictionData_Client_MyMovement(const UCharacterMovementComponent& ClientMovement)
+: Super(ClientMovement)
+{
+
+}
+
+FSavedMovePtr FNetworkPredictionData_Client_MyMovement::AllocateNewMove()
+{
+	return FSavedMovePtr(new FSavedMove_MyMovement());
 }
 
 void UPlayerMovementComponent::Crouch(bool bClientSimulation)
@@ -822,15 +878,6 @@ void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 	}
 }
 
-void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
-	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
-	DOREPLIFETIME(UPlayerMovementComponent, TimeSliding);
-}
-
-//Fonction de debug bien sympa
 void UPlayerMovementComponent::DebugPrintClientIds()
 {
 	APlayerController* PC = Cast<APlayerController>(CharacterRef->GetController());
@@ -872,4 +919,12 @@ void UPlayerMovementComponent::DebugPrintClientIds()
 
 	// Log
 	UE_LOG(LogTemp, Warning, TEXT("%s executing function"), *WhoExecutes);
+}
+
+void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
+	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
+	DOREPLIFETIME(UPlayerMovementComponent, TimeSliding);
 }
