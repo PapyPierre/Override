@@ -17,7 +17,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-w
+
 	UFUNCTION(BlueprintCallable)
 	void TryInteractWithActor(AActor* Target);
 
