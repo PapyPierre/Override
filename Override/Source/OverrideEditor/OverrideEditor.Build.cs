@@ -21,12 +21,12 @@ public class OverrideEditor : ModuleRules
 			"LevelEditor",
 			"InputCore",
 			"Json",
-			"JsonUtilities"
+			"JsonUtilities",
+			"Override"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
         {
-			"Override",
 			"EditorFramework"
 		});
 	}

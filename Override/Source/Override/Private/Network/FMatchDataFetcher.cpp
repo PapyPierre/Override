@@ -1,7 +1,4 @@
-#include "FMatchDataFetcher.h"
-
-#include <string>
-
+#include "Network/FMatchDataFetcher.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
@@ -14,7 +11,7 @@ FSocket* FMatchDataFetcher::CreateSocket()
 		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
 
 	FIPv4Address IP;
-	FIPv4Address::Parse(TEXT("10.51.1.111"), IP);
+	FIPv4Address::Parse(TEXT("10.51.0.11"), IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
@@ -62,7 +59,7 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
 	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
 
-	SendDataToDB(Socket, Payload);
+	SendData(Socket, Payload);
 
 	FPlatformProcess::Sleep(0.05f);
 
@@ -117,13 +114,14 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 	return true;
 }
 
-void  FMatchDataFetcher::CloseSocket(FSocket* Socket)
+void FMatchDataFetcher::CloseSocket(FSocket* Socket)
 {
+	UE_LOG(LogTemp, Log, TEXT("Closing socket..."));
 	Socket->Close();
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 }
 
-bool FMatchDataFetcher::SendDataToDB(FSocket* Socket, FString Payload)
+bool FMatchDataFetcher::SendData(FSocket* Socket, FString Payload)
 {
 	FTCHARToUTF8 Convert(*Payload);
 	int32 PayloadSize = Convert.Length();
@@ -232,7 +230,7 @@ bool FMatchDataFetcher::FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, 
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
 	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
 
-	SendDataToDB(Socket, Payload);
+	SendData(Socket, Payload);
 
 	FPlatformProcess::Sleep(0.05f);
 
