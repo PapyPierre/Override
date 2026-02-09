@@ -141,8 +141,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 		if (bStopSliding)
 		{
-			DebugPrintClientIds();
-			UE_LOG(LogTemp, Warning, TEXT("test"));
 			StopVelocityEaseTimeline();
 		}
 		
@@ -167,6 +165,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 #pragma endregion
 
 #pragma region DEBUG
+	/*
 	/////////GROSSE ZONE DE DEBUG
 	if (!GEngine || !CharacterOwner)
 	{
@@ -253,6 +252,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			FString::Printf(TEXT("%s MaxWalkSpeed: %.1f"), *NetPrefix, MoveComp->MaxWalkSpeed));
 	}		
 	/////////FIN DE LA GRANDE ZONE DE DEBUG
+	*/
 #pragma endregion
 		
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -466,7 +466,6 @@ void UPlayerMovementComponent::StopVelocityEaseTimeline()
 	bIsSliding = false;
 	bPendingCancelSlide = false;
 	TimeSliding = 0;
-	DebugPrintClientIds();
 	ResetSlideValues();
 	if (VelocityEaseTimeline.IsPlaying())
 		VelocityEaseTimeline.Stop();

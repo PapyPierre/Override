@@ -213,6 +213,9 @@ void APlayerCharacter::Falling()
 void APlayerCharacter::Jump()
 {
 	Super::Jump();
+	if (IsLocallyControlled())
+		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+														 FRotator::ZeroRotator);
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const
