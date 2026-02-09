@@ -11,7 +11,7 @@ void AFirstPersonGameMode::SendDataToDB()
 {
 	FMatchDataFetcher MatchDataFetcher;
 	
-	FSocket* Socket = MatchDataFetcher.CreateSocket();
+	FSocket* Socket = MatchDataFetcher.CreateSocket("127.0.0.1",6000);
 
 	// BUILD JSON
 	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
