@@ -78,7 +78,10 @@ void CameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayer
 		}
 		else
 		{
-			if (PlayerMovementComponent->IsWalking())
+			if (PlayerMovementComponent->IsSliding())
+				PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeSlide, 1.0f, ECameraShakePlaySpace::CameraLocal,
+															 FRotator::ZeroRotator);
+			else if (PlayerMovementComponent->IsWalking())
 				PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
 															 FRotator::ZeroRotator);
 		}

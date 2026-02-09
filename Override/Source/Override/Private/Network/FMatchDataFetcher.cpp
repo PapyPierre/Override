@@ -5,20 +5,25 @@
 #include "winsock.h"
 #include "GameMode/MatchPlayerData.h"
 
-FSocket* FMatchDataFetcher::CreateSocket()
+FSocket* FMatchDataFetcher::CreateSocketToDBServer(const int& Port)
+{
+	return CreateSocket("10.51.0.208", Port);
+}
+
+FSocket* FMatchDataFetcher::CreateSocket(const FString& IPStr,  const int& Port)
 {
 	FSocket* Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)
 		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
 
 	FIPv4Address IP;
-	FIPv4Address::Parse(TEXT("10.51.0.11"), IP);
+	FIPv4Address::Parse(IPStr, IP);
 
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
 #undef SetPort // In winsock.h to avoid conflicts
 
 	Addr->SetIp(IP.Value);
-	Addr->SetPort(5000);
+	Addr->SetPort(Port);
 
 	if (Socket->Connect(*Addr))
 	{
@@ -32,13 +37,15 @@ FSocket* FMatchDataFetcher::CreateSocket()
 		return nullptr;
 	}
 
+	Socket->SetNonBlocking(true);
+
 	return Socket;
 }
 
 bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString PlayerId, FString TeamId,
                                    TArray<FMatchPlayerData>& OutPlayers)
 {
-	FSocket* Socket = CreateSocket();
+	FSocket* Socket = CreateSocketToDBServer(5000);
 
 	if (Socket == nullptr)
 	{
@@ -116,9 +123,9 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 
 void FMatchDataFetcher::CloseSocket(FSocket* Socket)
 {
-	UE_LOG(LogTemp, Log, TEXT("Closing socket..."));
 	Socket->Close();
 	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+	UE_LOG(LogTemp, Log, TEXT("Socket closed and destroyed succesfully"));
 }
 
 bool FMatchDataFetcher::SendData(FSocket* Socket, FString Payload)
@@ -174,12 +181,17 @@ bool FMatchDataFetcher::RecvData(FSocket* Socket, uint8* Data, int32 Size)
 
 	while (Total < Size)
 	{
+		uint32 PendingSize = 0;
+		if (!Socket->HasPendingData(PendingSize))
+		{
+			FPlatformProcess::Sleep(0.001f);
+			continue;
+		}
+		
 		int32 Read = 0;
-		if (!Socket->Recv(Data + Total, Size - Total, Read))
-			return false;
+		if (!Socket->Recv(Data + Total, Size - Total, Read)) return false;
 
-		if (Read <= 0)
-			return false;
+		if (Read <= 0) return false;
 
 		Total += Read;
 	}
@@ -213,7 +225,7 @@ bool FMatchDataFetcher::ParseJsonArraySafe(const FString& JsonString, TArray<TSh
 
 bool FMatchDataFetcher::FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds)
 {
-	FSocket* Socket = CreateSocket();
+	FSocket* Socket = CreateSocketToDBServer(5000);
 
 	if (Socket == nullptr)
 	{
