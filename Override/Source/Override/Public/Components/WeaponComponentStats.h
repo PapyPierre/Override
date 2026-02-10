@@ -26,6 +26,9 @@ public:
 	float MaxRange = 1000;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	float ShootRadius = 22.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	float FastReload = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
