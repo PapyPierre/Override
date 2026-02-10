@@ -74,8 +74,6 @@ public:
 #pragma endregion
 
 #pragma region Slide
-
-	UPROPERTY(Replicated)
 	float TimeSliding = 0.f;
 	
 	UPROPERTY(BlueprintReadOnly)
@@ -83,6 +81,9 @@ public:
 	bool bResetSlideCrouch = false;
 	bool bResetSlideLanded = true;	
 	bool bPendingCancelSlide = false;
+
+	bool bStopSliding = false;
+	bool bShouldStopSliding = false;
 	
 	bool bCoolDownFinished = true;
 	
@@ -104,6 +105,7 @@ public:
 	EMovementMode _PreviousMovementMode;
 	FHitResult SlideHit;
 	FTimeline VelocityEaseTimeline;
+
 	FVector Impact;
 
 	UPROPERTY(EditAnywhere, Category = "CMC|Slide")
@@ -120,9 +122,13 @@ public:
 	
 	void StartVelocityEase(const FVector& NewTargetVelocity);
 
+	void DebugSlideState(const FString& Context);
+	
 	bool CanSlide();
 
 	void ResetSlideValues();
+
+	int i = 0;
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
@@ -191,11 +197,18 @@ class FSavedMove_MyMovement : public FSavedMove_Character
 {
 public:
 
+    #define FLAG_STOP_SLIDE 0x10
+    #define FLAG_SHOULD_STOP_SLIDE  0x20
+	
 	typedef FSavedMove_Character Super;
 
+	//Dash
 	FVector SavedMoveDirection;
 	uint8 bSavedWantsToDodge : 1;
 
+	//Slide
+	bool bShouldStopSliding;
+	bool bStopSliding;
 	///@brief Resets all saved variables.
 	virtual void Clear() override;
 

@@ -82,7 +82,10 @@ public:
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
-	TSubclassOf<UCameraShakeBase> ShakeRunning;
+	TSubclassOf<UCameraShakeBase> ShakeJump;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeSlide;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeWalk;
