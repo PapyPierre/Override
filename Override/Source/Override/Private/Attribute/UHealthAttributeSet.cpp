@@ -3,8 +3,8 @@
  
 UHealthAttributeSet::UHealthAttributeSet()
 {
-	InitHealth(3);
-	InitMaxHealth(3);
+	InitHealth(4);
+	InitMaxHealth(4);
 }
  
 void UHealthAttributeSet::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const

@@ -20,7 +20,7 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 		switch (Player.TeamId)
 		{
 		case 0:
-			Color = team1Count == 0 ? FColor::Cyan : FColor(0, 190 ,180, 255);
+			Color = team1Count == 0 ? FColor::Cyan : FColor(0, 200 ,200, 255);
 			team1Count++;
 			break;
 		case 1:
@@ -28,7 +28,7 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 			team2Count++;
 			break;
 		case 2:
-			Color = team3Count == 0 ? FColor(255, 200 ,0, 255) : FColor::Yellow;
+			Color = team3Count == 0 ? FColor(255, 230 ,0, 255) : FColor::Yellow;
 			team3Count++;
 			break;
 		default:
