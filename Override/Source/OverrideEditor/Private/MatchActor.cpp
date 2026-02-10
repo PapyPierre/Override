@@ -28,7 +28,7 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 			team2Count++;
 			break;
 		case 2:
-			Color = team3Count == 0 ? FColor(255, 200 ,0, 255) : FColor::Yellow;
+			Color = team3Count == 0 ? FColor(255, 220 ,0, 255) : FColor::Yellow;
 			team3Count++;
 			break;
 		default:
