@@ -20,15 +20,15 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 		switch (Player.TeamId)
 		{
 		case 0:
-			Color = team1Count == 0 ? FColor::Blue : FColor::Cyan;
+			Color = team1Count == 0 ? FColor::Cyan : FColor(0, 190 ,180, 255);
 			team1Count++;
 			break;
 		case 1:
-			Color = team2Count == 0 ? FColor::Magenta : FColor::Red;
+			Color = team2Count == 0 ? FColor(255, 0 ,80, 255) : FColor::Red;
 			team2Count++;
 			break;
 		case 2:
-			Color = team3Count == 0 ? FColor::Orange : FColor::Yellow;
+			Color = team3Count == 0 ? FColor(255, 200 ,0, 255) : FColor::Yellow;
 			team3Count++;
 			break;
 		default:
@@ -44,7 +44,7 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 			FVector pos = Player.Positions[i].Position;
 
 
-			if (FVector::Dist(prevPos, pos) < 100)
+			if (FVector::Dist(prevPos, pos) < 1000)
 			{
 				DrawDebugLine(
 					GetWorld(),
