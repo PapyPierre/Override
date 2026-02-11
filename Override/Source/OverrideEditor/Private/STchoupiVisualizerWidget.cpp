@@ -7,7 +7,7 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 {
 	EditorModule = InArgs._EditorModule;
 	
-	EditorModule->UpdateLists(VersionIds, MatchIds);
+	//EditorModule->UpdateLists(VersionIds, MatchIds);
 
 	PlayerIds = {
 		MakeShared<FString>("All"),
@@ -26,10 +26,10 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 		MakeShared<FString>("3")
 	};
 
-	SelectedVersionId = VersionIds[0];
+	/*SelectedVersionId = VersionIds[0];
 	SelectedMatchId = MatchIds[0];
 	SelectedPlayerId = PlayerIds[0];
-	SelectedTeamId = TeamIds[0];
+	SelectedTeamId = TeamIds[0];*/
 
 	ChildSlot
 	[

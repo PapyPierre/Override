@@ -259,11 +259,12 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 }
 
 void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
-{	
-	Launch(MoveDirectionMelee * DashImpulse);
+{
+	FVector Dash = MoveDirectionMelee * DashImpulse;
+	Dash.Z = 0;;
+	Launch(Dash);
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 1400;
-	SetMovementMode(MOVE_Walking);
 	bWantsToDash = false;
 	bIsMelee = true;
 	
