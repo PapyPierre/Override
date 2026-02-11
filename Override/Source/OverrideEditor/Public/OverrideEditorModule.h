@@ -21,7 +21,8 @@ public:
 
 	TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args);
 
-	void VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID, bool SeeThrough);
+	void VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID, bool SeeThrough,
+		float TimeValue);
 
 	void ClearVisualization();
 
