@@ -146,6 +146,12 @@ bool FMatchDataFetcher::RecvAll(FSocket* Socket, FString& OutResponse)
 {
 	OutResponse.Empty();
 
+	if (!Socket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromSeconds(20)))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Timeout waiting for data"));
+		return false;
+	}
+
 	uint32 NetSize = 0;
 	if (!RecvData(Socket, (uint8*)&NetSize, sizeof(uint32)))
 	{
