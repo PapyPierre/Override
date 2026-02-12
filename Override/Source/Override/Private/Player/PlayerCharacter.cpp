@@ -408,17 +408,6 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 		UE_LOG(LogTemp, Error, TEXT("SERVER : TargetData is INVALID after setting!"));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Calling TryActivateAbility..."));
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Received CurrentPointInSight = %s"),
-	       *CurrentPointInSight.ToString());
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Number of targets = %d"),
-	       TargetingComponent->CurrentTargets.Num());
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : TargetData->Targets.Num() = %d"),
-	       TargetData->Targets.Num());
-
 	if (ContextHandle.IsValid())
 	{
 		FVector Origin = ContextHandle.GetOrigin();
