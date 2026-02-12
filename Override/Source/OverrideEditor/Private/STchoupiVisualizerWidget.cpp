@@ -2,34 +2,31 @@
 #include "OverrideEditorModule.h"
 #include "Chaos/AABB.h"
 #include "Chaos/AABB.h"
+#include "Widgets/Input/SSlider.h"
+#include "Widgets/SBoxPanel.h"
 
 void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 {
 	EditorModule = InArgs._EditorModule;
-	
-	//EditorModule->UpdateLists(VersionIds, MatchIds);
+
+	EditorModule->UpdateLists(VersionIds, MatchIds);
 
 	PlayerIds = {
 		MakeShared<FString>("All"),
+		MakeShared<FString>("0"),
 		MakeShared<FString>("1"),
 		MakeShared<FString>("2"),
 		MakeShared<FString>("3"),
 		MakeShared<FString>("4"),
-		MakeShared<FString>("5"),
-		MakeShared<FString>("6")
+		MakeShared<FString>("5")
 	};
 
 	TeamIds = {
 		MakeShared<FString>("All"),
+		MakeShared<FString>("0"),
 		MakeShared<FString>("1"),
-		MakeShared<FString>("2"),
-		MakeShared<FString>("3")
+		MakeShared<FString>("2")
 	};
-
-	/*SelectedVersionId = VersionIds[0];
-	SelectedMatchId = MatchIds[0];
-	SelectedPlayerId = PlayerIds[0];
-	SelectedTeamId = TeamIds[0];*/
 
 	ChildSlot
 	[
@@ -214,6 +211,32 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			.Padding(5)
 			[
+				SNew(STextBlock)
+				.Text(FText::FromString("Timeline"))
+			]
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			.Padding(5)
+			[
+				SNew(SSlider)
+				
+				.Visibility(EVisibility::Visible)
+				.OnValueChanged(this, &STchoupiVisualizerWidget::OnSliderValueChanged)
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(5)
+			[
 				SNew(SButton)
 				.Text(FText::FromString("Visualize"))
 				.HAlign(HAlign_Center)
@@ -290,7 +313,7 @@ FReply STchoupiVisualizerWidget::OnVisualizeClicked()
 	if (EditorModule && SelectedMatchId.IsValid())
 	{
 		EditorModule->VisualizeMatch(*SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId,
-		                             SeeThrough);
+		                             SeeThrough, SliderValue);
 	}
 
 	return FReply::Handled();
@@ -312,11 +335,22 @@ FReply STchoupiVisualizerWidget::OnUpdateClicked()
 	{
 		EditorModule->UpdateLists(VersionIds, MatchIds);
 	}
-	
+
 	return FReply::Handled();
 }
 
 void STchoupiVisualizerWidget::OnSeeThroughChecked(ECheckBoxState CheckBoxState)
 {
 	SeeThrough = CheckBoxState == ECheckBoxState::Checked;
+}
+
+void STchoupiVisualizerWidget::OnSliderValueChanged(float NewValue)
+{
+	SliderValue = NewValue;
+
+	if (EditorModule && SelectedMatchId.IsValid())
+	{
+		EditorModule->VisualizeMatch(*SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId,
+									 SeeThrough, SliderValue);
+	}
 }

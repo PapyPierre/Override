@@ -70,7 +70,7 @@ TSharedRef<SDockTab> FOverrideEditorModule::SpawnTab(const FSpawnTabArgs& Args)
 
 const FName FOverrideEditorModule::TabName("Tchoupi Visualizer");
 
-void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID, bool SeeThrough)
+void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID, bool SeeThrough, float TimeValue)
 {
 	UE_LOG(LogTemp, Log, TEXT("Trying to visualizing players positions of match %s"), *MatchID);
 
@@ -85,6 +85,7 @@ void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, F
 	AMatchActor* MatchActor = World->SpawnActor<AMatchActor>();
 	MatchActor->Players = MatchPlayersData;
 	MatchActor->SeeThrough = SeeThrough;
+	MatchActor->TimeValue = TimeValue;
 	MatchActor->RerunConstructionScripts();
 	SpawnedActors.Add(MatchActor);
 }

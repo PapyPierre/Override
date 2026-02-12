@@ -28,6 +28,8 @@ private:
 
 	bool SeeThrough = false;
 
+	float SliderValue = 1;
+
 	TSharedRef<SWidget> GenerateVersionItem(TSharedPtr<FString> Item);
 	void OnVersionSelected(TSharedPtr<FString> Item, ESelectInfo::Type);
 
@@ -47,6 +49,8 @@ private:
 	FReply OnUpdateClicked();
 
 	void OnSeeThroughChecked(ECheckBoxState CheckBoxState);
+	
+	void OnSliderValueChanged(float NewValue);
 
 	FOverrideEditorModule* EditorModule = nullptr;
 };
