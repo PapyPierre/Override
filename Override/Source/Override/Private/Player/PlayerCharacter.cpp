@@ -39,6 +39,8 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 	return nullptr;
 }
 
+
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -272,6 +274,8 @@ void APlayerCharacter::SetControllerRef()
 
 void APlayerCharacter::InitAbilitySystem()
 {
+	UE_LOG(LogTemp, Log, TEXT("Init Ability System"));
+	
 	if (ACustomPlayerState* PS = GetCustomPlayerState())
 	{
 		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
@@ -343,7 +347,7 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Found ability in slot %d, preparing data"), SlotIndex);
+	//UE_LOG(LogTemp, Log, TEXT("SERVER : Found ability in slot %d, preparing data"), SlotIndex);
 
 	FCustomAbilityTargetData* TargetData = new FCustomAbilityTargetData();
 
@@ -354,24 +358,24 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 			if (Target)
 			{
 				TargetData->Targets.Add(const_cast<AActor*>(Target));
-				UE_LOG(LogTemp, Log, TEXT("SERVER : Added target: %s"), *Target->GetName());
+				//UE_LOG(LogTemp, Log, TEXT("SERVER : Added target: %s"), *Target->GetName());
 			}
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Total targets: %d"), TargetData->Targets.Num());
+	//UE_LOG(LogTemp, Log, TEXT("SERVER : Total targets: %d"), TargetData->Targets.Num());
 
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
 	TargetDataHandle.Add(TargetData);
 
 	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
 	ContextHandle.AddOrigin(CurrentPointInSight);
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Origin point: %s"), *CurrentPointInSight.ToString());
+	//UE_LOG(LogTemp, Log, TEXT("SERVER : Origin point: %s"), *CurrentPointInSight.ToString());
 
 	if (!AbilitySpec->GameplayEventData.IsValid())
 	{
 		AbilitySpec->GameplayEventData = MakeShared<FGameplayEventData>();
-		UE_LOG(LogTemp, Log, TEXT("SERVER : Created new GameplayEventData"));
+		//UE_LOG(LogTemp, Log, TEXT("SERVER : Created new GameplayEventData"));
 	}
 
 	AbilitySpec->GameplayEventData->Instigator = this;
@@ -382,8 +386,7 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
 	{
 		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
-		UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored origin: %s"),
-		       *StoredOrigin.ToString());
+		//UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored origin: %s"), *StoredOrigin.ToString());
 	}
 	else
 	{
@@ -399,8 +402,7 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 
 		if (StoredData)
 		{
-			UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored targets: %d"),
-			       StoredData->Targets.Num());
+			//UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored targets: %d"), StoredData->Targets.Num());
 		}
 	}
 	else
@@ -411,14 +413,13 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 	if (ContextHandle.IsValid())
 	{
 		FVector Origin = ContextHandle.GetOrigin();
-		UE_LOG(LogTemp, Log, TEXT("SERVER : ContextHandle origin = %s"), *Origin.ToString());
+		//UE_LOG(LogTemp, Log, TEXT("SERVER : ContextHandle origin = %s"), *Origin.ToString());
 	}
 
 	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
 	{
 		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
-		UE_LOG(LogTemp, Log, TEXT("SERVER : Stored in Spec, origin = %s"),
-		       *StoredOrigin.ToString());
+		//UE_LOG(LogTemp, Log, TEXT("SERVER : Stored in Spec, origin = %s"), *StoredOrigin.ToString());
 	}
 	else
 	{
