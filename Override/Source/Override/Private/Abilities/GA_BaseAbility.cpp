@@ -23,8 +23,8 @@ void UGA_BaseAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, con
 	{
 		SpecHandle.Data->SetDuration(CooldownDuration, true);
 		SpecHandle.Data->DynamicGrantedTags.AddTag(CooldownTag);
-		
-		ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
+
+		auto GEHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
 	}
 }
 
