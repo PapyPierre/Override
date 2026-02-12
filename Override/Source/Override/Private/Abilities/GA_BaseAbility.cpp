@@ -79,11 +79,7 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 	FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
 
-	if (Spec)
-	{
-		UE_LOG(LogTemp, Log, TEXT("ABILITY : Spec found from Handle!"));
-	}
-	else
+	if (!Spec)
 	{
 		UE_LOG(LogTemp, Error, TEXT("ABILITY : Could not find Spec from Handle!"));
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
@@ -97,8 +93,7 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		if (Spec->GameplayEventData->ContextHandle.IsValid())
 		{
 			Location = Spec->GameplayEventData->ContextHandle.GetOrigin();
-			UE_LOG(LogTemp, Log, TEXT("ABILITY : Extracted Location: %s"), 
-				 *Location.ToString());
+			//UE_LOG(LogTemp, Log, TEXT("ABILITY : Extracted Location: %s"), *Location.ToString());
 		}
 		else
 		{
@@ -109,7 +104,7 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 		if (TargetDataHandle.IsValid(0))
 		{
-			UE_LOG(LogTemp, Log, TEXT("ABILITY : TargetDataHandle is valid"));
+			//UE_LOG(LogTemp, Log, TEXT("ABILITY : TargetDataHandle is valid"));
 			
 			const FCustomAbilityTargetData* CustomData = 
 				static_cast<const FCustomAbilityTargetData*>(TargetDataHandle.Get(0));
@@ -121,8 +116,7 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 					if (AActor* Target = TargetPtr.Get())
 					{
 						Targets.Add(Target);
-						UE_LOG(LogTemp, Log, TEXT("ABILITY : Found target: %s"), 
-												  *Target->GetName());
+						//UE_LOG(LogTemp, Log, TEXT("ABILITY : Found target: %s"), *Target->GetName());
 					}
 				}
 			}
@@ -141,13 +135,13 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		UE_LOG(LogTemp, Error, TEXT("ABILITY : GameplayEventData is INVALID!"));
 	}
 
+	/*
 	UE_LOG(LogTemp, Log, TEXT("ABILITY : Calling OnAbilityActivated with Location=%s, Targets=%d"),
 			   *Location.ToString(), Targets.Num());
-	
+	*/
 	OnAbilityActivated(Location, Targets);
 
-	UE_LOG(LogTemp, Log, TEXT("SERVER:  %s Activate %s"), *ActorInfo->OwnerActor->GetName(),
-				   *this->GetName());
+	//UE_LOG(LogTemp, Log, TEXT("SERVER:  %s Activate %s"), *ActorInfo->OwnerActor->GetName(), *this->GetName());
 	
 	ApplyCooldown(Handle, ActorInfo, ActivationInfo);
 }

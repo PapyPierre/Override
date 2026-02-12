@@ -50,7 +50,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Ability")
 	FGameplayTag Ability2Tag;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	UAbilitySlotComponent* AbilitySlotComponent;
 
 	UFUNCTION(Server, Reliable)
