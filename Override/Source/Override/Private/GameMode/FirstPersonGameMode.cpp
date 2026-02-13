@@ -9,6 +9,8 @@
 
 void AFirstPersonGameMode::SendDataToDB()
 {
+	UE_LOG(LogTemp, Error, TEXT("Trying to send match data to DB..."));
+	
 	FMatchDataFetcher MatchDataFetcher;
 	
 	FSocket* Socket = MatchDataFetcher.CreateSocket("127.0.0.1",6000);
