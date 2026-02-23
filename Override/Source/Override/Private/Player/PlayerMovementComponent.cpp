@@ -93,7 +93,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	
 	DashTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
-
+	
 	FrameCounter++;
 	
 	if (FrameCounter > 1000000)
@@ -261,18 +261,18 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
 {
 	FVector Dash = MoveDirectionMelee * DashImpulse;
-	Dash.Z = 0;;
+	Dash.Z = 0;
 	Launch(Dash);
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 1400;
-	bWantsToDash = false;
 	bIsMelee = true;
-	
+	bWantsToDash = false;
+
 	CharacterRef->GetWorldTimerManager().SetTimer(
 	SimpleDelayHandle,
 	this,
 	&UPlayerMovementComponent::OnDelayFinished,
-	0.2f,
+	0.3f,
 	false
 );
 }
@@ -545,9 +545,9 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 }
 
 bool UPlayerMovementComponent::CanAttemptJump() const
-{
+{	
 	return IsJumpAllowed() &&
-		   (IsMovingOnGround() || IsFalling());
+		   (IsMovingOnGround() || IsFalling()); 
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
@@ -585,7 +585,7 @@ void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 			MoveDirectionMelee = CharacterRef->GetActorForwardVector();
 	}
 	//Send movement vector to server
-	if (!PawnOwner->HasAuthority())
+	if (PawnOwner->IsLocallyControlled())
 	{
 		Server_GetInputLastDirection(MoveDirectionMelee);
 	}
@@ -692,7 +692,6 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
-	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
 }
 
 #pragma region SavedMoves
@@ -718,6 +717,7 @@ void FSavedMove_MyMovement::Clear()
 	SavedMoveDirection = FVector::ZeroVector;
 	bShouldStopSliding = false;
 	bStopSliding = false;
+	bWantsToDash = false;
 }
 
 uint8 FSavedMove_MyMovement::GetCompressedFlags() const
@@ -729,6 +729,9 @@ uint8 FSavedMove_MyMovement::GetCompressedFlags() const
 	
 	if (bShouldStopSliding)
 		Result |= FLAG_SHOULD_STOP_SLIDE;
+
+	if (bWantsToDash)
+		Result |= FLAG_WANT_TO_DASH;
 		
 	return Result;
 }
@@ -751,6 +754,7 @@ void FSavedMove_MyMovement::SetMoveFor(ACharacter* Character, float InDeltaTime,
 		SavedMoveDirection = CharMov->MoveDirectionMelee;
 		bShouldStopSliding = CharMov->bShouldStopSliding;
 		bStopSliding  = CharMov->bStopSliding;
+		bWantsToDash = CharMov->bWantsToDash;
 	}
 }
 
@@ -764,6 +768,7 @@ void FSavedMove_MyMovement::PrepMoveFor(class ACharacter* Character)
 		CharMov->MoveDirectionMelee = SavedMoveDirection;
 		CharMov->bShouldStopSliding = bShouldStopSliding;
 		CharMov->bStopSliding = bStopSliding;
+		CharMov->bWantsToDash = bWantsToDash;
 	}
 }
 
