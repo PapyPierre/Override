@@ -233,7 +233,7 @@ void UTargetingComponent::ClearCurrentTargets()
 	
 	for (AActor* Targetable : CurrentTargets)
 	{
-		ITargetable::Execute_OnUntarget(Targetable, GetOwner());
+		if (Targetable != nullptr) ITargetable::Execute_OnUntarget(Targetable, GetOwner());
 	}
 
 	CurrentTargets.Empty();
