@@ -585,7 +585,7 @@ void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 			MoveDirectionMelee = CharacterRef->GetActorForwardVector();
 	}
 	//Send movement vector to server
-	if (!PawnOwner->HasAuthority())
+	if (PawnOwner->IsLocallyControlled())
 	{
 		Server_GetInputLastDirection(MoveDirectionMelee);
 	}
