@@ -42,14 +42,14 @@ bool UGA_BaseAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle,
 	
 	return bParentCooldown;
 }
+	
 
-float UGA_BaseAbility::GetCooldownTimeRemaining(
-	const FGameplayAbilityActorInfo* ActorInfo) const
+float UGA_BaseAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	if (CooldownTag.IsValid() && ActorInfo->AbilitySystemComponent.IsValid())
 	{
-		FGameplayEffectQuery Query;
-		Query.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchTag(CooldownTag);
+		FGameplayEffectQuery Query =
+			FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(CooldownTag));
         
 		TArray<float> Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(Query);
         
@@ -60,6 +60,7 @@ float UGA_BaseAbility::GetCooldownTimeRemaining(
 	}
 	return 0.0f;
 }
+	
 
 void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                       const FGameplayAbilityActorInfo* ActorInfo,
