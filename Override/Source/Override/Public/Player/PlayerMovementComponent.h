@@ -45,6 +45,7 @@ public:
 	UAnimInstance* AnimInstance;
 
 	virtual bool IsMovingOnGround() const override;
+	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
 #pragma region Dash
 	UPROPERTY()
@@ -53,14 +54,12 @@ public:
 	float EaseOutTimeDash = 0.15f;
 	float DashImpulse = 2000.f;
 	
-    uint8 bWantsToDodge : 1;
-	
 	FVector MoveDirectionMelee;
 	FTimerHandle SimpleDelayHandle;
 
 	void OnDelayFinished();
 
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC", Replicated)
+	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
 	bool bIsMelee = false;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
@@ -179,8 +178,6 @@ private:
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 
-	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
-
 	virtual float GetMaxSpeed() const override;
 	
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
@@ -199,12 +196,13 @@ public:
 
     #define FLAG_STOP_SLIDE 0x10
     #define FLAG_SHOULD_STOP_SLIDE  0x20
+	#define FLAG_WANT_TO_DASH 0x40 
 	
 	typedef FSavedMove_Character Super;
 
 	//Dash
 	FVector SavedMoveDirection;
-	uint8 bSavedWantsToDodge : 1;
+	bool bWantsToDash;
 
 	//Slide
 	bool bShouldStopSliding;
