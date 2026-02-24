@@ -199,9 +199,10 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 
 void APlayerCharacter::Falling()
 {
-	JumpCurrentCount--;
-
 	LastGroundedPosition = GetActorLocation();
+
+	if (!PlayerMovementComponent->bIsMelee)
+		JumpCurrentCount--;
 
 	GetWorldTimerManager().SetTimer(
 		JumpDelayHandle,
@@ -213,8 +214,9 @@ void APlayerCharacter::Falling()
 }
 
 void APlayerCharacter::Jump()
-{
+{	
 	Super::Jump();
+	
 	if (IsLocallyControlled())
 		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
 														 FRotator::ZeroRotator);
