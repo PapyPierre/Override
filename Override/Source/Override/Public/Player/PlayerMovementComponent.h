@@ -95,7 +95,7 @@ public:
 	float SlideImpulse;
 	float SlopeToleranceValue;
 	float MinDiffVelocityToAllowSlide;
-	float MaxVelocityForSlide
+	float MaxVelocityForSlide;
 	float TimeToWaitBetweenSlide = 0;
 	
 	bool SlideLineTrace();

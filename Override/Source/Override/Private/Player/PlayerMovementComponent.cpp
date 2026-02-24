@@ -510,11 +510,6 @@ void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 	}*/
 }
 
-void UPlayerMovementComponent::Client_StopVelocityEaseTimeline_Implementation()
-{
-	StopVelocityEaseTimeline();
-}
-
 void UPlayerMovementComponent::StopVelocityEaseTimeline()
 {
 	UE_LOG(LogTemp, Warning, TEXT("StopVelocityEaseTimeline"));
@@ -524,11 +519,6 @@ void UPlayerMovementComponent::StopVelocityEaseTimeline()
 	ResetSlideValues();
 	if (VelocityEaseTimeline.IsPlaying())
 		VelocityEaseTimeline.Stop();
-}
-
-void UPlayerMovementComponent::Client_StartVelocityEase_Implementation(const FVector& NewTargetVelocity)
-{
-	StartVelocityEase(NewTargetVelocity);
 }
 
 void UPlayerMovementComponent::StartVelocityEase(const FVector& NewTargetVelocity)
