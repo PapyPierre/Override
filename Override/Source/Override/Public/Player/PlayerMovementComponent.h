@@ -67,36 +67,35 @@ public:
 
 	UFUNCTION(Server, Unreliable, WithValidation)
 	void Server_GetInputLastDirection(const FVector& Direction);
-
-	UFUNCTION()
-	void StopDashVelocityEaseTimeline();
 #pragma endregion
 
 #pragma region Slide
-	float TimeSliding = 0.f;
-	
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsSliding = false;
-	bool bResetSlideCrouch = false;
-	bool bResetSlideLanded = true;	
-	bool bPendingCancelSlide = false;
-
-	bool bStopSliding = false;
-	bool bShouldStopSliding = false;
 	
-	bool bCoolDownFinished = true;
+	UPROPERTY(Replicated)
+	bool bResetSlideCrouch = false;
+	
+	UPROPERTY(Replicated)
+	bool bResetSlideLanded = true;
 	
 	UPROPERTY(Replicated)
 	FVector VelocityAtCrouch;
 
+	bool bWantsToSlide = false;
+	bool bStopSliding = false;
+	bool bShouldStopSliding = false;
+	bool bPendingCancelSlide = false;
+	bool bCoolDownFinished = true;
+
+	float TimeSliding = 0.f;
 	float SlidingCoolDown;
 	float BoostSlidingTime;
 	float EaseOutTime;
 	float SlideImpulse;
 	float SlopeToleranceValue;
 	float MinDiffVelocityToAllowSlide;
-	float MaxVelocityForSlide;
-	
+	float MaxVelocityForSlide
 	float TimeToWaitBetweenSlide = 0;
 	
 	bool SlideLineTrace();
@@ -115,23 +114,17 @@ public:
 
 	UFUNCTION()
 	void EaseVelocityUpdate(float Value);
-
+	
 	UFUNCTION()
 	void StopVelocityEaseTimeline();
 	
 	void StartVelocityEase(const FVector& NewTargetVelocity);
-
 	void DebugSlideState(const FString& Context);
-	
 	bool CanSlide();
-
 	void ResetSlideValues();
-
-	int i = 0;
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
-	
 #pragma endregion
 
 #pragma region Jump
@@ -174,6 +167,8 @@ private:
 	
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 
+	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
@@ -196,7 +191,8 @@ public:
 
     #define FLAG_STOP_SLIDE 0x10
     #define FLAG_SHOULD_STOP_SLIDE  0x20
-	#define FLAG_WANT_TO_DASH 0x40 
+	#define FLAG_WANT_TO_DASH 0x40
+	#define FLAG_WANT_TO_SLIDE 0x80 
 	
 	typedef FSavedMove_Character Super;
 
@@ -207,6 +203,8 @@ public:
 	//Slide
 	bool bShouldStopSliding;
 	bool bStopSliding;
+	bool bWantsToSlide;
+	
 	///@brief Resets all saved variables.
 	virtual void Clear() override;
 
