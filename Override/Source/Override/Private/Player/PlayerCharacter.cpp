@@ -348,9 +348,7 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 		UE_LOG(LogTemp, Warning, TEXT("SERVER : No ability found in slot %d"), SlotIndex);
 		return;
 	}
-
-	//UE_LOG(LogTemp, Log, TEXT("SERVER : Found ability in slot %d, preparing data"), SlotIndex);
-
+	
 	FCustomAbilityTargetData* TargetData = new FCustomAbilityTargetData();
 
 	if (Targets.Num() > 0)
@@ -360,20 +358,15 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 			if (Target)
 			{
 				TargetData->Targets.Add(const_cast<AActor*>(Target));
-				//UE_LOG(LogTemp, Log, TEXT("SERVER : Added target: %s"), *Target->GetName());
 			}
 		}
 	}
-
-	//UE_LOG(LogTemp, Log, TEXT("SERVER : Total targets: %d"), TargetData->Targets.Num());
 
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
 	TargetDataHandle.Add(TargetData);
 
 	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
 	ContextHandle.AddOrigin(CurrentPointInSight);
-	//UE_LOG(LogTemp, Log, TEXT("SERVER : Origin point: %s"), *CurrentPointInSight.ToString());
-
 	if (!AbilitySpec->GameplayEventData.IsValid())
 	{
 		AbilitySpec->GameplayEventData = MakeShared<FGameplayEventData>();
@@ -384,60 +377,6 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 	AbilitySpec->GameplayEventData->Target = this;
 	AbilitySpec->GameplayEventData->TargetData = TargetDataHandle;
 	AbilitySpec->GameplayEventData->ContextHandle = ContextHandle;
-
-	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
-	{
-		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
-		//UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored origin: %s"), *StoredOrigin.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SERVER : ContextHandle is INVALID after setting!"));
-	}
-
-	if (AbilitySpec->GameplayEventData->TargetData.IsValid(0))
-	{
-		const FCustomAbilityTargetData* StoredData =
-			static_cast<const FCustomAbilityTargetData*>(
-				AbilitySpec->GameplayEventData->TargetData.Get(0)
-			);
-
-		if (StoredData)
-		{
-			//UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored targets: %d"), StoredData->Targets.Num());
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SERVER : TargetData is INVALID after setting!"));
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Calling TryActivateAbility..."));
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Received CurrentPointInSight = %s"),
-	       *CurrentPointInSight.ToString());
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Number of targets = %d"),
-	       TargetingComponent->CurrentTargets.Num());
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : TargetData->Targets.Num() = %d"),
-	       TargetData->Targets.Num());
-
-	if (ContextHandle.IsValid())
-	{
-		FVector Origin = ContextHandle.GetOrigin();
-		//UE_LOG(LogTemp, Log, TEXT("SERVER : ContextHandle origin = %s"), *Origin.ToString());
-	}
-
-	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
-	{
-		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
-		//UE_LOG(LogTemp, Log, TEXT("SERVER : Stored in Spec, origin = %s"), *StoredOrigin.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SERVER : ContextHandle INVALID after storing!"));
-	}
 
 	ASC->TryActivateAbility(AbilitySpec->Handle);
 }
