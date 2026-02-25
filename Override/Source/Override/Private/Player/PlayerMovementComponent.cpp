@@ -104,9 +104,10 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 #pragma region Slide Verification
 	if (bIsSliding)
-	{
-		//DebugSlideState(TEXT("Sliding"));
-		
+		DebugSlideState(TEXT("Sliding"));
+	
+	if (bIsSliding && CharacterRef->HasAuthority())
+	{		
 		SlideLineTrace();
 		
 		if (FMath::IsNearlyZero(Impact.Z) || (Impact.Z >= SlopeToleranceValue && !VelocityEaseTimeline.IsPlaying()))
@@ -462,55 +463,21 @@ bool UPlayerMovementComponent::SlideLineTrace()
 void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
 {
 	Velocity = FMath::Lerp(InitialEaseVelocity, TargetEaseVelocity, Value);
-	
-	/*if (CharacterRef && CharacterRef->HasAuthority())
-	{
-		FVector Start = CharacterRef->GetActorLocation();
-
-		// Scale pour que le point soit lisible en world
-		float DebugScale = 0.1f; // ajuste si besoin
-		FVector PointLocation = Start + Velocity * DebugScale;
-
-		// Point bleu bien visible
-		DrawDebugPoint(
-			CharacterRef->GetWorld(),
-			PointLocation,
-			20.f,          // taille du point
-			FColor::Blue,
-			false,
-			5.0f           // durée en secondes
-		);
-
-		// Optionnel : ligne entre le joueur et le point
-		DrawDebugLine(
-			CharacterRef->GetWorld(),
-			Start,
-			PointLocation,
-			FColor::Cyan,
-			false,
-			5.0f,
-			0,
-			2.0f
-		);
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				131313211,
-				5.f,
-				FColor::Green,
-				FString::Printf(
-					TEXT("Velocity: X=%f Y=%f Z=%f"),
-					Velocity.X,
-					Velocity.Y,
-					Velocity.Z
-				)
-			);
-		}
-	}*/
 }
 
 void UPlayerMovementComponent::StopVelocityEaseTimeline()
+{
+	Client_StopVelocityEaseTimeline();
+	UE_LOG(LogTemp, Warning, TEXT("StopVelocityEaseTimeline"));
+	bIsSliding = false;
+	bPendingCancelSlide = false;
+	TimeSliding = 0;
+	ResetSlideValues();
+	if (VelocityEaseTimeline.IsPlaying())
+		VelocityEaseTimeline.Stop();
+}
+
+void UPlayerMovementComponent::Client_StopVelocityEaseTimeline_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("StopVelocityEaseTimeline"));
 	bIsSliding = false;

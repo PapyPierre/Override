@@ -117,6 +117,9 @@ public:
 	
 	UFUNCTION()
 	void StopVelocityEaseTimeline();
+	UFUNCTION(Client, Reliable)
+	void Client_StopVelocityEaseTimeline();
+	
 	
 	void StartVelocityEase(const FVector& NewTargetVelocity);
 	void DebugSlideState(const FString& Context);
