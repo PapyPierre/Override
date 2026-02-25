@@ -104,7 +104,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 #pragma region Slide Verification
 	if (bIsSliding)
-		DebugSlideState(TEXT("Sliding"));
+		//DebugSlideState(TEXT("Sliding"));
 	
 	if (bIsSliding && CharacterRef->HasAuthority())
 	{		
