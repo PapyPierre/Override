@@ -21,6 +21,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
 	FGameplayTag CooldownTag;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	bool UseTargetingComponent;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Cooldown")
 	TSubclassOf<UGameplayEffect> CooldownEffectClass;
 	

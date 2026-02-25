@@ -35,10 +35,9 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("ACustomPlayerState not found"));
-	
+
 	return nullptr;
 }
-
 
 
 void APlayerCharacter::BeginPlay()
@@ -165,7 +164,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
 	{
 		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
-		if (PlayerMovementComponent->Impact.Z <= PlayerMovementComponent->SlopeToleranceValue *- 1)
+		if (PlayerMovementComponent->Impact.Z <= PlayerMovementComponent->SlopeToleranceValue * -1)
 		{
 			PlayerMovementComponent->VelocityEaseTimeline.SetPlaybackPosition(0.5f, true);
 			PlayerMovementComponent->SetMovementMode(MOVE_Custom, CMOVE_Slide);
@@ -173,13 +172,14 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 		else
 		{
 			PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
-			PlayerMovementComponent->TargetEaseVelocity = PlayerMovementComponent->InitialEaseVelocity.GetSafeNormal() * PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
+			PlayerMovementComponent->TargetEaseVelocity = PlayerMovementComponent->InitialEaseVelocity.GetSafeNormal() *
+				PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
 		}
 	}
 
 	if (PlayerMovementComponent->bResetSlideCrouch)
 		PlayerMovementComponent->bResetSlideLanded = true;
-	
+
 	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
 	{
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
@@ -214,12 +214,12 @@ void APlayerCharacter::Falling()
 }
 
 void APlayerCharacter::Jump()
-{	
+{
 	Super::Jump();
-	
+
 	if (IsLocallyControlled())
 		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
-														 FRotator::ZeroRotator);
+		                                             FRotator::ZeroRotator);
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const
@@ -277,7 +277,7 @@ void APlayerCharacter::SetControllerRef()
 void APlayerCharacter::InitAbilitySystem()
 {
 	UE_LOG(LogTemp, Log, TEXT("Init Ability System"));
-	
+
 	if (ACustomPlayerState* PS = GetCustomPlayerState())
 	{
 		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
@@ -312,6 +312,30 @@ void APlayerCharacter::UseAbility(int index)
 			{
 				UE_LOG(LogTemp, Log, TEXT("Try to use ability %i"), index + 1);
 
+				FGameplayAbilitySpecHandle Handle; 
+				bool bIsInstance = true;
+				
+				for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+				{
+					if (Spec.InputID == index)
+					{
+						Handle = Spec.Handle;
+						break;
+					}
+				}
+				
+				const UGameplayAbility* GameplayAbility =
+					UAbilitySystemBlueprintLibrary::GetGameplayAbilityFromSpecHandle(ASC, Handle, bIsInstance);
+				const UGA_BaseAbility* BaseAbility = Cast<UGA_BaseAbility>(GameplayAbility);
+				
+				if (!BaseAbility)
+				{
+					UE_LOG(LogTemp, Error, TEXT("BaseAbility not found!"));
+					return;
+				}
+
+				if (TargetingComponent->CurrentTargets.IsEmpty() && BaseAbility->UseTargetingComponent) return;
+				
 				ActivateAbilityInSlotRPC(index, TargetingComponent->GetPointInSight(),
 				                         TargetingComponent->CurrentTargets);
 
@@ -348,7 +372,7 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 		UE_LOG(LogTemp, Warning, TEXT("SERVER : No ability found in slot %d"), SlotIndex);
 		return;
 	}
-	
+
 	FCustomAbilityTargetData* TargetData = new FCustomAbilityTargetData();
 
 	if (Targets.Num() > 0)
