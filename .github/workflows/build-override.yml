@@ -57,7 +57,7 @@ jobs:
       - name: Update Versioning
         shell: pwsh
         run: |
-          & $env:VERSION_UPDATE_SCRIPT
+          & $env:VERSION_UPDATE_SCRIPT -Branch "${{ github.ref_name }}"
 
       - name: Delete FMOD Intermediate Folder
         shell: cmd
