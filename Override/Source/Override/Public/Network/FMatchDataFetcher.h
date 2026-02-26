@@ -5,8 +5,6 @@ struct FMatchPlayerData;
 class OVERRIDE_API FMatchDataFetcher
 {
 public:
-	const FString DbServerIP = "10.51.0.208";
-
 	static FSocket* CreateSocketToDBServer(const int& Port);
 	static FSocket* CreateSocket(const FString& IPStr, const int& Port);
 	static bool FetchMatch(FString VersionId, FString MatchId, FString PlayerId, FString TeamId,
