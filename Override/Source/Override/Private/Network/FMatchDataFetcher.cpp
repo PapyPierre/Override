@@ -7,7 +7,7 @@
 
 FSocket* FMatchDataFetcher::CreateSocketToDBServer(const int& Port)
 {
-	return CreateSocket("10.51.1.4", Port);
+	return CreateSocket("10.51.0.137", Port);
 }
 
 FSocket* FMatchDataFetcher::CreateSocket(const FString& IPStr,  const int& Port)

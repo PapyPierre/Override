@@ -90,7 +90,6 @@ FString AFirstPersonGameMode::GetVersionFromFile(const FString& FilePath)
 
 	int32 Major = 0;
 	int32 Minor = 0;
-	int32 Revision = 0;
 	int32 Patch = 0;
 
 	TArray<FString> Lines;
@@ -113,15 +112,11 @@ FString AFirstPersonGameMode::GetVersionFromFile(const FString& FilePath)
 		{
 			Minor = FCString::Atoi(*Value);
 		}
-		else if (Key.Equals(TEXT("Revision"), ESearchCase::IgnoreCase))
-		{
-			Revision = FCString::Atoi(*Value);
-		}
 		else if (Key.Equals(TEXT("Patch"), ESearchCase::IgnoreCase))
 		{
 			Patch = FCString::Atoi(*Value);
 		}
 	}
 
-	return FString::Printf(TEXT("%d.%d.%d.%d"), Major, Minor, Revision, Patch);
+	return FString::Printf(TEXT("%d.%d.%d"), Major, Minor, Patch);
 }
