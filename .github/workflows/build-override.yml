@@ -69,9 +69,9 @@ jobs:
         run: |
           call "${{ env.UE_ENGINE_PATH }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" OverrideEditor Win64 Development -Project="${{ env.PROJECT_PATH }}\${{ env.PROJECT_NAME }}.uproject"
 
-      - name: Build Client (Iterate)
+      - name: Build Client
         run: |
-          call "${{ env.BUILD_SCRIPT }}" client iterate ${{ env.FULL_VERSION }}
+          call "${{ env.BUILD_SCRIPT }}" client  ${{ env.FULL_VERSION }}
         shell: cmd
         
       - name: Zip Client
@@ -79,9 +79,9 @@ jobs:
           call "${{ env.ZIP_SCRIPT }}" ${{ env.FULL_VERSION }}
         shell: cmd
 
-      - name: Build Server (Full)
+      - name: Build Server
         run: |
-          call "${{ env.BUILD_SCRIPT }}" server full ${{ env.FULL_VERSION }}
+          call "${{ env.BUILD_SCRIPT }}" server ${{ env.FULL_VERSION }}
         shell: cmd
         
       - name: Upload Client Build In Cloud
