@@ -184,7 +184,7 @@ void APlayerCharacter::Falling()
 {
 	LastGroundedPosition = GetActorLocation();
 
-	if (!PlayerMovementComponent->bIsMelee)
+	if (!PlayerMovementComponent->bIsDashing)
 		JumpCurrentCount--;
 
 	GetWorldTimerManager().SetTimer(
