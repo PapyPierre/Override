@@ -6,10 +6,7 @@ public class OverrideTarget : TargetRules
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
-		ExtraModuleNames.AddRange(new string[] { "Override" });
+		ExtraModuleNames.AddRange(new string[] { "Override", "HTTPServer" });
         CppStandard = CppStandardVersion.Latest;
-		//IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_6;
-		//BuildEnvironment = TargetBuildEnvironment.Unique;
-		//bUseLoggingInShipping = true;
 	}
 }

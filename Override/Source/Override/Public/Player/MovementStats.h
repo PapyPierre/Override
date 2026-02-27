@@ -11,15 +11,23 @@ class OVERRIDE_API UMovementStats : public UDataAsset
 	
 	
 public:
+
+#pragma region Movement
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed")
+	float SpeedBackwardReduction = 0.7;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed")
+	float SpeedSideReduction = 0.8;
+#pragma endregion
 	
 #pragma region Camera
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
 	float DefaultFOV = 90.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
-	float SprintFOV = 100.f;
+	float MaxFOV = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
-	float FOVInterpSpeed = 10.f;
-
+	float FOVInterpNormalSpeed = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
+	float FOVInterpAimSpeed = 15.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|FOV")
 	float AimFOV = 70.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|Aim")
@@ -46,44 +54,33 @@ public:
 	float SlideImpulse = 600.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
 	float SlopeToleranceValue = 0.02;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float MinDiffVelocityToAllowSlide = 100;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float MaxVelocityForSlide = 1000;
 #pragma endregion
 
-#pragma region Sprint
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Sprint")
-	float SprintSpeed = 825.f;
+#pragma region Melee
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Melee")
+	float EaseOutTimeMelee = 0.15f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Sprint")
-	float SprintAcceleration = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Melee")
+	float MeleeImpulse = 2000.f;
 #pragma endregion
 
 #pragma region Jump
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	float FirstJumpZVelocity = 800.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
-	float SecondJumpZVelocity = 1000.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
-	float SecondJumpAirControl = 0.05f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
-	float AirHorizontalRetainPercent = 0.5f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	float CoyoteTime= 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
+	float JumpResetTime = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
+	UCurveFloat* JumpCurve;
 #pragma endregion
 
-#pragma region Parkour
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float MaxVaultThickness = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float MaxVaultHeight = 50.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float RaycastStartHeight = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float RaycastEndHeight = 50.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	UAnimMontage* EdgeClimbMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	UAnimMontage* VaultMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Parkour")
-	float ParkourDistanceDetection = 70.f;
+#pragma region Ping
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ping")
+	float PingTime = 5.f;
 #pragma endregion
 };

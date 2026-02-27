@@ -11,7 +11,7 @@ class UMovementStats;
 UENUM()
 enum ECustomMovementMode
 {
-	CMOVE_Sprint = 0,
+	CMOVE_Melee = 0,
 	CMOVE_Crouch = 1,
 	CMOVE_Slide = 2,
 };
@@ -20,8 +20,7 @@ UCLASS()
 class OVERRIDE_API UPlayerMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
-	
-	
+
 public:
 	APlayerCharacter* CharacterRef;
 	
@@ -32,48 +31,79 @@ public:
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
 	float DefaultMaxWalkSpeedCrouched;
-	
-	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
+	float DefaultMaxWalkSpeed;
 
-	virtual float GetMaxSpeed() const override;
+	float BackwardSpeed;
+	float SideSpeed;
+
+	FVector CharaLocation;
+	FVector CharaForward;
+	FVector CharaUp;
+
+	FCollisionQueryParams TraceParams;
+
+	UAnimInstance* AnimInstance;
 
 	virtual bool IsMovingOnGround() const override;
+	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
-#pragma region Sprint
-	UPROPERTY(BlueprintReadOnly, Category = "CMC|Sprint")
-	bool bWantsToSprint = false;
-
-	float DefaultMaxWalkSpeed = 0;
-	float DefaultSprintSpeed = 0;
-	float DefaultAcceleration = 0;
+#pragma region Dash
+	UPROPERTY()
+	FTimeline DashTimeline;
 	
-	float SprintSpeed;
-	float SprintAcceleration;
-	virtual bool CanSprint() const;
+	float EaseOutTimeDash = 0.15f;
+	float DashImpulse = 2000.f;
+	
+	FVector MoveDirectionMelee;
+	FTimerHandle SimpleDelayHandle;
+
+	void OnDelayFinished();
+
+	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
+	bool bIsMelee = false;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
+	bool bWantsToDash;
+
+	UFUNCTION(Server, Unreliable, WithValidation)
+	void Server_GetInputLastDirection(const FVector& Direction);
 #pragma endregion
 
 #pragma region Slide
-
-	float TimeSliding = 0.f;
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsSliding = false;
-	bool bPendingCancelSlide = false;
-	bool bCoolDownFinished = false;
-
+	
+	UPROPERTY(Replicated)
+	bool bResetSlideCrouch = false;
+	
+	UPROPERTY(Replicated)
+	bool bResetSlideLanded = true;
+	
 	UPROPERTY(Replicated)
 	FVector VelocityAtCrouch;
 
+	bool bWantsToSlide = false;
+	bool bStopSliding = false;
+	bool bShouldStopSliding = false;
+	bool bPendingCancelSlide = false;
+	bool bCoolDownFinished = true;
+
+	float TimeSliding = 0.f;
 	float SlidingCoolDown;
 	float BoostSlidingTime;
 	float EaseOutTime;
 	float SlideImpulse;
 	float SlopeToleranceValue;
-	
+	float MinDiffVelocityToAllowSlide;
+	float MaxVelocityForSlide;
 	float TimeToWaitBetweenSlide = 0;
 	
 	bool SlideLineTrace();
 
+	EMovementMode _PreviousMovementMode;
 	FHitResult SlideHit;
 	FTimeline VelocityEaseTimeline;
+
 	FVector Impact;
 
 	UPROPERTY(EditAnywhere, Category = "CMC|Slide")
@@ -84,71 +114,38 @@ public:
 
 	UFUNCTION()
 	void EaseVelocityUpdate(float Value);
-
-	void StartVelocityEase(const FVector& NewTargetVelocity);
-
+	
 	UFUNCTION()
 	void StopVelocityEaseTimeline();
-
+	UFUNCTION(Client, Reliable)
+	void Client_StopVelocityEaseTimeline();
+	
+	
+	void StartVelocityEase(const FVector& NewTargetVelocity);
+	void DebugSlideState(const FString& Context);
 	bool CanSlide();
+	void ResetSlideValues();
 
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
-
-	UFUNCTION(BlueprintCallable)
-	bool IsRunning() const;
-	
 #pragma endregion
 
 #pragma region Jump
 	float FirstJumpZVelocity;
-	float SecondJumpZVelocity;
-	float SecondJumpAirControl;
-	float AirHorizontalRetainPercent;
 	float CoyoteTime;
 	
 	FVector InitialHorizontalVelocity;
-	int32 JumpCount;
+	int JumpCount = 0;
+	float JumpResetTime;
 	
 	float DefaultAirControl = 0;
 	float DefaultBrakingDecelerationFalling = 0;
-	
-	void ResetJumpValues();
-#pragma endregion
 
-#pragma region EdgeGrab
-	
-	bool bGrabbedLedge = false;
-	float GrabHeight = 0;
+	UCurveFloat* JumpCurve;
+	FTimeline JumpTimeline;
 
-	float MaxVaultThickness;
-	float MaxVaultHeight;
-	float RaycastStartHeight;
-	float RaycastEndHeight;
-
-	UAnimMontage* EdgeClimbMontage;
-	UAnimMontage* VaultMontage;
-	float ParkourDistanceDetection = 70.f;
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayWallClimbMontage(UAnimMontage* Montage, FName EndCallbackFunctionName);
-	
-	UFUNCTION(Client, Reliable)
-	void RPC_WallClimbMoveTo(FVector TargetRelativeLocation, FRotator TargetRotation, FLatentActionInfo JumpDelayInfo);
-
-	UFUNCTION(Server, Reliable)
-	void Server_CallVaultAnimation(AActor* Actor);
-	
 	UFUNCTION()
-	void OnMontageVaultEnded(UAnimMontage* Montage, bool bInterrupted);
-	UFUNCTION()
-	void OnMontageWallClimbEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	bool CanVaultOrClimb();
-	AActor* ParkourWallDetection(float &Thickness, float &Height);
-	FHitResult SweepResult;
-	AActor* HitSecondWallActor;
-	bool bMontagePending = false;	
+	void OnJumpTimelineFinished();
 #pragma endregion
 
 private:
@@ -157,18 +154,15 @@ private:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
 	
+	virtual void PhysMelee(float DeltaTime, int32 Iterations);
 	
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
-
-	virtual void PhysSprint(float DeltaTime, int32 Iterations);
-
+	
 	virtual void PhysWalking(float DeltaTime, int32 Iterations) override;
 	
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 
 	virtual void PhysFalling(float DeltaTime, int32 Iterations) override;
-	
-	void ResetSlideValues();
 	
 	virtual bool DoJump(bool bReplayingMoves,  float DeltaTime) override;
 
@@ -176,19 +170,67 @@ private:
 	
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 
+	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
+
+	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
+
+	virtual float GetMaxSpeed() const override;
+	
+	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 
 	virtual void Crouch(bool bClientSimulation = true) override;
 
 	virtual void UnCrouch(bool bClientSimulation = true) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void DebugPrintClientIds();
+};
 
-	FVector CharaLocation;
-	FVector CharaForward;
-	FVector CharaUp;
+class FSavedMove_MyMovement : public FSavedMove_Character
+{
+public:
 
-	FCollisionQueryParams TraceParams;
+    #define FLAG_STOP_SLIDE 0x10
+    #define FLAG_SHOULD_STOP_SLIDE  0x20
+	#define FLAG_WANT_TO_DASH 0x40
+	#define FLAG_WANT_TO_SLIDE 0x80 
+	
+	typedef FSavedMove_Character Super;
 
-	UAnimInstance* AnimInstance;
+	//Dash
+	FVector SavedMoveDirection;
+	bool bWantsToDash;
+
+	//Slide
+	bool bShouldStopSliding;
+	bool bStopSliding;
+	bool bWantsToSlide;
+	
+	///@brief Resets all saved variables.
+	virtual void Clear() override;
+
+	///@brief Store input commands in the compressed flags.
+	virtual uint8 GetCompressedFlags() const override;
+
+	///@brief This is used to check whether or not two moves can be combined into one.
+	///Basically you just check to make sure that the saved variables are the same.
+	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* Character, float MaxDelta) const override;
+
+	///@brief Sets up the move before sending it to the server.
+	virtual void SetMoveFor(ACharacter* Character, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData) override;
+	///@brief Sets variables on character movement component before making a predictive correction.
+	virtual void PrepMoveFor(class ACharacter* Character) override;
+};
+
+class FNetworkPredictionData_Client_MyMovement : public FNetworkPredictionData_Client_Character
+{
+public:
+	FNetworkPredictionData_Client_MyMovement(const UCharacterMovementComponent& ClientMovement);
+
+	typedef FNetworkPredictionData_Client_Character Super;
+
+	///@brief Allocates a new copy of our custom saved move
+	virtual FSavedMovePtr AllocateNewMove() override;
 };

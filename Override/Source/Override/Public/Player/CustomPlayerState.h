@@ -4,7 +4,7 @@
 #include "GameFramework/PlayerState.h"
 #include "AbilitySystemInterface.h"
 #include "Abilities/GameplayAbility.h"
-#include "Hacks/BaseHack.h"
+#include "Abilities/GA_BaseAbility.h"
 #include "CustomPlayerState.generated.h"
 
 UCLASS()
@@ -20,9 +20,6 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Hack")
-	TArray<TSubclassOf<UBaseHack>> CharacterHacks;
-
 	bool GetCdRemainingForTag(FGameplayTagContainer CdTags, float & TimeRemaining, float & CdDuration) const;
 	
 #pragma region Attribute
@@ -31,9 +28,4 @@ public:
 	TObjectPtr<class UHealthAttributeSet> HealthSet;
 	
 #pragma endregion
-
-protected:
-	virtual void BeginPlay() override;
-	
-	virtual void GiveCharacterHacks();
 };

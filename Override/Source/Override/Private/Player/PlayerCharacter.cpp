@@ -5,7 +5,8 @@
 #include "Engine/Engine.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "Hacks/GameplayHackTargetData.h"
+#include "Abilities/CustomAbilityTargetData.h"
+#include "Abilities/FAbilitySlotData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/MovementStats.h"
@@ -21,28 +22,34 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
-	
+
 	TargetingComponent = CreateDefaultSubobject<UTargetingComponent>(TEXT("Targeting Component"));
+	AbilitySlotComponent = CreateDefaultSubobject<UAbilitySlotComponent>(TEXT("Ability Slot Component"));
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 {
-	return GetCustomPlayerState()->GetAbilitySystemComponent();
+	if (ACustomPlayerState* PS = GetCustomPlayerState())
+	{
+		return PS->GetAbilitySystemComponent();
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("ACustomPlayerState not found"));
+
+	return nullptr;
 }
 
-void APlayerCharacter::Target()
-{
-}
 
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (PlayerMovementComponent->MovementData)
 	{
 		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
-		SprintFOV = PlayerMovementComponent->MovementData->SprintFOV;
-		FOVInterpSpeed = PlayerMovementComponent->MovementData->FOVInterpSpeed;
+		MaxFOV = PlayerMovementComponent->MovementData->MaxFOV;
+		FOVInterpNormalSpeed = PlayerMovementComponent->MovementData->FOVInterpNormalSpeed;
+		FOVInterpAimSpeed = PlayerMovementComponent->MovementData->FOVInterpAimSpeed;
 
 		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
 		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
@@ -50,46 +57,8 @@ void APlayerCharacter::BeginPlay()
 		MouseSensitivity = PlayerMovementComponent->MovementData->MouseSensitivity;
 		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
 	}
-	
+
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
-}
-
-void APlayerCharacter::Sprint()
-{
-	if (IsLocallyControlled())
-	{
-		bool bCan = PlayerMovementComponent->CanSprint();
-		PlayerMovementComponent->bWantsToSprint = bCan;
-		if (bCan)
-		{
-			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
-			RPC_SetSprint(bCan);
-		}
-		else
-		{
-			PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
-			RPC_SetSprint(bCan);
-		}
-	}
-}
-
-void APlayerCharacter::RPC_SetSprint_Implementation(bool value)
-{
-	PlayerMovementComponent->bWantsToSprint = value;
-	if (PlayerMovementComponent->bWantsToSprint)
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultSprintSpeed;
-	else
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
-}
-
-void APlayerCharacter::StopSprint()
-{
-	if (IsLocallyControlled())
-	{
-		PlayerMovementComponent->bWantsToSprint = false;
-		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
-		RPC_SetSprint(false);
-	}
 }
 
 void APlayerCharacter::AimWeapon()
@@ -139,11 +108,6 @@ void APlayerCharacter::OnRep_IsAimingWeapon()
 	UpdateAimingSettings();
 }
 
-bool APlayerCharacter::ServerSetAim_Validate(bool bNewAiming)
-{
-	return true;
-}
-
 void APlayerCharacter::ServerSetAim_Implementation(bool bNewAiming)
 {
 	SetAimingState(bNewAiming);
@@ -153,7 +117,7 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("PossessedBy"));
+	UE_LOG(LogTemp, Log, TEXT("On possessed by %s"), *NewController->GetName());
 
 	// Server-side
 	SetControllerRef();
@@ -175,11 +139,9 @@ void APlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Yellow, TEXT("OnRep_PlayerState"));
-
 	// Client-side
 	SetControllerRef();
-	
+
 	InitAbilitySystem();
 }
 
@@ -189,89 +151,58 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	if (IsLocallyControlled())
 	{
-		CameraShake();
-
-		if (PlayerMovementComponent->IsRunning())
-		{
-			float Speed = GetVelocity().Size();
-			float TargetFOV = FMath::GetMappedRangeValueClamped(
-				FVector2D(PlayerMovementComponent->DefaultMaxWalkSpeed, PlayerMovementComponent->DefaultSprintSpeed),
-				FVector2D(DefaultFOV, SprintFOV),
-				Speed
-			);
-
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				TargetFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
-
-		if (bIsAimingWeapon)
-		{
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				AimFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
-		else if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->GetFOVAngle(), DefaultFOV) && !bIsAimingWeapon && PlayerMovementComponent->IsMovingOnGround() && !PlayerMovementComponent->IsSliding())
-		{
-			float NewFOV = FMath::FInterpTo(
-				FirstPersonCameraComponent->GetFOVAngle(),
-				DefaultFOV,
-				DeltaTime,
-				FOVInterpSpeed
-			);
-
-			FirstPersonCameraComponent->SetFOV(NewFOV);
-		}
+		CameraManager.SetFov(this, PlayerMovementComponent, DeltaTime);
 	}
 
 	Super::Tick(DeltaTime);
 }
 
-void APlayerCharacter::CameraShake()
-{
-	if (PlayerMovementComponent->IsMovingOnGround())
-	{
-		if (GetVelocity().Size() == 0.0)
-		{
-			FirstPersonCameraComponent->StartCameraShake(ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
-														 FRotator::ZeroRotator);
-		}
-		else
-		{
-			if (PlayerMovementComponent->IsRunning())
-				FirstPersonCameraComponent->StartCameraShake(ShakeRunning, 1.0f, ECameraShakePlaySpace::CameraLocal,
-				                                             FRotator::ZeroRotator);
-			else if (PlayerMovementComponent->IsWalking())
-				FirstPersonCameraComponent->StartCameraShake(ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
-				                                             FRotator::ZeroRotator);
-		}
-	}
-}
-
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	if (IsLocallyControlled())
+
+	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
+	{
+		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
+		if (PlayerMovementComponent->Impact.Z <= PlayerMovementComponent->SlopeToleranceValue * -1)
+		{
+			PlayerMovementComponent->VelocityEaseTimeline.SetPlaybackPosition(0.5f, true);
+			PlayerMovementComponent->SetMovementMode(MOVE_Custom, CMOVE_Slide);
+		}
+		else
+		{
+			PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
+			PlayerMovementComponent->TargetEaseVelocity = PlayerMovementComponent->InitialEaseVelocity.GetSafeNormal() *
+				PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
+		}
+	}
+
+	if (PlayerMovementComponent->bResetSlideCrouch)
+		PlayerMovementComponent->bResetSlideLanded = true;
+
+	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
+	{
+		PlayerMovementComponent->JumpTimeline.PlayFromStart();
+	}
+	else
+	{
+		PlayerMovementComponent->JumpTimeline.Stop();
+		PlayerMovementComponent->JumpTimeline.PlayFromStart();
+	}
+
+	if (IsLocallyControlled() && FirstPersonCameraComponent)
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
 		                                             FRotator::ZeroRotator);
 	}
-	PlayerMovementComponent->ResetJumpValues();
 }
 
 void APlayerCharacter::Falling()
 {
-	JumpCurrentCount--;
+	LastGroundedPosition = GetActorLocation();
+
+	if (!PlayerMovementComponent->bIsMelee)
+		JumpCurrentCount--;
 
 	GetWorldTimerManager().SetTimer(
 		JumpDelayHandle,
@@ -284,10 +215,11 @@ void APlayerCharacter::Falling()
 
 void APlayerCharacter::Jump()
 {
-	if (!PlayerMovementComponent->CanVaultOrClimb())
-	{
-		Super::Jump();
-	}
+	Super::Jump();
+
+	if (IsLocallyControlled())
+		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+		                                             FRotator::ZeroRotator);
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const
@@ -323,18 +255,16 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		if (Hack1Action)
-			EnhancedInput->BindAction(Hack1Action, ETriggerEvent::Started, this,
-			                          &APlayerCharacter::ActivateHack1);
+		if (Ability1Action)
+		{
+			EnhancedInput->BindAction(Ability1Action, ETriggerEvent::Started, this,
+			                          &APlayerCharacter::UseAbility, 0);
+		}
 
-		if (Hack2Action)
-			EnhancedInput->BindAction(Hack2Action, ETriggerEvent::Started,
-			                          this, &APlayerCharacter::ActivateHack2);
 
-		if (Hack3Action)
-
-			EnhancedInput->BindAction(Hack3Action, ETriggerEvent::Started,
-			                          this, &APlayerCharacter::ActivateHack3);
+		if (Ability2Action)
+			EnhancedInput->BindAction(Ability2Action, ETriggerEvent::Started, this,
+			                          &APlayerCharacter::UseAbility, 1);
 	}
 }
 
@@ -346,6 +276,8 @@ void APlayerCharacter::SetControllerRef()
 
 void APlayerCharacter::InitAbilitySystem()
 {
+	UE_LOG(LogTemp, Log, TEXT("Init Ability System"));
+
 	if (ACustomPlayerState* PS = GetCustomPlayerState())
 	{
 		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
@@ -354,7 +286,15 @@ void APlayerCharacter::InitAbilitySystem()
 		}
 	}
 
+	AbilitySlotComponent->Init();
+
 	OnPostAbilitySystemInit();
+}
+
+void APlayerCharacter::Launch(const FVector& Force)
+{
+	GetCharacterMovement()->Velocity = FVector::ZeroVector;
+	LaunchCharacter(Force, true, true);
 }
 
 ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
@@ -362,61 +302,123 @@ ACustomPlayerState* APlayerCharacter::GetCustomPlayerState() const
 	return GetPlayerState<ACustomPlayerState>();
 }
 
-void APlayerCharacter::ActivateHack1()
+void APlayerCharacter::UseAbility(int index)
 {
-	SendHackEventWithData(Hack1Tag);
+	if (ACustomPlayerState* PS = GetCustomPlayerState())
+	{
+		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+		{
+			if (AbilitySlotComponent && ASC)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Try to use ability %i"), index + 1);
+
+				FGameplayAbilitySpecHandle Handle; 
+				bool bIsInstance = true;
+				
+				for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+				{
+					if (Spec.InputID == index)
+					{
+						Handle = Spec.Handle;
+						break;
+					}
+				}
+				
+				const UGameplayAbility* GameplayAbility =
+					UAbilitySystemBlueprintLibrary::GetGameplayAbilityFromSpecHandle(ASC, Handle, bIsInstance);
+				const UGA_BaseAbility* BaseAbility = Cast<UGA_BaseAbility>(GameplayAbility);
+				
+				if (!BaseAbility)
+				{
+					UE_LOG(LogTemp, Error, TEXT("BaseAbility not found!"));
+					return;
+				}
+
+				if (TargetingComponent->CurrentTargets.IsEmpty() && BaseAbility->UseTargetingComponent) return;
+				
+				ActivateAbilityInSlotRPC(index, TargetingComponent->GetPointInSight(),
+				                         TargetingComponent->CurrentTargets);
+
+				OnAbilityActivated(index);
+			}
+		}
+	}
 }
 
-void APlayerCharacter::ActivateHack2()
+void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, FVector CurrentPointInSight,
+                                                               const TArray<AActor*>& Targets)
 {
-	SendHackEventWithData(Hack2Tag);
-}
-
-void APlayerCharacter::ActivateHack3()
-{
-	SendHackEventWithData(Hack3Tag);
-}
-
-void APlayerCharacter::SendHackEventWithData(FGameplayTag EventTag)
-{
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SendHackEventWithData"));
-	
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
 
-	if (HasAuthority())
+	if (!ASC || !AbilitySlotComponent)
 	{
-		// Should not be read
-		UE_LOG(LogTemp, Warning, TEXT("SERVER : Send event %s"), *EventTag.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CLIENT : Send event %s"), *EventTag.ToString());
+		UE_LOG(LogTemp, Error, TEXT("Missing ASC or AbilitySlotComponent"));
+		return;
 	}
 
-	FGameplayEventData EventData;
-	EventData.Instigator = this;
-	EventData.Target = this;
-	EventData.EventTag = EventTag;
+	FGameplayAbilitySpec* AbilitySpec = nullptr;
 
-	FGameplayHackTargetData* HackTargetData = new FGameplayHackTargetData();
-
-	if (TargetingComponent && TargetingComponent->CurrentTargets.Num() > 0)
+	for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
 	{
-		for (AActor* Target : TargetingComponent->CurrentTargets)
+		if (Spec.InputID == SlotIndex)
+		{
+			AbilitySpec = &Spec;
+			break;
+		}
+	}
+
+	if (!AbilitySpec)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SERVER : No ability found in slot %d"), SlotIndex);
+		return;
+	}
+
+	FCustomAbilityTargetData* TargetData = new FCustomAbilityTargetData();
+
+	if (Targets.Num() > 0)
+	{
+		for (const AActor* Target : Targets)
 		{
 			if (Target)
 			{
-				HackTargetData->Targets.Add(Target);
+				TargetData->Targets.Add(const_cast<AActor*>(Target));
 			}
 		}
 	}
 
-	FGameplayAbilityTargetDataHandle Handle;
-	Handle.Add(HackTargetData);
-	EventData.TargetData = Handle;
+	FGameplayAbilityTargetDataHandle TargetDataHandle;
+	TargetDataHandle.Add(TargetData);
 
-	ASC->HandleGameplayEvent(EventTag, &EventData);
+	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+	ContextHandle.AddOrigin(CurrentPointInSight);
+	if (!AbilitySpec->GameplayEventData.IsValid())
+	{
+		AbilitySpec->GameplayEventData = MakeShared<FGameplayEventData>();
+		//UE_LOG(LogTemp, Log, TEXT("SERVER : Created new GameplayEventData"));
+	}
+
+	AbilitySpec->GameplayEventData->Instigator = this;
+	AbilitySpec->GameplayEventData->Target = this;
+	AbilitySpec->GameplayEventData->TargetData = TargetDataHandle;
+	AbilitySpec->GameplayEventData->ContextHandle = ContextHandle;
+
+	ASC->TryActivateAbility(AbilitySpec->Handle);
+}
+
+void APlayerCharacter::GiveCharacterAbilities(TArray<TSubclassOf<UGA_BaseAbility>> Abilities)
+{
+	if (!GetAbilitySystemComponent() || !HasAuthority()) return;
+
+	for (int i = 0; i < Abilities.Num(); ++i)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Gave ability: %s"), *Abilities[i]->GetName());
+
+		if (i >= AbilitySlotComponent->MaxSlots) return;
+
+		AbilitySlotComponent->AssignAbilityToSlot(Abilities[i], i);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Gave all character abilities"));
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

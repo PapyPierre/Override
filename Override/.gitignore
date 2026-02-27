@@ -49,7 +49,6 @@ SourceArt/**/*.tga
 
 # Binary Files
 Binaries/*
-Plugins/**/Binaries/*
 
 # Builds
 Build/*
@@ -71,6 +70,14 @@ Saved/*
 # Compiled source files for the engine to use
 Intermediate/*
 Plugins/**/Intermediate/*
+
+# FMOD
+Content/FMOD
+!Content/FMOD/Desktop
+!Content/FMOD/Mobile
+!Plugins/FMODStudio/Binaries/*.dll
+!Plugins/FMODStudio/Binaries/*.lib
+!Plugins/FMODStudioNiagara/Binaries/*.dll
 
 # Cache files for the editor to use
 DerivedDataCache/*

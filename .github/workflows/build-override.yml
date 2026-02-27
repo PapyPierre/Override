@@ -12,54 +12,109 @@ jobs:
 
     env:
       PROJECT_NAME: Override
-      UE_ENGINE_PATH: D:\Work\Repo\UnrealEngine
-      BUILD_SCRIPT: D:\Work\Repo\Override\Override\Build_Override_Auto.bat
-      OUTPUT_DIR: D:\Work\Build\Override\Build
-      ZIP_OUTPUT: D:\Work\Build\Override\Zip
-
+      PROJECT_PATH: C:\actions-runner\_work\Override\Override\Override
+      UE_ENGINE_PATH: C:\partage\Tchoupi Source Light\UnrealEngine
+      BUILD_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Builder.bat
+      ZIP_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Zipper.bat
+      VERSION_UPDATE_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Updater.ps1
+      BUILD_UPLOADER_SCRIPT: C:\Users\SIG5-PROJ05\Desktop\Tchoupi_Tools\Tchoupi_Cloud_Uploader.ps1
+      OUTPUT_DIR: C:\Users\SIG5-PROJ05\Desktop\Build_Archive\Server\Win64
+      SERVER_BUILD_OUTPUT: C:\Users\SIG5-PROJ05\Desktop\
+      DOTNET_DISABLE_VULNERABILITY_ANALYSIS: true
+    
     steps:
-      # 1. Checkout du code
+      - name: Set start time
+        shell: pwsh
+        run: |
+          $start = Get-Date
+          echo "BUILD_START=$($start.ToUniversalTime().ToString('o'))" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          lfs: true  # Si vous utilisez des assets volumineux
+          lfs: true
+          clean: false
 
-      # 2. Configuration du cache (optionnel mais recommandé)
       - name: Cache Unreal DerivedDataCache
         uses: actions/cache@v4
         with:
           path: |
-            D:\Work\Repo\Override\Override\Saved\DerivedDataCache
+            C:\actions-runner\_work\Override\Override\Override\Saved\DerivedDataCache
           key: ${{ runner.os }}-ddc-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-ddc-
 
-      # 3. Build du client
+      - name: Cache Binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\actions-runner\_work\Override\Override\Override\Binaries
+            C:\actions-runner\_work\Override\Override\Override\Intermediate
+          key: ${{ runner.os }}-binaries-${{ github.ref }}
+          restore-keys: |
+            ${{ runner.os }}-binaries-
+
+      - name: Update Versioning
+        shell: pwsh
+        run: |
+          & $env:VERSION_UPDATE_SCRIPT -Branch "${{ github.ref_name }}"
+
+      - name: Delete FMOD Intermediate Folder
+        shell: cmd
+        run: |
+          rd /s /q C:\actions-runner\_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
+
+      - name: Build Editor
+        shell: cmd
+        run: |
+          call "${{ env.UE_ENGINE_PATH }}\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" OverrideEditor Win64 Development -Project="${{ env.PROJECT_PATH }}\${{ env.PROJECT_NAME }}.uproject"
+
       - name: Build Client (Iterate)
         run: |
-          call "${{ env.BUILD_SCRIPT }}" client iterate
+          call "${{ env.BUILD_SCRIPT }}" client iterate ${{ env.FULL_VERSION }}
+        shell: cmd
+        
+      - name: Zip Client
+        run: |
+          call "${{ env.ZIP_SCRIPT }}" ${{ env.FULL_VERSION }}
         shell: cmd
 
-      # 4. Build du serveur
       - name: Build Server (Full)
         run: |
-          call "${{ env.BUILD_SCRIPT }}" server full
+          call "${{ env.BUILD_SCRIPT }}" server full ${{ env.FULL_VERSION }}
         shell: cmd
-
-      # 5. Compression (zip)
-      - name: Create ZIP archives
+        
+      - name: Upload Client Build In Cloud
+        shell: pwsh
         run: |
-          powershell -Command ^
-            "New-Item -ItemType Directory -Force -Path '${{ env.ZIP_OUTPUT }}'; ^
-            Get-ChildItem '${{ env.OUTPUT_DIR }}' -Directory | ForEach-Object { ^
-              $zipPath = Join-Path '${{ env.ZIP_OUTPUT }}' ($_.Name + '.zip'); ^
-              Compress-Archive -Path $_.FullName -DestinationPath $zipPath -Force; ^
-              Write-Host 'Zipped:' $zipPath }"
-        shell: cmd
+          & $env:BUILD_UPLOADER_SCRIPT
 
-      # 6. Upload des artefacts (consultables dans l’interface GitHub Actions)
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Override-Builds
-          path: ${{ env.ZIP_OUTPUT }}
+      - name: Send Discord Notification
+        if: always()
+        shell: pwsh
+        run: |
+          $startTime = [DateTime]::Parse($env:BUILD_START)
+          $endTime = Get-Date
+          $duration = $endTime - $startTime
+          $durationFormatted = "{0:D2}h:{1:D2}m:{2:D2}s" -f $duration.Hours, $duration.Minutes, $duration.Seconds
+          
+          $status = '${{ job.status }}'
+          $color = 0x00ff00
+          if ($status -eq 'failure') { $color = 0xff0000 }
+          elseif ($status -eq 'cancelled') { $color = 0x808080 }
+          
+          $payload = @{
+            embeds = @(@{
+              title = '${{ github.workflow }}'
+              description = "Build terminé avec le statut **$status**"
+              color = $color
+              fields = @(
+                @{ name = 'Branch'; value = '${{ github.ref_name }}' }
+                @{ name = 'Version'; value = "$($env:FULL_VERSION)" },
+                @{ name = 'Durée'; value = "$durationFormatted" },
+                @{ name = 'Logs'; value = "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+              )
+            })
+          } | ConvertTo-Json -Depth 5
+          
+          Invoke-RestMethod -Uri '${{ secrets.DISCORD_TCHOUPI_NOTIFIER }}' -Method Post -ContentType 'application/json' -Body $payload

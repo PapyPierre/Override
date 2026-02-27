@@ -55,25 +55,3 @@ bool ACustomPlayerState::GetCdRemainingForTag(FGameplayTagContainer CdTags, floa
 	return false;
 }
 
-void ACustomPlayerState::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (HasAuthority())
-	{
-		GiveCharacterHacks();
-	}
-}
-
-void ACustomPlayerState::GiveCharacterHacks()
-{
-	if (!GetAbilitySystemComponent()) return;
-
-	for (TSubclassOf<UBaseHack>& Hack : CharacterHacks)
-	{
-		FGameplayAbilitySpec HackSpec(Hack, 1, INDEX_NONE, this);
-		FGameplayAbilitySpecHandle Handle = GetAbilitySystemComponent()->GiveAbility(HackSpec);
-
-		UE_LOG(LogTemp, Warning, TEXT("Server hack gave: %s to %s"), *Hack->GetName(), *this->GetName());
-	}
-}

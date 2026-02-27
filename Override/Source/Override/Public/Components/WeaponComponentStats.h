@@ -24,6 +24,15 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	float MaxRange = 1000;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	float ShootRadius = 22.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	float FastReload = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	float SlowReload = 1.5f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	float RPM = 750;
@@ -33,4 +42,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	int MaxMunition = 30;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
+	int StockMunition = 200;	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
+	float MeleeCoolDown = 1.2f;
 };
