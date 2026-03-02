@@ -173,6 +173,18 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
 	}
 
+	FVector CurrentVelocity = PlayerMovementComponent->Velocity;
+	FVector HorizontalVelocity = FVector(CurrentVelocity.X, CurrentVelocity.Y, 0.f);
+	float HorizontalSpeed = GetVelocity().Size();
+
+	if (PlayerMovementComponent->bWantsToSlide && HorizontalSpeed > 1500.f)
+	{
+		float PreservePercent = 1.2f;
+		FVector NewHorizontalVelocity = HorizontalVelocity.GetSafeNormal() * (HorizontalSpeed * PreservePercent);
+
+		PlayerMovementComponent->AddImpulse(NewHorizontalVelocity, true);
+	}
+
 	if (IsLocallyControlled() && FirstPersonCameraComponent)
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,

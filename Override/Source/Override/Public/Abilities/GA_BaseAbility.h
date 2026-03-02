@@ -24,6 +24,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	bool UseTargetingComponent;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool SelfCast;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Cooldown")
 	TSubclassOf<UGameplayEffect> CooldownEffectClass;
 	
