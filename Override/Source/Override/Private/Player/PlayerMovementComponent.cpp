@@ -81,6 +81,8 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	DashTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
 
+	//DebugSlideNetwork(TEXT("Tick"));
+
 #pragma region DEBUG
 	/*
 	/////////GROSSE ZONE DE DEBUG
@@ -228,9 +230,6 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
     if (MovementMode == MOVE_Custom)
     {
         CustomModeString = FString::Printf(TEXT("Custom: %d"), CustomMovementMode);
-
-        // Si tu as un enum custom :
-        // CustomModeString = UEnum::GetValueAsString((ECustomMovementMode)MoveComp->CustomMovementMode);
     }
 
     // ==========================
@@ -251,8 +250,9 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
     // ==========================
     // SPEED / VELOCITY
     // ==========================
+
     float Speed = Velocity.Size();
-	
+
     // ==========================
     // LOCATION
     // ==========================
@@ -269,10 +269,25 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
         "LocalRole: %s\n"
         "RemoteRole: %s\n\n"
 
+        "---- SLIDE STATE ----\n"
         "CanSlide: %s\n"
+        "IsSliding(): %s\n"
         "bIsSliding: %s\n"
         "bWantsToSlide: %s\n"
+        "bResetSlideCrouch: %s\n"
+        "bResetSlideLanded: %s\n"
+        "bCoolDownFinished: %s\n\n"
 
+        "TimeSliding: %.2f\n"
+        "SlideImpulse: %.2f\n"
+        "SlopeToleranceValue: %.2f\n\n"
+
+        "SlideCooldownRemaining: %.2f\n"
+        "SlideCooldownDuration: %.2f\n\n"
+
+        "VelocityAtCrouch: %s\n\n"
+
+        "---- MOVEMENT ----\n"
         "MovementMode: %s\n"
         "CustomMode: %s\n\n"
 
@@ -280,6 +295,7 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
         "Velocity: %s\n"
         "Acceleration: %s\n\n"
 
+        "---- FLOOR ----\n"
         "FloorAngle: %.2f\n"
         "FloorNormal: %s\n\n"
 
@@ -292,8 +308,21 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
         *RemoteRoleString,
 
         CanSlide() ? TEXT("TRUE") : TEXT("FALSE"),
+        IsSliding() ? TEXT("TRUE") : TEXT("FALSE"),
         bIsSliding ? TEXT("TRUE") : TEXT("FALSE"),
         bWantsToSlide ? TEXT("TRUE") : TEXT("FALSE"),
+        bResetSlideCrouch ? TEXT("TRUE") : TEXT("FALSE"),
+        bResetSlideLanded ? TEXT("TRUE") : TEXT("FALSE"),
+        bCoolDownFinished ? TEXT("TRUE") : TEXT("FALSE"),
+
+        TimeSliding,
+        SlideImpulse,
+        SlopeToleranceValue,
+
+        SlideCooldownRemaining,
+        SlideCooldownDuration,
+
+        *VelocityAtCrouch.ToCompactString(),
 
         *MovementModeString,
         *CustomModeString,
@@ -307,10 +336,6 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
 
         *Location.ToCompactString()
     );
-
-    // ==========================
-    // DISPLAY (Keys séparées)
-    // ==========================
 
     int32 Key = CharacterRef->HasAuthority() ? 500 : 600;
 
@@ -505,7 +530,6 @@ void UPlayerMovementComponent::ResetSlideValues()
 void UPlayerMovementComponent::ExitSlide(float DeltaTime, int32 Iterations)
 {
 	ResetSlideValues();
-	SetMovementMode(MOVE_Walking);
 	StartNewPhysics(DeltaTime, Iterations);
 }
 #pragma endregion
@@ -627,6 +651,10 @@ void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSec
 	{
 		bCoolDownFinished = false;
 		SetMovementMode(MOVE_Custom, CMOVE_Slide);
+	}
+	else if (!bWantsToSlide && bIsSliding)
+	{
+		ExitSlide(DeltaSeconds, 0);
 	}
 	
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
