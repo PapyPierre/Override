@@ -46,6 +46,7 @@ void UPlayerMovementComponent::BeginPlay()
 	JumpZVelocity = FirstJumpZVelocity;
 	DefaultAirControl = AirControl;
 	DefaultMaxWalkSpeed = MaxWalkSpeed;
+	DefaultMaxAcceleration = MaxAcceleration;
 
 	//TRACE FOR PARKOUR
 	TraceParams.bTraceComplex = true;
@@ -174,23 +175,18 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
+void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 {
 	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
 	Launch(Dash);
 	GroundFriction = 0.0;
-	BrakingDecelerationWalking = 1400;
-	bIsMelee = true;
+	BrakingDecelerationWalking = 0;
+	bIsDashing = true;
 	bWantsToDash = false;
-	
-	CharacterRef->GetWorldTimerManager().SetTimer(
-		SimpleDelayHandle,
-		this,
-		&UPlayerMovementComponent::OnDelayFinishedDash,
-		0.3f,
-		false
-	);
+	DashTimeline.PlayFromStart();
+	MaxAcceleration = 0;
+	DashCooldownRemaining = ResetDashCooldown;
 }
 
 void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
@@ -205,7 +201,8 @@ bool UPlayerMovementComponent::Server_GetInputLastDirection_Validate(const FVect
 
 void UPlayerMovementComponent::OnDelayFinishedDash()
 {
-	bIsMelee = false;
+	bIsDashing = false;
+	MaxAcceleration = DefaultMaxAcceleration;
 	GroundFriction = DefaultGroundFriction;
 	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
 }
@@ -330,7 +327,7 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	switch (CustomMovementMode)
 	{
 	case CMOVE_Melee:
-		PhysMelee(DeltaTime, Iterations);
+		PhysDash(DeltaTime, Iterations);
 		break;
 	case CMOVE_Slide:
 		PhysSlide(DeltaTime, Iterations);
@@ -379,10 +376,12 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 	if (bIsSliding)
 	{
 		TimeSliding += DeltaTime;
-    
+		const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+		const float timeTick = GetSimulationTimeStep(DeltaTime, Iterations);
+
 		Acceleration = Acceleration.GetSafeNormal() * MaxAccelerationForSlide;
 		CalcVelocity(
-			DeltaTime,
+			timeTick,
 			FrictionInSlide,
 			false,
 			BrakingDecelerationInSlide
@@ -415,7 +414,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				SlideGravityForce = SpeedDecreaseInSlope;
 			}
 
-			Velocity += DownSlope * GravityFactor * SlideGravityForce * DeltaTime;
+			Velocity += DownSlope * GravityFactor * SlideGravityForce * timeTick;
 
 			const float MaxSlideSpeed = MaxVelocityForSlide;
 			if (Velocity.Size() > MaxSlideSpeed)
@@ -424,9 +423,20 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 			}
 		}
 		
-		MoveAlongFloor(Velocity, DeltaTime);
+		MoveAlongFloor(Velocity, timeTick);
+		
+		if (IsMovingOnGround())
+		{
+			if (!bJustTeleported 
+				&& !HasAnimRootMotion() 
+				&& !CurrentRootMotion.HasOverrideVelocity() 
+				&& timeTick >= MIN_TICK_TIME)
+			{
+				Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / timeTick;
+				MaintainHorizontalGroundVelocity();
+			}
+		}
 
-		// 🔹 Recheck floor immédiatement
 		FFindFloorResult NewFloor;
 		FindFloor(UpdatedComponent->GetComponentLocation(), NewFloor, false);
 
@@ -610,6 +620,8 @@ void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSec
 	{
 		bCoolDownFinished = true;
 	}
+
+	DashCooldown(DeltaSeconds);
 	
 	if (bWantsToSlide && IsMovingOnGround() && bCoolDownFinished)
 	{
@@ -618,6 +630,19 @@ void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSec
 	}
 	
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+}
+
+void UPlayerMovementComponent::DashCooldown(float DeltaSeconds)
+{
+	if (DashCooldownRemaining > 0.f && bIsDashing)
+	{
+		DashCooldownRemaining -= DeltaSeconds;
+	}
+	else if (bIsDashing)
+	{
+		DashCooldownRemaining = ResetDashCooldown;
+		OnDelayFinishedDash();
+	}
 }
 
 void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode,

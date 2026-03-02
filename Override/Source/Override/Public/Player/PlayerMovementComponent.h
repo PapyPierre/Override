@@ -32,6 +32,7 @@ public:
 	float DefaultBrakingDecelerationWalking;
 	float DefaultMaxWalkSpeedCrouched;
 	float DefaultMaxWalkSpeed;
+	float DefaultMaxAcceleration;
 
 	float BackwardSpeed;
 	float SideSpeed;
@@ -53,14 +54,18 @@ public:
 	
 	float EaseOutTimeDash = 0.15f;
 	float DashImpulse = 2000.f;
+	float ResetDashCooldown = 0.3f;
+	float DashCooldownRemaining = 0;
+	bool bIsDashCoolingDown = false;
 	
 	FVector MoveDirectionMelee;
 	FTimerHandle SimpleDelayHandle;
 
 	void OnDelayFinishedDash();
+	void DashCooldown(float DeltaSeconds);
 
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
-	bool bIsMelee = false;
+	bool bIsDashing = false;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
 	bool bWantsToDash;
@@ -130,7 +135,7 @@ private:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
 	
-	virtual void PhysMelee(float DeltaTime, int32 Iterations);
+	virtual void PhysDash(float DeltaTime, int32 Iterations);
 
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 	
