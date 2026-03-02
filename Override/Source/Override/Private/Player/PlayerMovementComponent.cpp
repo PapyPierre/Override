@@ -376,10 +376,12 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 	if (bIsSliding)
 	{
 		TimeSliding += DeltaTime;
-    
+		const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+		const float timeTick = GetSimulationTimeStep(DeltaTime, Iterations);
+
 		Acceleration = Acceleration.GetSafeNormal() * MaxAccelerationForSlide;
 		CalcVelocity(
-			DeltaTime,
+			timeTick,
 			FrictionInSlide,
 			false,
 			BrakingDecelerationInSlide
@@ -412,7 +414,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				SlideGravityForce = SpeedDecreaseInSlope;
 			}
 
-			Velocity += DownSlope * GravityFactor * SlideGravityForce * DeltaTime;
+			Velocity += DownSlope * GravityFactor * SlideGravityForce * timeTick;
 
 			const float MaxSlideSpeed = MaxVelocityForSlide;
 			if (Velocity.Size() > MaxSlideSpeed)
@@ -421,9 +423,20 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 			}
 		}
 		
-		MoveAlongFloor(Velocity, DeltaTime);
+		MoveAlongFloor(Velocity, timeTick);
+		
+		if (IsMovingOnGround())
+		{
+			if (!bJustTeleported 
+				&& !HasAnimRootMotion() 
+				&& !CurrentRootMotion.HasOverrideVelocity() 
+				&& timeTick >= MIN_TICK_TIME)
+			{
+				Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / timeTick;
+				MaintainHorizontalGroundVelocity();
+			}
+		}
 
-		// 🔹 Recheck floor immédiatement
 		FFindFloorResult NewFloor;
 		FindFloor(UpdatedComponent->GetComponentLocation(), NewFloor, false);
 
