@@ -179,7 +179,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 
 	if (PlayerMovementComponent->bWantsToSlide && HorizontalSpeed > 1500.f)
 	{
-		float PreservePercent = 1.2f;
+		float PreservePercent = 1.5f;
 		FVector NewHorizontalVelocity = HorizontalVelocity.GetSafeNormal() * (HorizontalSpeed * PreservePercent);
 
 		PlayerMovementComponent->AddImpulse(NewHorizontalVelocity, true);
