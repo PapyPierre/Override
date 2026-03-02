@@ -530,6 +530,7 @@ void UPlayerMovementComponent::ResetSlideValues()
 void UPlayerMovementComponent::ExitSlide(float DeltaTime, int32 Iterations)
 {
 	ResetSlideValues();
+	SetMovementMode(MOVE_Walking);			
 	StartNewPhysics(DeltaTime, Iterations);
 }
 #pragma endregion
@@ -629,7 +630,8 @@ void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 
 void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
-	bWantsToSlide = bWantsToCrouch;
+	if (IsMovingOnGround())
+		bWantsToSlide = bWantsToCrouch;
 	
 	if (SlideCooldownRemaining > 0.f && !bWantsToSlide)
 	{
