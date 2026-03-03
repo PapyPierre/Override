@@ -22,7 +22,7 @@ public:
 	FGameplayTag CooldownTag;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-	bool UseTargetingComponent;
+	bool RequiresTargets;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	bool SelfCast;
