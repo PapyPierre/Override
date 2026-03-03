@@ -81,8 +81,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	DashTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
 
-	HandleSlow(DeltaTime);
-
 	//DebugSlideNetwork(TEXT("Tick"));
 
 #pragma region DEBUG
@@ -543,12 +541,6 @@ bool UPlayerMovementComponent::IsCustomMovementModeOn(uint8 customMovementMode) 
 	return MovementMode == MOVE_Custom && CustomMovementMode == customMovementMode;
 }
 
-void UPlayerMovementComponent::Slow(float Duration)
-{
-	IsSlowed = true;
-	SlowDuration = Duration;
-}
-
 float UPlayerMovementComponent::GetMaxSpeed() const
 {
 	float BaseSpeed = DefaultMaxWalkSpeed;
@@ -771,19 +763,6 @@ void UPlayerMovementComponent::DebugPrintClientIds()
 
 	// Log
 	UE_LOG(LogTemp, Warning, TEXT("%s executing function"), *WhoExecutes);
-}
-
-void UPlayerMovementComponent::HandleSlow(float DeltaTime)
-{
-	if (!IsSlowed) return;
-
-	if (SlowTimer > SlowDuration)
-	{
-		IsSlowed = false;
-		SlowTimer = 0.f;
-	}
-
-	SlowTimer += DeltaTime;
 }
 
 void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

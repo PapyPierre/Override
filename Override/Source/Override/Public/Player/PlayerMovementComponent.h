@@ -48,8 +48,8 @@ public:
 	virtual bool IsMovingOnGround() const override;
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
-	UFUNCTION(BlueprintCallable)
-	void Slow(float Duration);
+	UPROPERTY(BlueprintReadWrite)
+	bool IsSlowed;
 
 #pragma region Dash
 	UPROPERTY()
@@ -134,9 +134,6 @@ public:
 #pragma endregion
 
 private:
-	bool IsSlowed;
-	float SlowTimer;
-	float SlowDuration;
 	
 	virtual void BeginPlay() override;
 
@@ -175,8 +172,6 @@ private:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void DebugPrintClientIds();
-
-	void HandleSlow(float DeltaTime);
 };
 
 class FSavedMove_MyMovement : public FSavedMove_Character
