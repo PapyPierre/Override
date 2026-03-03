@@ -328,7 +328,7 @@ void APlayerCharacter::UseAbility(int index)
 					return;
 				}
 
-				if (TargetingComponent->CurrentTargets.IsEmpty() && BaseAbility->UseTargetingComponent) return;
+				if (TargetingComponent->CurrentTargets.IsEmpty() && BaseAbility->RequiresTargets) return;
 				
 				ActivateAbilityInSlotRPC(index, TargetingComponent->GetPointInSight(),
 				                         TargetingComponent->CurrentTargets);

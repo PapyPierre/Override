@@ -106,7 +106,7 @@ protected:
 	void HandleLock(float DeltaTime);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable)
-	void Lock();
+	void Lock(bool ResetLockCD);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void RPC_ChangeState(ModState NewState);
