@@ -48,6 +48,9 @@ public:
 	virtual bool IsMovingOnGround() const override;
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
+	UPROPERTY(BlueprintReadWrite)
+	bool IsSlowed;
+
 #pragma region Dash
 	UPROPERTY()
 	FTimeline DashTimeline;
@@ -109,6 +112,7 @@ public:
 	bool CanSlide();
 	void ResetSlideValues();
 	void ExitSlide(float DeltaTime, int32 Iterations);
+	
 #pragma endregion
 
 #pragma region Jump
@@ -130,6 +134,7 @@ public:
 #pragma endregion
 
 private:
+	
 	virtual void BeginPlay() override;
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
