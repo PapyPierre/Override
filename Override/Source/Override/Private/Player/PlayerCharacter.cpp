@@ -177,12 +177,11 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	FVector HorizontalVelocity = FVector(CurrentVelocity.X, CurrentVelocity.Y, 0.f);
 	float HorizontalSpeed = GetVelocity().Size();
 
-	if (PlayerMovementComponent->bWantsToSlide && HorizontalSpeed > 1500.f)
+	if (PlayerMovementComponent->bIsSliding && PlayerMovementComponent->bWantsToCrouch && HorizontalSpeed > 1500.f)
 	{
 		float PreservePercent = 1.5f;
 		FVector NewHorizontalVelocity = HorizontalVelocity.GetSafeNormal() * (HorizontalSpeed * PreservePercent);
-
-		PlayerMovementComponent->AddImpulse(NewHorizontalVelocity, true);
+		PlayerMovementComponent->Velocity += NewHorizontalVelocity;
 	}
 
 	if (IsLocallyControlled() && FirstPersonCameraComponent)
