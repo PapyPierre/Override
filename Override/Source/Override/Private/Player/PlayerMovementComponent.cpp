@@ -560,18 +560,21 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	FVector Forward = CharacterRef->GetActorForwardVector();
 	float ForwardDot = FVector::DotProduct(Forward, VelocityDir);
 
+	float SuperMaxSpeed = Super::GetMaxSpeed();
+	
+	if (IsSlowed)
+		SuperMaxSpeed *= 0.75;
+
 	if (ForwardDot > 0.5f)
 	{
-		return Super::GetMaxSpeed();
+		return SuperMaxSpeed;
 	}
-	else if (ForwardDot < -0.5f)
+	if (ForwardDot < -0.5f)
 	{
-		return Super::GetMaxSpeed() * BackwardSpeed;
+		return SuperMaxSpeed * BackwardSpeed;
 	}
-	else
-	{
-		return Super::GetMaxSpeed() * SideSpeed;
-	}
+	
+	return SuperMaxSpeed * SideSpeed;
 }
 
 bool UPlayerMovementComponent::IsMovingOnGround() const
