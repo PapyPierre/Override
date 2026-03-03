@@ -35,10 +35,9 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("ACustomPlayerState not found"));
-	
+
 	return nullptr;
 }
-
 
 
 void APlayerCharacter::BeginPlay()
@@ -161,22 +160,6 @@ void APlayerCharacter::Tick(float DeltaTime)
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-
-	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
-	{
-		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
-		if (PlayerMovementComponent->Impact.Z <= PlayerMovementComponent->SlopeToleranceValue *- 1)
-		{
-			PlayerMovementComponent->VelocityEaseTimeline.SetPlaybackPosition(0.5f, true);
-			PlayerMovementComponent->SetMovementMode(MOVE_Custom, CMOVE_Slide);
-		}
-		else
-		{
-			PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
-			PlayerMovementComponent->TargetEaseVelocity = PlayerMovementComponent->InitialEaseVelocity.GetSafeNormal() * PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
-		}
-	}
-
 	if (PlayerMovementComponent->bResetSlideCrouch)
 		PlayerMovementComponent->bResetSlideLanded = true;
 	
@@ -190,6 +173,18 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
 	}
 
+	FVector CurrentVelocity = PlayerMovementComponent->Velocity;
+	FVector HorizontalVelocity = FVector(CurrentVelocity.X, CurrentVelocity.Y, 0.f);
+	float HorizontalSpeed = GetVelocity().Size();
+
+	if (PlayerMovementComponent->bWantsToSlide && HorizontalSpeed > 1500.f)
+	{
+		float PreservePercent = 1.5f;
+		FVector NewHorizontalVelocity = HorizontalVelocity.GetSafeNormal() * (HorizontalSpeed * PreservePercent);
+
+		PlayerMovementComponent->AddImpulse(NewHorizontalVelocity, true);
+	}
+
 	if (IsLocallyControlled() && FirstPersonCameraComponent)
 	{
 		FirstPersonCameraComponent->StartCameraShake(ShakeLanding, 1.0f, ECameraShakePlaySpace::CameraLocal,
@@ -199,9 +194,10 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 
 void APlayerCharacter::Falling()
 {
-	JumpCurrentCount--;
-
 	LastGroundedPosition = GetActorLocation();
+
+	if (!PlayerMovementComponent->bIsDashing)
+		JumpCurrentCount--;
 
 	GetWorldTimerManager().SetTimer(
 		JumpDelayHandle,
@@ -215,9 +211,10 @@ void APlayerCharacter::Falling()
 void APlayerCharacter::Jump()
 {
 	Super::Jump();
+
 	if (IsLocallyControlled())
 		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
-														 FRotator::ZeroRotator);
+		                                             FRotator::ZeroRotator);
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const
@@ -275,7 +272,7 @@ void APlayerCharacter::SetControllerRef()
 void APlayerCharacter::InitAbilitySystem()
 {
 	UE_LOG(LogTemp, Log, TEXT("Init Ability System"));
-	
+
 	if (ACustomPlayerState* PS = GetCustomPlayerState())
 	{
 		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
@@ -310,6 +307,30 @@ void APlayerCharacter::UseAbility(int index)
 			{
 				UE_LOG(LogTemp, Log, TEXT("Try to use ability %i"), index + 1);
 
+				FGameplayAbilitySpecHandle Handle; 
+				bool bIsInstance = true;
+				
+				for (FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+				{
+					if (Spec.InputID == index)
+					{
+						Handle = Spec.Handle;
+						break;
+					}
+				}
+				
+				const UGameplayAbility* GameplayAbility =
+					UAbilitySystemBlueprintLibrary::GetGameplayAbilityFromSpecHandle(ASC, Handle, bIsInstance);
+				const UGA_BaseAbility* BaseAbility = Cast<UGA_BaseAbility>(GameplayAbility);
+				
+				if (!BaseAbility)
+				{
+					UE_LOG(LogTemp, Error, TEXT("BaseAbility not found!"));
+					return;
+				}
+
+				if (TargetingComponent->CurrentTargets.IsEmpty() && BaseAbility->UseTargetingComponent) return;
+				
 				ActivateAbilityInSlotRPC(index, TargetingComponent->GetPointInSight(),
 				                         TargetingComponent->CurrentTargets);
 
@@ -347,8 +368,6 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 		return;
 	}
 
-	//UE_LOG(LogTemp, Log, TEXT("SERVER : Found ability in slot %d, preparing data"), SlotIndex);
-
 	FCustomAbilityTargetData* TargetData = new FCustomAbilityTargetData();
 
 	if (Targets.Num() > 0)
@@ -358,20 +377,15 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 			if (Target)
 			{
 				TargetData->Targets.Add(const_cast<AActor*>(Target));
-				//UE_LOG(LogTemp, Log, TEXT("SERVER : Added target: %s"), *Target->GetName());
 			}
 		}
 	}
-
-	//UE_LOG(LogTemp, Log, TEXT("SERVER : Total targets: %d"), TargetData->Targets.Num());
 
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
 	TargetDataHandle.Add(TargetData);
 
 	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
 	ContextHandle.AddOrigin(CurrentPointInSight);
-	//UE_LOG(LogTemp, Log, TEXT("SERVER : Origin point: %s"), *CurrentPointInSight.ToString());
-
 	if (!AbilitySpec->GameplayEventData.IsValid())
 	{
 		AbilitySpec->GameplayEventData = MakeShared<FGameplayEventData>();
@@ -382,60 +396,6 @@ void APlayerCharacter::ActivateAbilityInSlotRPC_Implementation(int32 SlotIndex, 
 	AbilitySpec->GameplayEventData->Target = this;
 	AbilitySpec->GameplayEventData->TargetData = TargetDataHandle;
 	AbilitySpec->GameplayEventData->ContextHandle = ContextHandle;
-
-	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
-	{
-		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
-		//UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored origin: %s"), *StoredOrigin.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SERVER : ContextHandle is INVALID after setting!"));
-	}
-
-	if (AbilitySpec->GameplayEventData->TargetData.IsValid(0))
-	{
-		const FCustomAbilityTargetData* StoredData =
-			static_cast<const FCustomAbilityTargetData*>(
-				AbilitySpec->GameplayEventData->TargetData.Get(0)
-			);
-
-		if (StoredData)
-		{
-			//UE_LOG(LogTemp, Log, TEXT("SERVER : Verified stored targets: %d"), StoredData->Targets.Num());
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SERVER : TargetData is INVALID after setting!"));
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Calling TryActivateAbility..."));
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Received CurrentPointInSight = %s"),
-	       *CurrentPointInSight.ToString());
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : Number of targets = %d"),
-	       TargetingComponent->CurrentTargets.Num());
-
-	UE_LOG(LogTemp, Log, TEXT("SERVER : TargetData->Targets.Num() = %d"),
-	       TargetData->Targets.Num());
-
-	if (ContextHandle.IsValid())
-	{
-		FVector Origin = ContextHandle.GetOrigin();
-		//UE_LOG(LogTemp, Log, TEXT("SERVER : ContextHandle origin = %s"), *Origin.ToString());
-	}
-
-	if (AbilitySpec->GameplayEventData->ContextHandle.IsValid())
-	{
-		FVector StoredOrigin = AbilitySpec->GameplayEventData->ContextHandle.GetOrigin();
-		//UE_LOG(LogTemp, Log, TEXT("SERVER : Stored in Spec, origin = %s"), *StoredOrigin.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("SERVER : ContextHandle INVALID after storing!"));
-	}
 
 	ASC->TryActivateAbility(AbilitySpec->Handle);
 }

@@ -45,19 +45,23 @@ public:
 	
 #pragma region Slide
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
-	float SlidingCoolDown = 0.2;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
-	float BoostSlidingTime = 1.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
-	float EaseOutTime = 0.2f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
 	float SlideImpulse = 600.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
 	float SlopeToleranceValue = 0.02;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
-	float MinDiffVelocityToAllowSlide = 100;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
 	float MaxVelocityForSlide = 1000;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float SlideCoolDownDuration = 0.3f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float SpeedIncreaseInSlope = 20000;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float SpeedDecreaseInSlope = 1000;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float Friction = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float BrakingDeceleration = 750;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Slide")
+	float MaxAccelerationForSlide = 1000;
 #pragma endregion
 
 #pragma region Melee

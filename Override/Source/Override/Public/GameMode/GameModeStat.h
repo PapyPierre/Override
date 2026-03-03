@@ -50,4 +50,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
 	float EnemiesSpawnInhibitRange = 1500;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Points")
+	int FlagInitialTake = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Points")
+	int FirstIgniteInARow = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Points")
+	int SecondIgniteInARow = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Points")
+	int ThirdIgniteInARow = 1;
 };

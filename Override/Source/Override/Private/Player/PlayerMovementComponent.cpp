@@ -18,13 +18,15 @@ void UPlayerMovementComponent::BeginPlay()
 		SideSpeed = MovementData->SpeedSideReduction;
 		
 		//Slide
-		SlidingCoolDown = MovementData->SlidingCoolDown;
-		BoostSlidingTime = MovementData->BoostSlidingTime;
-		EaseOutTime = MovementData->EaseOutTime;
 		SlideImpulse = MovementData->SlideImpulse;
 		SlopeToleranceValue = MovementData->SlopeToleranceValue;
-		MinDiffVelocityToAllowSlide = MovementData->MinDiffVelocityToAllowSlide;
+		SlideCooldownDuration = MovementData->SlideCoolDownDuration;
 		MaxVelocityForSlide = MovementData->MaxVelocityForSlide;
+		SpeedDecreaseInSlope = MovementData->SpeedDecreaseInSlope;
+		SpeedIncreaseInSlope = MovementData->SpeedIncreaseInSlope;
+		MaxAccelerationForSlide = MovementData->MaxAccelerationForSlide;
+		BrakingDecelerationInSlide = MovementData->BrakingDeceleration;
+		FrictionInSlide = MovementData->Friction;
 		
 		//Jump
 		FirstJumpZVelocity = MovementData->FirstJumpZVelocity;
@@ -44,6 +46,7 @@ void UPlayerMovementComponent::BeginPlay()
 	JumpZVelocity = FirstJumpZVelocity;
 	DefaultAirControl = AirControl;
 	DefaultMaxWalkSpeed = MaxWalkSpeed;
+	DefaultMaxAcceleration = MaxAcceleration;
 
 	//TRACE FOR PARKOUR
 	TraceParams.bTraceComplex = true;
@@ -51,27 +54,14 @@ void UPlayerMovementComponent::BeginPlay()
 
 	AnimInstance = CharacterRef->GetMesh()->GetAnimInstance();
 
-	//CURVE FOR SLIDE
-	if (VelocityEaseCurve)
-	{
-		FOnTimelineFloat TimelineCallback;
-		FOnTimelineEvent TimelineCallbackFinished;
-		TimelineCallback.BindUFunction(this, FName("EaseVelocityUpdate"));
-		TimelineCallbackFinished.BindUFunction(this, FName("StopVelocityEaseTimeline"));
-		VelocityEaseTimeline.SetTimelineFinishedFunc(TimelineCallbackFinished);
-		VelocityEaseTimeline.SetTimelineLength(EaseOutTime);
-		VelocityEaseTimeline.AddInterpFloat(VelocityEaseCurve, TimelineCallback);
-		VelocityEaseTimeline.SetLooping(false);
-
-		FOnTimelineFloat TimelineMeleeCallback;
-		FOnTimelineEvent TimelineMeleeCallbackFinished;
-		TimelineMeleeCallbackFinished.BindUFunction(this, FName("StopDashVelocityEaseTimeline"));
-		DashTimeline.SetTimelineFinishedFunc(TimelineMeleeCallbackFinished);
-		DashTimeline.SetTimelineLength(EaseOutTimeDash);
-		DashTimeline.SetPlayRate(1);
-		DashTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
-		DashTimeline.SetLooping(false);
-	}
+	FOnTimelineFloat TimelineMeleeCallback;
+	FOnTimelineEvent TimelineMeleeCallbackFinished;
+	TimelineMeleeCallbackFinished.BindUFunction(this, FName("StopDashVelocityEaseTimeline"));
+	DashTimeline.SetTimelineFinishedFunc(TimelineMeleeCallbackFinished);
+	DashTimeline.SetTimelineLength(EaseOutTimeDash);
+	DashTimeline.SetPlayRate(1);
+	DashTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
+	DashTimeline.SetLooping(false);
 
 	if (JumpCurve)
 	{
@@ -88,81 +78,10 @@ void UPlayerMovementComponent::BeginPlay()
 void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
 	FActorComponentTickFunction* ThisTickFunction)
 {
-	if (IsMovingOnGround() && !(VelocityEaseTimeline.IsReversing() && VelocityEaseTimeline.GetPlaybackPosition() < 0.1))
-		VelocityEaseTimeline.TickTimeline(DeltaTime);
-	
 	DashTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
 
-	FrameCounter++;
-	
-	if (FrameCounter > 1000000)
-	{
-		FrameCounter = 0;
-	}
-
-#pragma region Slide Verification
-	if (bIsSliding)
-	{
-		SlideLineTrace();
-		
-		// HARD STOP, conditions to immediately stop the slide 
-		bStopSliding =
-			(!bWantsToCrouch && IsMovingOnGround()) ||
-			(Velocity.IsNearlyZero(DefaultMaxWalkSpeedCrouched * 2) && !IsMovingOnGround()) ||
-				Velocity.Size() < DefaultMaxWalkSpeedCrouched * 0.75;       
-		
-		// SOFT STOP, conditions to start the easing
-		bShouldStopSliding =
-			TimeSliding >= BoostSlidingTime ||
-			(TimeSliding > BoostSlidingTime / 2 && Velocity.Length() < MaxWalkSpeed * 0.75f);
-		
-		if (FMath::IsNearlyZero(Impact.Z) || (Impact.Z >= SlopeToleranceValue && !VelocityEaseTimeline.IsPlaying()))
-		{
-			if (IsMovingOnGround())
-				TimeSliding += DeltaTime;
-		}
-
-		if (Impact.Z <= SlopeToleranceValue *- 1 && VelocityEaseTimeline.IsPlaying())
-		{
-			bPendingCancelSlide = false;
-			bShouldStopSliding = false;
-			VelocityEaseTimeline.Reverse();
-		}
-
-		if (Impact.Z >= SlopeToleranceValue && VelocityEaseTimeline.IsPlaying())
-		{
-			VelocityEaseTimeline.SetPlayRate(2);
-		}
-		else if (VelocityEaseTimeline.IsPlaying())
-		{
-			VelocityEaseTimeline.SetPlayRate(1);
-		}
-
-		if (bStopSliding)
-		{
-			StopVelocityEaseTimeline();
-		}
-		
-		else if (bShouldStopSliding && !bPendingCancelSlide)
-		{
-			VelocityEaseTimeline.SetPlayRate(1);
-			StartVelocityEase(Impact.GetSafeNormal() * DefaultMaxWalkSpeedCrouched);
-		}
-	}
-	
-	if (TimeToWaitBetweenSlide >= 0 && !IsCrouching())
-	{
-		TimeToWaitBetweenSlide -= DeltaTime;
-		bCoolDownFinished = false;
-	}
-	else if (TimeToWaitBetweenSlide > 0 && !bCoolDownFinished)
-	{
-		TimeToWaitBetweenSlide = SlidingCoolDown;
-		bCoolDownFinished = true;
-	}
-	
-#pragma endregion
+	//DebugSlideNetwork(TEXT("Tick"));
 
 #pragma region DEBUG
 	/*
@@ -258,23 +177,18 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UPlayerMovementComponent::PhysMelee(float DeltaTime, int32 Iterations)
+void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 {
 	FVector Dash = MoveDirectionMelee * DashImpulse;
-	Dash.Z = 0;;
+	Dash.Z = 0;
 	Launch(Dash);
 	GroundFriction = 0.0;
-	BrakingDecelerationWalking = 1400;
+	BrakingDecelerationWalking = 0;
+	bIsDashing = true;
 	bWantsToDash = false;
-	bIsMelee = true;
-	
-	CharacterRef->GetWorldTimerManager().SetTimer(
-	SimpleDelayHandle,
-	this,
-	&UPlayerMovementComponent::OnDelayFinished,
-	0.2f,
-	false
-);
+	DashTimeline.PlayFromStart();
+	MaxAcceleration = 0;
+	DashCooldownRemaining = ResetDashCooldown;
 }
 
 void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
@@ -287,15 +201,150 @@ bool UPlayerMovementComponent::Server_GetInputLastDirection_Validate(const FVect
 	return true;
 }
 
-void UPlayerMovementComponent::OnDelayFinished()
+void UPlayerMovementComponent::OnDelayFinishedDash()
 {
-	bIsMelee = false;
+	bIsDashing = false;
+	MaxAcceleration = DefaultMaxAcceleration;
 	GroundFriction = DefaultGroundFriction;
 	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
 }
 
-void UPlayerMovementComponent::StopDashVelocityEaseTimeline()
-{	
+void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
+{
+    // ==========================
+    // ROLE INFOS
+    // ==========================
+
+    FString NetModeString = CharacterRef->HasAuthority() ? "SERVER" : "CLIENT";
+
+    FString LocalRoleString = UEnum::GetValueAsString(CharacterRef->GetLocalRole());
+    FString RemoteRoleString = UEnum::GetValueAsString(CharacterRef->GetRemoteRole());
+
+    // ==========================
+    // MOVEMENT MODE
+    // ==========================
+
+    FString MovementModeString = UEnum::GetValueAsString(MovementMode);
+
+    FString CustomModeString = "None";
+    if (MovementMode == MOVE_Custom)
+    {
+        CustomModeString = FString::Printf(TEXT("Custom: %d"), CustomMovementMode);
+    }
+
+    // ==========================
+    // FLOOR INFO
+    // ==========================
+
+    float FloorAngle = 0.f;
+    FVector FloorNormal = FVector::ZeroVector;
+
+    if (CurrentFloor.bBlockingHit)
+    {
+        FloorNormal = CurrentFloor.HitResult.ImpactNormal;
+        FloorAngle = FMath::RadiansToDegrees(
+            FMath::Acos(FVector::DotProduct(FloorNormal, FVector::UpVector))
+        );
+    }
+
+    // ==========================
+    // SPEED / VELOCITY
+    // ==========================
+
+    float Speed = Velocity.Size();
+
+    // ==========================
+    // LOCATION
+    // ==========================
+
+    FVector Location = GetActorLocation();
+
+    // ==========================
+    // BUILD DEBUG TEXT
+    // ==========================
+
+    FString DebugText = FString::Printf(TEXT(
+        "=============================\n"
+        "[%s] Context: %s\n"
+        "LocalRole: %s\n"
+        "RemoteRole: %s\n\n"
+
+        "---- SLIDE STATE ----\n"
+        "CanSlide: %s\n"
+        "IsSliding(): %s\n"
+        "bIsSliding: %s\n"
+        "bWantsToSlide: %s\n"
+        "bResetSlideCrouch: %s\n"
+        "bResetSlideLanded: %s\n"
+        "bCoolDownFinished: %s\n\n"
+
+        "TimeSliding: %.2f\n"
+        "SlideImpulse: %.2f\n"
+        "SlopeToleranceValue: %.2f\n\n"
+
+        "SlideCooldownRemaining: %.2f\n"
+        "SlideCooldownDuration: %.2f\n\n"
+
+        "VelocityAtCrouch: %s\n\n"
+
+        "---- MOVEMENT ----\n"
+        "MovementMode: %s\n"
+        "CustomMode: %s\n\n"
+
+        "Speed: %.2f\n"
+        "Velocity: %s\n"
+        "Acceleration: %s\n\n"
+
+        "---- FLOOR ----\n"
+        "FloorAngle: %.2f\n"
+        "FloorNormal: %s\n\n"
+
+        "Location: %s\n"
+        "============================="
+        ),
+        *NetModeString,
+        *Context,
+        *LocalRoleString,
+        *RemoteRoleString,
+
+        CanSlide() ? TEXT("TRUE") : TEXT("FALSE"),
+        IsSliding() ? TEXT("TRUE") : TEXT("FALSE"),
+        bIsSliding ? TEXT("TRUE") : TEXT("FALSE"),
+        bWantsToSlide ? TEXT("TRUE") : TEXT("FALSE"),
+        bResetSlideCrouch ? TEXT("TRUE") : TEXT("FALSE"),
+        bResetSlideLanded ? TEXT("TRUE") : TEXT("FALSE"),
+        bCoolDownFinished ? TEXT("TRUE") : TEXT("FALSE"),
+
+        TimeSliding,
+        SlideImpulse,
+        SlopeToleranceValue,
+
+        SlideCooldownRemaining,
+        SlideCooldownDuration,
+
+        *VelocityAtCrouch.ToCompactString(),
+
+        *MovementModeString,
+        *CustomModeString,
+
+        Speed,
+        *Velocity.ToCompactString(),
+        *Acceleration.ToCompactString(),
+
+        FloorAngle,
+        *FloorNormal.ToCompactString(),
+
+        *Location.ToCompactString()
+    );
+
+    int32 Key = CharacterRef->HasAuthority() ? 500 : 600;
+
+    GEngine->AddOnScreenDebugMessage(
+        Key,
+        0.f,
+        CharacterRef->HasAuthority() ? FColor::Red : FColor::Green,
+        DebugText
+    );
 }
 
 void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
@@ -303,7 +352,7 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	switch (CustomMovementMode)
 	{
 	case CMOVE_Melee:
-		PhysMelee(DeltaTime, Iterations);
+		PhysDash(DeltaTime, Iterations);
 		break;
 	case CMOVE_Slide:
 		PhysSlide(DeltaTime, Iterations);
@@ -321,69 +370,116 @@ void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 
 #pragma region Slide
 void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
-{	
-	if (!IsCustomMovementModeOn(CMOVE_Slide))
+{
+	if (DeltaTime < MIN_TICK_TIME)
 	{
-		StartNewPhysics(DeltaTime, Iterations);
 		return;
 	}
 
-	if (!CanSlide() && !bPendingCancelSlide && !bIsSliding)
+	if (!CanSlide())
 	{
-		SetMovementMode(MOVE_Walking);
-		StartNewPhysics(DeltaTime, Iterations);
+		ExitSlide(DeltaTime, Iterations);
 		return;
 	}
 	
 	if (!bIsSliding)
 	{
-		if (SlideLineTrace()) {
+		if (SlideLineTrace())
+		{
 			if (Impact.Z <= SlopeToleranceValue) {
-				GroundFriction = 0.0;
-				BrakingDecelerationWalking = 1400;
-				Impact *= SlideImpulse;
-				
-				if (Velocity.Size() < MaxVelocityForSlide)
-				{
-					AddImpulse(Impact, true);
-				}
 				bIsSliding = true;
-				VelocityAtCrouch = FVector::ZeroVector;
 				bResetSlideCrouch = false;
+				TimeSliding = 0.f;
+				VelocityAtCrouch = FVector::ZeroVector;
+
+				const FVector SlideDir = Impact.GetSafeNormal2D();
+				Velocity += SlideDir * SlideImpulse;
 			}
 		}
 	}
 	
-	PhysWalking(DeltaTime, Iterations);
-}
+	if (bIsSliding)
+	{
+		TimeSliding += DeltaTime;
+		const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+		const float timeTick = GetSimulationTimeStep(DeltaTime, Iterations);
 
-void UPlayerMovementComponent::DebugSlideState(const FString& Context)
-{
-	if (!CharacterOwner) return;
+		Acceleration = Acceleration.GetSafeNormal() * MaxAccelerationForSlide;
+		CalcVelocity(
+			timeTick,
+			FrictionInSlide,
+			false,
+			BrakingDecelerationInSlide
+		);
+		
+		FFindFloorResult FloorResult;
+		FindFloor(UpdatedComponent->GetComponentLocation(), FloorResult, false);
+		CurrentFloor = FloorResult;
 
-	const FString NetMode =
-		CharacterOwner->HasAuthority() ? TEXT("SERVER") :
-		CharacterOwner->IsLocallyControlled() ? TEXT("CLIENT_LOCAL") :
-		TEXT("CLIENT_SIMULATED");
+		if (CurrentFloor.IsWalkableFloor())
+		{
+			const FVector FloorNormal = CurrentFloor.HitResult.ImpactNormal;
+			FVector DownSlope = FVector::VectorPlaneProject(FVector::DownVector, FloorNormal).GetSafeNormal();
 
-	const FVector FloorNormal = CurrentFloor.HitResult.ImpactNormal;
+			const float FloorDot = FVector::DotProduct(FloorNormal, FVector::UpVector);
+			const float FloorAngleRad = FMath::Acos(FloorDot);
+			const float GravityFactor = FMath::Sin(FloorAngleRad);
 
-	i++;
+			const FVector VelocityDir = Velocity.GetSafeNormal();
+			const float SlopeDirectionDot = FVector::DotProduct(VelocityDir, DownSlope);
 
-	UE_LOG(LogTemp, Warning,
-		TEXT("[%s] LogIndex=%d  | Frame=%d | %s | Vel=%.2f | Accel=%.2f | Friction=%.2f | bSliding=%d | MoveMode=%d | Custom=%d | FloorZ=%.3f"),
-		*NetMode,
-		i,
-		GFrameCounter,
-		*Context,
-		Velocity.Size(),
-		Acceleration.Size(),
-		GroundFriction,
-		bIsSliding ? 1 : 0,
-		MovementMode,
-		CustomMovementMode,
-		FloorNormal.Z
-	);
+			float SlideGravityForce = 0.f;
+
+			if (SlopeDirectionDot > 0.f)
+			{
+				SlideGravityForce = SpeedIncreaseInSlope;
+			}
+			else
+			{
+				SlideGravityForce = SpeedDecreaseInSlope;
+			}
+
+			Velocity += DownSlope * GravityFactor * SlideGravityForce * timeTick;
+
+			const float MaxSlideSpeed = MaxVelocityForSlide;
+			if (Velocity.Size() > MaxSlideSpeed)
+			{
+				Velocity = Velocity.GetSafeNormal() * MaxSlideSpeed;
+			}
+		}
+		
+		MoveAlongFloor(Velocity, timeTick);
+		
+		if (IsMovingOnGround())
+		{
+			if (!bJustTeleported 
+				&& !HasAnimRootMotion() 
+				&& !CurrentRootMotion.HasOverrideVelocity() 
+				&& timeTick >= MIN_TICK_TIME)
+			{
+				Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / timeTick;
+				MaintainHorizontalGroundVelocity();
+			}
+		}
+
+		FFindFloorResult NewFloor;
+		FindFloor(UpdatedComponent->GetComponentLocation(), NewFloor, false);
+
+		const float EdgeTolerance = 5.f;
+
+		if (!NewFloor.IsWalkableFloor() || NewFloor.FloorDist > EdgeTolerance)
+		{
+			SetMovementMode(MOVE_Falling);
+			return;
+		}
+
+		CurrentFloor = NewFloor;
+
+		if ((Velocity.Size() < DefaultMaxWalkSpeedCrouched && TimeSliding >= 0.3f) || !bWantsToSlide || JumpCount > 4)
+		{
+			ExitSlide(DeltaTime, Iterations);
+		}
+	}
 }
 
 bool UPlayerMovementComponent::SlideLineTrace()
@@ -399,84 +495,13 @@ bool UPlayerMovementComponent::SlideLineTrace()
 	return bSlideHitResult;
 }
 
-void UPlayerMovementComponent::EaseVelocityUpdate(float Value)
-{
-	Velocity = FMath::Lerp(InitialEaseVelocity, TargetEaseVelocity, Value);
-	
-	/*if (CharacterRef && CharacterRef->HasAuthority())
-	{
-		FVector Start = CharacterRef->GetActorLocation();
-
-		// Scale pour que le point soit lisible en world
-		float DebugScale = 0.1f; // ajuste si besoin
-		FVector PointLocation = Start + Velocity * DebugScale;
-
-		// Point bleu bien visible
-		DrawDebugPoint(
-			CharacterRef->GetWorld(),
-			PointLocation,
-			20.f,          // taille du point
-			FColor::Blue,
-			false,
-			5.0f           // durée en secondes
-		);
-
-		// Optionnel : ligne entre le joueur et le point
-		DrawDebugLine(
-			CharacterRef->GetWorld(),
-			Start,
-			PointLocation,
-			FColor::Cyan,
-			false,
-			5.0f,
-			0,
-			2.0f
-		);
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				131313211,
-				5.f,
-				FColor::Green,
-				FString::Printf(
-					TEXT("Velocity: X=%f Y=%f Z=%f"),
-					Velocity.X,
-					Velocity.Y,
-					Velocity.Z
-				)
-			);
-		}
-	}*/
-}
-
-void UPlayerMovementComponent::StartVelocityEase(const FVector& NewTargetVelocity)
-{
-	InitialEaseVelocity = Velocity;
-	TargetEaseVelocity = NewTargetVelocity;
-    
-	if (VelocityEaseCurve)
-	{
-		VelocityEaseTimeline.PlayFromStart();
-		bPendingCancelSlide = true;
-	}
-}
-
-void UPlayerMovementComponent::StopVelocityEaseTimeline()
-{	
-	bIsSliding = false;
-	bPendingCancelSlide = false;
-	TimeSliding = 0;
-	ResetSlideValues();
-	if (VelocityEaseTimeline.IsPlaying())
-		VelocityEaseTimeline.Stop();
-}
-
 bool UPlayerMovementComponent::CanSlide()
 {
+	if (bIsSliding)
+		return true;
 	SlideLineTrace();
-	bool bResult = IsMovingOnGround() && TimeToWaitBetweenSlide <= 0;
-	bResult &= VelocityAtCrouch.Size()	 > 200;
+	bool bResult = IsMovingOnGround();
+	bResult &= VelocityAtCrouch.Size() >= DefaultMaxWalkSpeed - 10;
 	bResult &= Impact.Z <= SlopeToleranceValue;
 	bResult &= bResetSlideCrouch;
 	bResult &= bResetSlideLanded;
@@ -495,10 +520,18 @@ void UPlayerMovementComponent::OnJumpTimelineFinished()
 
 void UPlayerMovementComponent::ResetSlideValues()
 {
+	SlideCooldownRemaining = SlideCooldownDuration;
 	GroundFriction = DefaultGroundFriction;
 	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
-	MaxWalkSpeedCrouched = DefaultMaxWalkSpeedCrouched;
-	TimeToWaitBetweenSlide = SlidingCoolDown;
+	TimeSliding = 0.0;
+	bIsSliding = false;
+}
+
+void UPlayerMovementComponent::ExitSlide(float DeltaTime, int32 Iterations)
+{
+	ResetSlideValues();
+	SetMovementMode(MOVE_Walking);			
+	StartNewPhysics(DeltaTime, Iterations);
 }
 #pragma endregion
 
@@ -545,16 +578,13 @@ void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
 }
 
 bool UPlayerMovementComponent::CanAttemptJump() const
-{
+{	
 	return IsJumpAllowed() &&
-		   (IsMovingOnGround() || IsFalling());
+		   (IsMovingOnGround() || IsFalling()); 
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 {
-	if (VelocityEaseTimeline.IsPlaying())
-		VelocityEaseTimeline.SetPlayRate(0);
-
 	if (CharacterOwner->CanJump())
 	{
 		float JumpHeight = JumpCurve->GetFloatValue(JumpCount);
@@ -595,12 +625,54 @@ void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 		SetMovementMode(MOVE_Custom, CMOVE_Melee);
 	}
 	
-	if (bWantsToCrouch && CanSlide())
+	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+}
+
+void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+{
+	if (IsMovingOnGround())
+		bWantsToSlide = bWantsToCrouch;
+	
+	if (SlideCooldownRemaining > 0.f && !bWantsToSlide)
 	{
+		SlideCooldownRemaining -= DeltaSeconds;
+	}
+	else if (SlideCooldownRemaining > 0.f && bWantsToSlide)
+	{
+		SlideCooldownRemaining = SlideCooldownDuration;
+	}
+
+	if (SlideCooldownRemaining <= 0.f)
+	{
+		bCoolDownFinished = true;
+	}
+
+	DashCooldown(DeltaSeconds);
+	
+	if (bWantsToSlide && IsMovingOnGround() && bCoolDownFinished)
+	{
+		bCoolDownFinished = false;
 		SetMovementMode(MOVE_Custom, CMOVE_Slide);
 	}
+	else if (!bWantsToSlide && bIsSliding)
+	{
+		ExitSlide(DeltaSeconds, 0);
+	}
 	
-	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+}
+
+void UPlayerMovementComponent::DashCooldown(float DeltaSeconds)
+{
+	if (DashCooldownRemaining > 0.f && bIsDashing)
+	{
+		DashCooldownRemaining -= DeltaSeconds;
+	}
+	else if (bIsDashing)
+	{
+		DashCooldownRemaining = ResetDashCooldown;
+		OnDelayFinishedDash();
+	}
 }
 
 void UPlayerMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode,
@@ -630,13 +702,14 @@ void UPlayerMovementComponent::UpdateFromCompressedFlags(uint8 Flags)//Client on
 {
 	Super::UpdateFromCompressedFlags(Flags);
 	
-	bShouldStopSliding = (Flags & FLAG_SHOULD_STOP_SLIDE) != 0;
-	bStopSliding  = (Flags & FLAG_STOP_SLIDE) != 0;
+	bWantsToDash = (Flags & FLAG_WANT_TO_DASH) != 0;
+	bWantsToSlide  = (Flags & FLAG_WANT_TO_SLIDE) != 0;
 }
 
 void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 {
-	bResetSlideCrouch	= true;
+	if (IsMovingOnGround() || !bIsSliding)
+		bResetSlideCrouch	= true;
 	Super::Crouch(bClientSimulation);
 }
 
@@ -692,9 +765,8 @@ void UPlayerMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UPlayerMovementComponent, VelocityAtCrouch);
-	DOREPLIFETIME(UPlayerMovementComponent, bIsMelee);
 }
-
+	
 #pragma region SavedMoves
 
 class FNetworkPredictionData_Client* UPlayerMovementComponent::GetPredictionData_Client() const
@@ -716,19 +788,19 @@ void FSavedMove_MyMovement::Clear()
 	Super::Clear();
 
 	SavedMoveDirection = FVector::ZeroVector;
-	bShouldStopSliding = false;
-	bStopSliding = false;
+	bWantsToDash = false;
+	bWantsToSlide = false;
 }
 
 uint8 FSavedMove_MyMovement::GetCompressedFlags() const
 {
 	uint8 Result = Super::GetCompressedFlags();
-
-	if (bStopSliding)
-		Result |= FLAG_STOP_SLIDE;
 	
-	if (bShouldStopSliding)
-		Result |= FLAG_SHOULD_STOP_SLIDE;
+	if (bWantsToDash)
+		Result |= FLAG_WANT_TO_DASH;
+
+	if (bWantsToSlide)
+		Result |= FLAG_WANT_TO_SLIDE;
 		
 	return Result;
 }
@@ -749,8 +821,8 @@ void FSavedMove_MyMovement::SetMoveFor(ACharacter* Character, float InDeltaTime,
 	if (CharMov)
 	{
 		SavedMoveDirection = CharMov->MoveDirectionMelee;
-		bShouldStopSliding = CharMov->bShouldStopSliding;
-		bStopSliding  = CharMov->bStopSliding;
+		bWantsToDash = CharMov->bWantsToDash;
+		bWantsToSlide = CharMov->bWantsToSlide;
 	}
 }
 
@@ -762,8 +834,8 @@ void FSavedMove_MyMovement::PrepMoveFor(class ACharacter* Character)
 	if (CharMov)
 	{
 		CharMov->MoveDirectionMelee = SavedMoveDirection;
-		CharMov->bShouldStopSliding = bShouldStopSliding;
-		CharMov->bStopSliding = bStopSliding;
+		CharMov->bWantsToDash = bWantsToDash;
+		CharMov->bWantsToSlide = bWantsToSlide;
 	}
 }
 
