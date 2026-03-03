@@ -109,6 +109,7 @@ public:
 	bool CanSlide();
 	void ResetSlideValues();
 	void ExitSlide(float DeltaTime, int32 Iterations);
+	
 #pragma endregion
 
 #pragma region Jump
