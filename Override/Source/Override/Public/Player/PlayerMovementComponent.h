@@ -48,6 +48,9 @@ public:
 	virtual bool IsMovingOnGround() const override;
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
+	UFUNCTION(BlueprintCallable)
+	void Slow(float Duration);
+
 #pragma region Dash
 	UPROPERTY()
 	FTimeline DashTimeline;
@@ -131,6 +134,10 @@ public:
 #pragma endregion
 
 private:
+	bool IsSlowed;
+	float SlowTimer;
+	float SlowDuration;
+	
 	virtual void BeginPlay() override;
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
@@ -168,6 +175,8 @@ private:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void DebugPrintClientIds();
+
+	void HandleSlow(float DeltaTime);
 };
 
 class FSavedMove_MyMovement : public FSavedMove_Character
