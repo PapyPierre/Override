@@ -111,9 +111,9 @@ void AModulation::RPC_ChangeState_Implementation(ModState NewState)
 	OnStateChanged(NewState);
 }
 
-void AModulation::Lock_Implementation()
+void AModulation::Lock_Implementation(bool ResetLockCD)
 {
-	if (CurrentState == ModState::Locked)return;
+	if (!ResetLockCD && CurrentState == ModState::Locked) return;
 	if (CurrentState == ModState::InCD) return;
 
 	if (Group)
