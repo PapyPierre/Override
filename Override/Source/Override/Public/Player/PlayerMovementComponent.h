@@ -36,6 +36,7 @@ public:
 
 	float BackwardSpeed;
 	float SideSpeed;
+	float SlowedSpeed;
 
 	FVector CharaLocation;
 	FVector CharaForward;
