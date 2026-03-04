@@ -16,6 +16,7 @@ void UPlayerMovementComponent::BeginPlay()
 		//Speed
 		BackwardSpeed = MovementData->SpeedBackwardReduction;
 		SideSpeed = MovementData->SpeedSideReduction;
+		SlowedSpeed = MovementData->SlowedSpeedReduction;
 
 		//Slide
 		SlideImpulse = MovementData->SlideImpulse;
@@ -555,7 +556,7 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	float SuperMaxSpeed = Super::GetMaxSpeed();
 	
 	if (IsSlowed)
-		SuperMaxSpeed *= 0.75;
+		SuperMaxSpeed *= SlowedSpeed;
 
 	if (ForwardDot > 0.5f)
 	{
