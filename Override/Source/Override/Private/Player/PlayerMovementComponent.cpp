@@ -16,6 +16,7 @@ void UPlayerMovementComponent::BeginPlay()
 		//Speed
 		BackwardSpeed = MovementData->SpeedBackwardReduction;
 		SideSpeed = MovementData->SpeedSideReduction;
+		SlowedSpeed = MovementData->SlowedSpeedReduction;
 		ShootingSpeed = MovementData->SpeedShootingReduction;
 
 		//Slide
@@ -556,7 +557,7 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	float SuperMaxSpeed = Super::GetMaxSpeed();
 	
 	if (IsSlowed)
-		SuperMaxSpeed *= 0.75;
+		SuperMaxSpeed *= SlowedSpeed;
 
 	float ShootingSpeedBase = 1.0f;
 	if (bIsShooting)

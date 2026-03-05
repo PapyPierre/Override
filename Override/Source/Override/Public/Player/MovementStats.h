@@ -92,4 +92,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ping")
 	float PingTime = 5.f;
 #pragma endregion
+
+#pragma region Skills
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills|Slow")
+	float SlowedSpeedReduction = 0.75;
+#pragma endregion
+
 };
