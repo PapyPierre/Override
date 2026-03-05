@@ -37,8 +37,9 @@ void UPlayerMovementComponent::BeginPlay()
 		JumpResetTime = MovementData->JumpResetTime;
 
 		//Melee
-		EaseOutTimeDash = MovementData->EaseOutTimeDash;
+		DashDuration = MovementData->DashDuration;
 		DashImpulse = MovementData->DashImpulse;
+		DashCoolDown = MovementData->DashCoolDown;
 	}
 
 	//SET DEFAULT VALUE TO KEEP ORIGINAL
@@ -56,15 +57,6 @@ void UPlayerMovementComponent::BeginPlay()
 
 	AnimInstance = CharacterRef->GetMesh()->GetAnimInstance();
 
-	FOnTimelineFloat TimelineMeleeCallback;
-	FOnTimelineEvent TimelineMeleeCallbackFinished;
-	TimelineMeleeCallbackFinished.BindUFunction(this, FName("StopDashVelocityEaseTimeline"));
-	DashTimeline.SetTimelineFinishedFunc(TimelineMeleeCallbackFinished);
-	DashTimeline.SetTimelineLength(EaseOutTimeDash);
-	DashTimeline.SetPlayRate(1);
-	DashTimeline.SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
-	DashTimeline.SetLooping(false);
-
 	if (JumpCurve)
 	{
 		FOnTimelineEvent TimelineJumpCallbackFinished;
@@ -80,10 +72,9 @@ void UPlayerMovementComponent::BeginPlay()
 void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
                                              FActorComponentTickFunction* ThisTickFunction)
 {
-	DashTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
 
-	//	DebugSlideNetwork(TEXT("Tick"));
+	//DebugSlideNetwork(TEXT("Tick"));
 
 #pragma region DEBUG
 	/*
@@ -183,14 +174,29 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 {
 	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
-	Launch(Dash);
+	Velocity = Dash;
+	FVector Delta = Velocity * DeltaTime;
+	FHitResult Hit;
+
+	SafeMoveUpdatedComponent(
+		Delta,
+		UpdatedComponent->GetComponentQuat(),
+		true,
+		Hit
+	);
+
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 0;
-	bIsDashing = true;
-	bWantsToDash = false;
-	DashTimeline.PlayFromStart();
 	MaxAcceleration = 0;
-	DashCooldownRemaining = ResetDashCooldown;
+
+	if (!bIsDashing)
+	{
+		DashDurationRemaining = DashDuration;
+		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+	}
+
+	bIsDashing = true;
 }
 
 void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
@@ -203,12 +209,25 @@ bool UPlayerMovementComponent::Server_GetInputLastDirection_Validate(const FVect
 	return true;
 }
 
-void UPlayerMovementComponent::OnDelayFinishedDash()
+void UPlayerMovementComponent::CoolDownDashEnd()
+{
+	bCanDash = true;
+}
+
+void UPlayerMovementComponent::EndOfDash(float DeltaSeconds, int32 Iterations)
 {
 	bIsDashing = false;
+	bCanDash = false;
 	MaxAcceleration = DefaultMaxAcceleration;
 	GroundFriction = DefaultGroundFriction;
 	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
+	
+	if (IsMovingOnGround())
+		SetMovementMode(MOVE_Walking);
+	else
+		SetMovementMode(MOVE_Falling);
+	
+	StartNewPhysics(DeltaSeconds, Iterations);
 }
 
 void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
@@ -397,6 +416,8 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 				const FVector SlideDir = Impact.GetSafeNormal2D();
 				Velocity += SlideDir * SlideImpulse;
+				if (CharacterRef->IsLocallyControlled())
+					CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeSlide, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 			}
 		}
 	}
@@ -418,7 +439,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 		FFindFloorResult FloorResult;
 		FindFloor(UpdatedComponent->GetComponentLocation(), FloorResult, false);
 		CurrentFloor = FloorResult;
-
+		
 		if (CurrentFloor.IsWalkableFloor())
 		{
 			const FVector FloorNormal = CurrentFloor.HitResult.ImpactNormal;
@@ -466,12 +487,15 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 		}
 
 		FFindFloorResult NewFloor;
-		FindFloor(UpdatedComponent->GetComponentLocation(), NewFloor, false);
+		FVector UpdatedComponentLocation = UpdatedComponent->GetComponentLocation();
+		UpdatedComponentLocation.Z -= 20.f;
+		FindFloor(UpdatedComponentLocation, NewFloor, false);
 
-		const float EdgeTolerance = 5.f;
+		const float EdgeTolerance = 10.f;
 
 		if (!NewFloor.IsWalkableFloor() || NewFloor.FloorDist > EdgeTolerance)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Player is sliding on non-walkable floor!"));
 			SetMovementMode(MOVE_Falling);
 			return;
 		}
@@ -629,7 +653,7 @@ void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 		Server_GetInputLastDirection(MoveDirectionMelee);
 	}
 
-	if (bWantsToDash)
+	if (bWantsToDash && bCanDash)
 	{
 		SetMovementMode(MOVE_Custom, CMOVE_Melee);
 	}
@@ -656,7 +680,17 @@ void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSec
 		bCoolDownFinished = true;
 	}
 
-	DashCooldown(DeltaSeconds);
+	if (!bIsDashing && DashCooldownRemaining >= 0.f)
+	{
+		DashCooldownRemaining -= DeltaSeconds;
+	}
+	else if (DashCooldownRemaining < 0.f)
+	{
+		DashCooldownRemaining = DashCoolDown;
+		CoolDownDashEnd();
+	}
+	
+	DashDurationCheck(DeltaSeconds, 0);
 
 	if (bWantsToSlide && IsMovingOnGround() && bCoolDownFinished)
 	{
@@ -671,16 +705,16 @@ void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSec
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 
-void UPlayerMovementComponent::DashCooldown(float DeltaSeconds)
+void UPlayerMovementComponent::DashDurationCheck(float DeltaSeconds, int32 Iterations)
 {
-	if (DashCooldownRemaining > 0.f && bIsDashing)
+	if (DashDurationRemaining > 0.f && bIsDashing)
 	{
-		DashCooldownRemaining -= DeltaSeconds;
+		DashDurationRemaining -= DeltaSeconds;
 	}
-	else if (bIsDashing)
+	if (bIsDashing && DashDurationRemaining <= 0.f)
 	{
-		DashCooldownRemaining = ResetDashCooldown;
-		OnDelayFinishedDash();
+		DashDurationRemaining = DashDuration;
+		EndOfDash(DeltaSeconds, Iterations);
 	}
 }
 
