@@ -37,6 +37,10 @@ public:
 	float BackwardSpeed;
 	float SideSpeed;
 	float SlowedSpeed;
+	float ShootingSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsShooting = false;
 
 	FVector CharaLocation;
 	FVector CharaForward;

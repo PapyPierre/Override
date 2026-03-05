@@ -17,6 +17,8 @@ public:
 	float SpeedBackwardReduction = 0.7;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed")
 	float SpeedSideReduction = 0.8;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Speed")
+	float SpeedShootingReduction = 0.1;
 #pragma endregion
 	
 #pragma region Camera
@@ -64,12 +66,15 @@ public:
 	float MaxAccelerationForSlide = 1000;
 #pragma endregion
 
-#pragma region Melee
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Melee")
-	float EaseOutTimeMelee = 0.15f;
+#pragma region Dash
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dash")
+	float EaseOutTimeDash = 0.15f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Melee")
-	float MeleeImpulse = 2000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dash")
+	float DashImpulse = 2000.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dash")
+	float DashCoolDown = 1.2f;
 #pragma endregion
 
 #pragma region Jump
@@ -81,7 +86,7 @@ public:
 	float JumpResetTime = 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	UCurveFloat* JumpCurve;
-#pragma endregion
+#pragma endregion	
 
 #pragma region Ping
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ping")

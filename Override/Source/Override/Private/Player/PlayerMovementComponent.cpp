@@ -17,6 +17,7 @@ void UPlayerMovementComponent::BeginPlay()
 		BackwardSpeed = MovementData->SpeedBackwardReduction;
 		SideSpeed = MovementData->SpeedSideReduction;
 		SlowedSpeed = MovementData->SlowedSpeedReduction;
+		ShootingSpeed = MovementData->SpeedShootingReduction;
 
 		//Slide
 		SlideImpulse = MovementData->SlideImpulse;
@@ -36,8 +37,8 @@ void UPlayerMovementComponent::BeginPlay()
 		JumpResetTime = MovementData->JumpResetTime;
 
 		//Melee
-		EaseOutTimeDash = MovementData->EaseOutTimeMelee;
-		DashImpulse = MovementData->MeleeImpulse;
+		EaseOutTimeDash = MovementData->EaseOutTimeDash;
+		DashImpulse = MovementData->DashImpulse;
 	}
 
 	//SET DEFAULT VALUE TO KEEP ORIGINAL
@@ -82,7 +83,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	DashTimeline.TickTimeline(DeltaTime);
 	JumpTimeline.TickTimeline(DeltaTime);
 
-	//DebugSlideNetwork(TEXT("Tick"));
+	//	DebugSlideNetwork(TEXT("Tick"));
 
 #pragma region DEBUG
 	/*
@@ -558,16 +559,20 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	if (IsSlowed)
 		SuperMaxSpeed *= SlowedSpeed;
 
+	float ShootingSpeedBase = 1.0f;
+	if (bIsShooting)
+		ShootingSpeedBase = ShootingSpeed;
+
 	if (ForwardDot > 0.5f)
 	{
-		return SuperMaxSpeed;
+		return SuperMaxSpeed * ShootingSpeedBase;
 	}
 	if (ForwardDot < -0.5f)
 	{
-		return SuperMaxSpeed * BackwardSpeed;
+		return SuperMaxSpeed * BackwardSpeed * ShootingSpeedBase;
 	}
 	
-	return SuperMaxSpeed * SideSpeed;
+	return SuperMaxSpeed * SideSpeed * ShootingSpeedBase;
 }
 
 bool UPlayerMovementComponent::IsMovingOnGround() const
@@ -715,6 +720,7 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 {
 	if (IsMovingOnGround() || !bIsSliding)
 		bResetSlideCrouch = true;
+	
 	Super::Crouch(bClientSimulation);
 }
 
