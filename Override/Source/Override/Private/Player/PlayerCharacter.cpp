@@ -58,6 +58,9 @@ void APlayerCharacter::BeginPlay()
 		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
 	}
 
+	CameraManager = NewObject<UCameraManager>(this);
+	CameraManager->BeginPlay(this);
+	
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
 }
 
@@ -151,7 +154,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	if (IsLocallyControlled())
 	{
-		CameraManager.SetFov(this, PlayerMovementComponent, DeltaTime);
+		CameraManager->SetFov(this, PlayerMovementComponent, DeltaTime);
 	}
 
 	Super::Tick(DeltaTime);
