@@ -512,7 +512,7 @@ bool UPlayerMovementComponent::CanSlide()
 
 bool UPlayerMovementComponent::IsSliding() const
 {
-	return bIsSliding;
+	return IsCustomMovementModeOn(CMOVE_Slide);
 }
 
 void UPlayerMovementComponent::OnJumpTimelineFinished()
