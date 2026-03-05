@@ -27,7 +27,7 @@ public:
 	
 	CameraManager CameraManager;
 	
-	UPROPERTY(VisibleAnywhere, Category = Camera)
+		UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
