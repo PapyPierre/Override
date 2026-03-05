@@ -68,13 +68,13 @@ public:
 
 #pragma region Dash
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dash")
-	float EaseOutTimeDash = 0.15f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dash")
 	float DashImpulse = 2000.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dash")
 	float DashCoolDown = 1.2f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Dash")
+	float DashDuration = 0.15f;
 #pragma endregion
 
 #pragma region Jump

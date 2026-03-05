@@ -57,20 +57,19 @@ public:
 	bool IsSlowed;
 
 #pragma region Dash
-	UPROPERTY()
-	FTimeline DashTimeline;
-	
-	float EaseOutTimeDash = 0.15f;
 	float DashImpulse = 2000.f;
-	float ResetDashCooldown = 0.3f;
+	float DashCoolDown = 0.3f;
 	float DashCooldownRemaining = 0;
-	bool bIsDashCoolingDown = false;
+	float DashDuration = 0.2f;
+	float DashDurationRemaining = 0;
+	bool bCanDash = true;
 	
 	FVector MoveDirectionMelee;
 	FTimerHandle SimpleDelayHandle;
 
-	void OnDelayFinishedDash();
-	void DashCooldown(float DeltaSeconds);
+	void CoolDownDashEnd();
+	void EndOfDash(float DeltaSeconds, int32 Iterations);
+	void DashDurationCheck(float DeltaSeconds, int32 Iterations);
 
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
 	bool bIsDashing = false;

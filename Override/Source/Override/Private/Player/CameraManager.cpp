@@ -5,66 +5,70 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/PlayerMovementComponent.h"
 
-CameraManager::CameraManager()
+UCameraManager::UCameraManager(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-CameraManager::~CameraManager()
+void UCameraManager::BeginPlay(APlayerCharacter* PlayerCharacter)
 {
+	FovCurve = PlayerCharacter->CurveSlideStart;
+	OnTimelineCallback.BindUFunction(this, FName("UpdateFOV"));
+	FovTimeline.AddInterpFloat(FovCurve, OnTimelineCallback);
+	FovTimeline.SetLooping(false);
+	FovTimeline.PlayFromStart();
 }
 
-void CameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent, float DeltaTime)
-{
+void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent, float DeltaTime)
+{	
 	if (!PlayerCharacter->FirstPersonCameraComponent)
 		return;
 
-	float CurrentFOV = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
-	float InterpSpeed = PlayerCharacter->FOVInterpNormalSpeed;
+	FovTimeline.TickTimeline(DeltaTime);
 
-	const float Speed = PlayerMovementComponent->Velocity.Size();
-
-	const float MinSpeed = 0;
-	const float MaxSpeed = PlayerMovementComponent->MovementData->MaxVelocityForSlide;
-
-	float Alpha = (Speed - MinSpeed) / (MaxSpeed - MinSpeed);
-	Alpha = FMath::Clamp(Alpha, 0.f, 1.f);
+	CurrentFov = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
 	
-	float TargetFOV = FMath::Lerp(
-		PlayerCharacter->DefaultFOV,
-		PlayerCharacter->MaxFOV,
-		Alpha
-	);
-	
-	if (!PlayerCharacter->PlayerMovementComponent->IsMovingOnGround() && !PlayerCharacter->bIsAimingWeapon && !bWasAiming)
-	{
-		return;
-	}
-	else if (PlayerCharacter->bIsAimingWeapon != bWasAiming)
-	{
-		PlayerCharacter->FirstPersonCameraComponent->SetFOV(TargetFOV);
-		bWasAiming = PlayerCharacter->bIsAimingWeapon;
-		return;
-	}
-	
-	CameraShake(PlayerCharacter, PlayerMovementComponent);
-	
-	// Aim
+	if (PlayerMovementComponent->IsMovingOnGround())
+		CurrentMovementMode = MovementMode::Walking;
+	if (PlayerMovementComponent->IsSliding())
+		CurrentMovementMode = MovementMode::Sliding;
+	if (PlayerMovementComponent->bIsDashing)
+		CurrentMovementMode = MovementMode::Dashing;
 	if (PlayerCharacter->bIsAimingWeapon)
+		CurrentMovementMode = MovementMode::Aiming;
+
+	if (CurrentMovementMode == LastMovementMode)
+		return;
+
+	if (FovTimeline.IsPlaying())
+		FovTimeline.Stop();
+	
+	switch (CurrentMovementMode)
 	{
-		TargetFOV = PlayerCharacter->AimFOV;
-		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
-		LastFOV = 1;
+	case MovementMode::Idle:
+		break;
+	case MovementMode::Walking:
+		break;
+	case MovementMode::Sliding:
+		TargetFov = PlayerCharacter->MaxFOV;
+		FovCurve = PlayerCharacter->CurveSlideStart;
+		break;
+	case MovementMode::Dashing:
+		FovCurve = PlayerCharacter->CurveDashStart;
+		break;
+	case MovementMode::Aiming:
+		FovCurve = PlayerCharacter->CurveAimStart;
+		break;
+	default:
+		break;
 	}
 	
-	if (LastFOV == 1)
-		InterpSpeed = PlayerCharacter->FOVInterpAimSpeed;
-	
-	float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, InterpSpeed);
-	PlayerCharacter->FirstPersonCameraComponent->SetFOV(NewFOV);
-	bWasAiming = PlayerCharacter->bIsAimingWeapon;
+	FovTimeline.AddInterpFloat(FovCurve, OnTimelineCallback);
+	FovTimeline.PlayFromStart();
+
+	LastMovementMode = CurrentMovementMode;
 }
 
-void CameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent)
+void UCameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent)
 {
 	if (!PlayerCharacter->FirstPersonCameraComponent)
 		return;
@@ -78,12 +82,18 @@ void CameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayer
 		}
 		else
 		{
-			if (PlayerMovementComponent->IsSliding())
-				PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeSlide, 1.0f, ECameraShakePlaySpace::CameraLocal,
-															 FRotator::ZeroRotator);
-			else if (PlayerMovementComponent->IsWalking())
+			if (PlayerMovementComponent->IsWalking())
 				PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
 															 FRotator::ZeroRotator);
 		}
 	}
+}
+
+void UCameraManager::UpdateFOV(float Alpha)
+{
+	float TargetFOV = FMath::Lerp(
+		CurrentFov,
+		TargetFov,
+		Alpha
+	);
 }

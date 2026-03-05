@@ -24,10 +24,11 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
+
+	UPROPERTY(BlueprintReadOnly)
+	UCameraManager* CameraManager;
 	
-	CameraManager CameraManager;
-	
-		UPROPERTY(VisibleAnywhere, Category = Camera)
+	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -79,6 +80,15 @@ public:
 	float FOVInterpNormalSpeed;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveSlideStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveDashStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveAimStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
@@ -92,6 +102,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeLanding;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeDash;
 #pragma endregion
 		
 #pragma region WallRun
