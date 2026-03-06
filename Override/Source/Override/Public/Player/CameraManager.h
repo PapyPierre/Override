@@ -34,6 +34,8 @@ public:
 	float CurrentFov;
 	float TargetFov;
 
+	APlayerCharacter* PlayerRef;
+
 	UPROPERTY()
 	UCurveFloat* FovCurve;
 
