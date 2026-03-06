@@ -16,6 +16,8 @@ void UCameraManager::BeginPlay(APlayerCharacter* PlayerCharacter)
 	FovTimeline.AddInterpFloat(FovCurve, OnTimelineCallback);
 	FovTimeline.SetLooping(false);
 	FovTimeline.PlayFromStart();
+
+	PlayerRef = PlayerCharacter;
 }
 
 void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent, float DeltaTime)
@@ -24,10 +26,11 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 		return;
 
 	FovTimeline.TickTimeline(DeltaTime);
-
-	CurrentFov = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
+	CameraShake(PlayerCharacter, PlayerMovementComponent);
 	
-	if (PlayerMovementComponent->IsMovingOnGround())
+	if (PlayerMovementComponent->Velocity.IsNearlyZero())
+		CurrentMovementMode = MovementMode::Idle;
+	else if (PlayerMovementComponent->IsWalking())
 		CurrentMovementMode = MovementMode::Walking;
 	if (PlayerMovementComponent->IsSliding())
 		CurrentMovementMode = MovementMode::Sliding;
@@ -45,23 +48,41 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 	switch (CurrentMovementMode)
 	{
 	case MovementMode::Idle:
+		TargetFov = PlayerCharacter->DefaultFOV;
+		FovCurve = PlayerCharacter->CurveIdleStart;
 		break;
 	case MovementMode::Walking:
+		if (LastMovementMode == MovementMode::Sliding)
+		{
+			TargetFov = PlayerCharacter->WalkFOV;
+			FovCurve = PlayerCharacter->CurveSlideEnd;
+		}
+		else
+		{
+			TargetFov = PlayerCharacter->WalkFOV;
+			FovCurve = PlayerCharacter->CurveWalkStart;
+		}
 		break;
 	case MovementMode::Sliding:
-		TargetFov = PlayerCharacter->MaxFOV;
+		TargetFov = PlayerCharacter->SlideFOV;
 		FovCurve = PlayerCharacter->CurveSlideStart;
 		break;
 	case MovementMode::Dashing:
+		TargetFov = PlayerCharacter->DashFOV;
 		FovCurve = PlayerCharacter->CurveDashStart;
 		break;
 	case MovementMode::Aiming:
+		TargetFov = PlayerCharacter->AimFOV;
 		FovCurve = PlayerCharacter->CurveAimStart;
 		break;
 	default:
 		break;
 	}
+
+	if (LastMovementMode == MovementMode::Aiming)
+		FovCurve = PlayerCharacter->CurveAimEnd;
 	
+	CurrentFov = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
 	FovTimeline.AddInterpFloat(FovCurve, OnTimelineCallback);
 	FovTimeline.PlayFromStart();
 
@@ -75,25 +96,27 @@ void UCameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlaye
 	
 	if (PlayerMovementComponent->IsMovingOnGround())
 	{
-		if (PlayerCharacter->GetVelocity().Size() == 0.0)
-		{
+		if (PlayerMovementComponent->Velocity.IsNearlyZero())
 			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
 														 FRotator::ZeroRotator);
-		}
-		else
-		{
-			if (PlayerMovementComponent->IsWalking())
-				PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
-															 FRotator::ZeroRotator);
-		}
+		
+		else if (PlayerMovementComponent->IsWalking() && !PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->bIsDashing && !PlayerMovementComponent->IsCrouching())
+			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
+														 FRotator::ZeroRotator);
+		else if (PlayerMovementComponent->IsWalking() && !PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->bIsDashing && PlayerMovementComponent->IsCrouching())
+			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalkCrouch, 1.0f, ECameraShakePlaySpace::CameraLocal,
+											 FRotator::ZeroRotator);	
 	}
 }
 
+
 void UCameraManager::UpdateFOV(float Alpha)
 {
-	float TargetFOV = FMath::Lerp(
-		CurrentFov,
-		TargetFov,
-		Alpha
-	);
+	if (!PlayerRef)
+	{
+		return;
+	}
+	
+	float InterpolatedFOV = FMath::Lerp(CurrentFov, TargetFov, Alpha);
+	PlayerRef->FirstPersonCameraComponent->SetFOV(InterpolatedFOV);
 }
