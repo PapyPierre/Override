@@ -72,7 +72,9 @@ public:
 
 #pragma region FOV
 	float DefaultFOV;
-	float MaxFOV;
+	float WalkFOV;
+	float SlideFOV;
+	float DashFOV;
 
 	float FOVInterpSlideSpeed;
 	float FOVInterpSprintSpeed;
@@ -80,13 +82,25 @@ public:
 	float FOVInterpNormalSpeed;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveWalkStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveIdleStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	UCurveFloat* CurveSlideStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveSlideEnd;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	UCurveFloat* CurveDashStart;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	UCurveFloat* CurveAimStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveAimEnd;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
@@ -100,6 +114,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeWalk;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeWalkCrouch;
+	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeLanding;
 
