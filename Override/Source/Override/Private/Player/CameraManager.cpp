@@ -30,7 +30,7 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 	
 	if (PlayerMovementComponent->Velocity.IsNearlyZero())
 		CurrentMovementMode = MovementMode::Idle;
-	else
+	else if (PlayerMovementComponent->IsWalking())
 		CurrentMovementMode = MovementMode::Walking;
 	if (PlayerMovementComponent->IsSliding())
 		CurrentMovementMode = MovementMode::Sliding;
@@ -79,6 +79,9 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 		break;
 	}
 
+	if (LastMovementMode == MovementMode::Aiming)
+		FovCurve = PlayerCharacter->CurveAimEnd;
+	
 	CurrentFov = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
 	FovTimeline.AddInterpFloat(FovCurve, OnTimelineCallback);
 	FovTimeline.PlayFromStart();
@@ -97,9 +100,12 @@ void UCameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlaye
 			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
 														 FRotator::ZeroRotator);
 		
-		else if (PlayerMovementComponent->IsWalking() && !PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->bIsDashing)
+		else if (PlayerMovementComponent->IsWalking() && !PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->bIsDashing && !PlayerMovementComponent->IsCrouching())
 			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
 														 FRotator::ZeroRotator);
+		else if (PlayerMovementComponent->IsWalking() && !PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->bIsDashing && PlayerMovementComponent->IsCrouching())
+			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalkCrouch, 1.0f, ECameraShakePlaySpace::CameraLocal,
+											 FRotator::ZeroRotator);	
 	}
 }
 
