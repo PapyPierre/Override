@@ -30,7 +30,9 @@ public:
 	int32 FrameCounter = 0;
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
+	UPROPERTY(BlueprintReadOnly)
 	float DefaultMaxWalkSpeedCrouched;
+	UPROPERTY(BlueprintReadOnly)
 	float DefaultMaxWalkSpeed;
 	float DefaultMaxAcceleration;
 
