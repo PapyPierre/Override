@@ -75,103 +75,25 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	JumpTimeline.TickTimeline(DeltaTime);
 
 	//DebugSlideNetwork(TEXT("Tick"));
-
-#pragma region DEBUG
-	/*
-	/////////GROSSE ZONE DE DEBUG
-	if (!GEngine || !CharacterOwner)
-	{
-		return;
-	}
-
-	// ===== Détection du rôle réseau =====
-	ENetRole LocalRole = CharacterOwner->GetLocalRole();
-
-	FString NetPrefix;
-	FColor NetColor;
-	int32 BaseID = 1000;
-
-	switch (LocalRole)
-	{
-	case ROLE_Authority:
-		NetPrefix = TEXT("[SERVER]");
-		NetColor = FColor::Red;
-		BaseID = 1000;
-		break;
-
-	case ROLE_AutonomousProxy:
-		NetPrefix = TEXT("[CLIENT-AUTO]");
-		NetColor = FColor::Green;
-		BaseID = 2000;
-		break;
-
-	case ROLE_SimulatedProxy:
-		NetPrefix = TEXT("[CLIENT-SIM]");
-		NetColor = FColor::Cyan;
-		BaseID = 3000;
-		break;
-
-	default:
-		NetPrefix = TEXT("[UNKNOWN]");
-		NetColor = FColor::White;
-		BaseID = 4000;
-		break;
-	}
-
-	// ===== Zone DEBUG SLIDE =====
-	GEngine->AddOnScreenDebugMessage(BaseID + 1, 0.f, NetColor,
-		FString::Printf(TEXT("%s isSliding: %s"), *NetPrefix, bIsSliding ? TEXT("true") : TEXT("false")));
-
-	GEngine->AddOnScreenDebugMessage(BaseID + 2, 0.f, NetColor,
-		FString::Printf(TEXT("%s PendingCancelSlide: %s"), *NetPrefix, bPendingCancelSlide ? TEXT("true") : TEXT("false")));
-
-	GEngine->AddOnScreenDebugMessage(BaseID + 3, 0.f, NetColor,
-		FString::Printf(TEXT("%s TimeSliding: %.3f"), *NetPrefix, TimeSliding));
-
-	GEngine->AddOnScreenDebugMessage(BaseID + 4, 0.f, NetColor,
-		FString::Printf(TEXT("%s Speed: %.2f"), *NetPrefix, Velocity.Size()));
-
-
-	// ===== Zone DEBUG MOVEMENT =====
-	if (UCharacterMovementComponent* MoveComp = CharacterOwner->GetCharacterMovement())
-	{
-		EMovementMode MoveMode = MoveComp->MovementMode;
-		uint8 CustomMode = MoveComp->CustomMovementMode;
-
-		FString ModeStr;
-
-		if (MoveMode == MOVE_Custom)
-		{
-			switch (CustomMode)
-			{
-			case CMOVE_Slide:
-				ModeStr = TEXT("Slide");
-				break;
-			default:
-				ModeStr = FString::Printf(TEXT("Custom_%d"), CustomMode);
-				break;
-			}
-		}
-		else
-		{
-			ModeStr = UCharacterMovementComponent::GetMovementName();
-		}
-
-		GEngine->AddOnScreenDebugMessage(BaseID + 10, 0.f, FColor::Yellow,
-			FString::Printf(TEXT("%s MovementMode: %s"), *NetPrefix, *ModeStr));
-
-		GEngine->AddOnScreenDebugMessage(BaseID + 11, 0.f, FColor::Orange,
-			FString::Printf(TEXT("%s MaxWalkSpeed: %.1f"), *NetPrefix, MoveComp->MaxWalkSpeed));
-	}		
-	/////////FIN DE LA GRANDE ZONE DE DEBUG
-	*/
-#pragma endregion
+	//DebugDashValues();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 {
+	if (DeltaTime < MIN_TICK_TIME)
+	{
+		return;
+	}
+
+	if (!bWantsToDash)
+	{
+		SetMovementMode(MOVE_Walking);
+		StartNewPhysics(DeltaTime,Iterations);
+		return;
+	}
+	
 	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
 	Velocity = Dash;
@@ -191,7 +113,7 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 
 	if (!bIsDashing)
 	{
-		DashDurationRemaining = DashDuration;
+		DashStartTime = GetWorld()->GetTimeSeconds();
 		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
 			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 	}
@@ -209,15 +131,10 @@ bool UPlayerMovementComponent::Server_GetInputLastDirection_Validate(const FVect
 	return true;
 }
 
-void UPlayerMovementComponent::CoolDownDashEnd()
-{
-	bCanDash = true;
-}
-
 void UPlayerMovementComponent::EndOfDash(float DeltaSeconds, int32 Iterations)
 {
 	bIsDashing = false;
-	bCanDash = false;
+	bWantsToDash = false;
 	MaxAcceleration = DefaultMaxAcceleration;
 	GroundFriction = DefaultGroundFriction;
 	BrakingDecelerationWalking = DefaultBrakingDecelerationWalking;
@@ -225,7 +142,10 @@ void UPlayerMovementComponent::EndOfDash(float DeltaSeconds, int32 Iterations)
 	if (IsMovingOnGround())
 		SetMovementMode(MOVE_Walking);
 	else
+	{
 		SetMovementMode(MOVE_Falling);
+		CharacterRef->JumpCurrentCount++;
+	}
 	
 	StartNewPhysics(DeltaSeconds, Iterations);
 }
@@ -372,7 +292,7 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 {
 	switch (CustomMovementMode)
 	{
-	case CMOVE_Melee:
+	case CMOVE_Dash:
 		PhysDash(DeltaTime, Iterations);
 		break;
 	case CMOVE_Slide:
@@ -653,11 +573,6 @@ void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 		Server_GetInputLastDirection(MoveDirectionMelee);
 	}
 
-	if (bWantsToDash && bCanDash)
-	{
-		SetMovementMode(MOVE_Custom, CMOVE_Melee);
-	}
-
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
 }
 
@@ -679,19 +594,9 @@ void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSec
 	{
 		bCoolDownFinished = true;
 	}
-
-	if (!bIsDashing && DashCooldownRemaining >= 0.f)
-	{
-		DashCooldownRemaining -= DeltaSeconds;
-	}
-	else if (DashCooldownRemaining < 0.f)
-	{
-		DashCooldownRemaining = DashCoolDown;
-		CoolDownDashEnd();
-	}
 	
 	DashDurationCheck(DeltaSeconds, 0);
-
+	
 	if (bWantsToSlide && IsMovingOnGround() && bCoolDownFinished)
 	{
 		bCoolDownFinished = false;
@@ -702,18 +607,63 @@ void UPlayerMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSec
 		ExitSlide(DeltaSeconds, 0);
 	}
 
+	if (bWantsToDash && CanDash())
+	{
+		LastDashTime = GetWorld()->GetTimeSeconds();
+		SetMovementMode(MOVE_Custom, CMOVE_Dash);
+	}
+	
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+}
+
+bool UPlayerMovementComponent::CanDash() const
+{
+	return GetWorld()->GetTimeSeconds() - LastDashTime >= DashCoolDown;
+}
+
+void UPlayerMovementComponent::DebugDashValues()
+{
+	if (!GEngine) return;
+
+	FString NetPrefix = GetOwner() && GetOwner()->HasAuthority() ? "[SERVER]" : "[CLIENT]";
+
+	FString DebugText = FString::Printf(
+		TEXT("%s\n"
+		"DashImpulse: %f\n"
+		"DashCoolDown: %f\n"
+		"DashDuration: %f\n"
+		"bIsDashing: %s\n"
+		"bWantsToDash: %s\n"
+		"MoveDirectionMelee: X=%.2f Y=%.2f Z=%.2f"),
+		
+		*NetPrefix,
+		DashImpulse,
+		DashCoolDown,
+		DashDuration,
+		bIsDashing ? TEXT("TRUE") : TEXT("FALSE"),
+		bWantsToDash ? TEXT("TRUE") : TEXT("FALSE"),
+		MoveDirectionMelee.X,
+		MoveDirectionMelee.Y,
+		MoveDirectionMelee.Z
+	);
+
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *DebugText);
+
+	GEngine->AddOnScreenDebugMessage(
+		42,
+		0.f,
+		FColor::Yellow,
+		DebugText
+	);
 }
 
 void UPlayerMovementComponent::DashDurationCheck(float DeltaSeconds, int32 Iterations)
 {
-	if (DashDurationRemaining > 0.f && bIsDashing)
+	if (!bIsDashing)
+		return;
+
+	if (GetWorld()->GetTimeSeconds() - DashStartTime >= DashDuration)
 	{
-		DashDurationRemaining -= DeltaSeconds;
-	}
-	if (bIsDashing && DashDurationRemaining <= 0.f)
-	{
-		DashDurationRemaining = DashDuration;
 		EndOfDash(DeltaSeconds, Iterations);
 	}
 }

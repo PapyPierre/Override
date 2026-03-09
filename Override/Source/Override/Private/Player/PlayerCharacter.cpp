@@ -199,8 +199,10 @@ void APlayerCharacter::Falling()
 	LastGroundedPosition = GetActorLocation();
 
 	if (!PlayerMovementComponent->bIsDashing)
+	{
 		JumpCurrentCount--;
-
+	}
+	
 	GetWorldTimerManager().SetTimer(
 		JumpDelayHandle,
 		this,
