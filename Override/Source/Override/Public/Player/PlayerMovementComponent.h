@@ -11,8 +11,7 @@ class UMovementStats;
 UENUM()
 enum ECustomMovementMode
 {
-	CMOVE_Melee = 0,
-	CMOVE_Crouch = 1,
+	CMOVE_Dash = 0,
 	CMOVE_Slide = 2,
 };
 
@@ -61,17 +60,17 @@ public:
 #pragma region Dash
 	float DashImpulse = 2000.f;
 	float DashCoolDown = 0.3f;
-	float DashCooldownRemaining = 0;
 	float DashDuration = 0.2f;
-	float DashDurationRemaining = 0;
-	bool bCanDash = true;
+	float LastDashTime = -1000.f;
+	float DashStartTime = -1000.f;
 	
 	FVector MoveDirectionMelee;
 	FTimerHandle SimpleDelayHandle;
 
-	void CoolDownDashEnd();
 	void EndOfDash(float DeltaSeconds, int32 Iterations);
 	void DashDurationCheck(float DeltaSeconds, int32 Iterations);
+	bool CanDash() const;
+	void DebugDashValues();
 
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
 	bool bIsDashing = false;
