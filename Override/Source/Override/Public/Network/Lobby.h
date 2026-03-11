@@ -9,13 +9,17 @@ struct OVERRIDE_API FLobby
 	GENERATED_BODY()
 	
 public:
+	UPROPERTY(BlueprintReadOnly)
 	FString Id;
 
+	UPROPERTY(BlueprintReadOnly)
 	FString Version;
 
-	int MaxPlayers;
-
+	UPROPERTY(BlueprintReadOnly)
 	int CurrentPlayersCount;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int MaxPlayers;
 
 	FString ServerIp;
 

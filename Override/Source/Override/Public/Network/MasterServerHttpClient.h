@@ -16,12 +16,12 @@ class OVERRIDE_API UMasterServerHttpClient : public UObject
 public:
 	void ListLobbies(ACustomPlayerController* Requester);
 
-	void CreateLobby();
+	void CreateLobby(ACustomPlayerController* Requester);
+
+	void JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
 
 	/*
 	void QuickSearchLobby();
-
-	void JoinLobby(FLobby TargetLobby);
 
 	void LeaveLobby(FLobby TargetLobby);
 	*/
@@ -29,10 +29,15 @@ public:
 private:
 	FString GetServerIP(bool UseLocalServerIP) const;
 	FString GetServerFullAddress(bool UseLocalServerIP) const;
+	~UMasterServerHttpClient();
 
 	void ListLobbiesCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+	                         ACustomPlayerController* Requester);
+
+	void CreateLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 		ACustomPlayerController* Requester);
 
-	void CreateLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess);
+	void JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+		ACustomPlayerController* Requester);
 	
 };
