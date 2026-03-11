@@ -338,7 +338,7 @@ void APlayerCharacter::UseAbility(int index)
 				ActivateAbilityInSlotRPC(index, TargetingComponent->GetPointInSight(),
 				                         TargetingComponent->CurrentTargets);
 
-				OnAbilityActivated(index);
+				OnAbilityActivated(index, BaseAbility->SelfCast);
 			}
 		}
 	}
