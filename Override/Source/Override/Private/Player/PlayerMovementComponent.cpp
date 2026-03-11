@@ -711,7 +711,7 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 
 void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 {
-	bCrouchMaintainsBaseLocation = true;
+	bCrouchMaintainsBaseLocation = true;	
 	Super::UnCrouch(bClientSimulation);
 }
 
