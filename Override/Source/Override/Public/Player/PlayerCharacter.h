@@ -208,7 +208,7 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnAbilityActivated(int index);
+	void OnAbilityActivated(int SlotIndex, bool IsSelfCast);
 
 private:
 	void SetControllerRef();
