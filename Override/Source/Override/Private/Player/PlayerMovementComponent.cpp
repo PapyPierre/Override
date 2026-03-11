@@ -704,16 +704,14 @@ void UPlayerMovementComponent::Crouch(bool bClientSimulation)
 {
 	if (IsMovingOnGround() || !bIsSliding)
 		bResetSlideCrouch = true;
-
-	if (IsMovingOnGround())
-	{
-		Super::Crouch(bClientSimulation);
-	}
+	
+	bCrouchMaintainsBaseLocation = true;
+	Super::Crouch(bClientSimulation);	
 }
 
 void UPlayerMovementComponent::UnCrouch(bool bClientSimulation)
 {
-	if (IsMovingOnGround())
+	bCrouchMaintainsBaseLocation = true;
 	Super::UnCrouch(bClientSimulation);
 }
 
