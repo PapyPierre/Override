@@ -21,3 +21,8 @@ void ACustomPlayerController::JoinLobby(FString LobbyId)
 {
 	HttpClient->JoinLobby(LobbyId, this);
 }
+
+void ACustomPlayerController::LeaveLobby(FString LobbyId)
+{
+	HttpClient->LeaveLobby(LobbyId, this);
+}

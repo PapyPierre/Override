@@ -22,6 +22,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void JoinLobby(FString LobbyId);
+
+	UFUNCTION(BlueprintCallable)
+	void LeaveLobby(FString LobbyId);
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnLobbyListReceived(const TArray<FLobby>& Lobbies);
@@ -30,8 +33,10 @@ public:
 	void OnLobbyCreated(const FString& LobbyId);
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnLobbyJoined();
-	
+	void OnLobbyJoined(const FString& LobbyId);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnLobbyLeft();
 	
 private:
 	UPROPERTY()

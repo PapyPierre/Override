@@ -75,6 +75,34 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 	Request->ProcessRequest();
 }
 
+void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester)
+{
+	UE_LOG(LogTemp, Log, TEXT("Sending Leave Lobby Request to Master Server"));
+
+	FString UriQuery = GetServerFullAddress(true) + TEXT("/lobby/playerleave");
+	FHttpModule& HttpModule = FHttpModule::Get();
+
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
+
+	Request->SetURL(UriQuery);
+	Request->SetVerb(TEXT("POST"));
+
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+	TSharedPtr<FJsonObject> JsonBody = MakeShareable(new FJsonObject);
+	JsonBody->SetStringField(TEXT("lobbyId"), TargetLobbyId);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	FJsonSerializer::Serialize(JsonBody.ToSharedRef(), Writer);
+
+	Request->SetContentAsString(JsonString);
+
+	Request->OnProcessRequestComplete().BindUObject(this, &UMasterServerHttpClient::LeaveLobbyCallback, Requester);
+
+	Request->ProcessRequest();
+}
+
 void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Request,
                                                   TSharedPtr<IHttpResponse> Response, bool bSuccess,
                                                   ACustomPlayerController* Requester)
@@ -164,7 +192,46 @@ void UMasterServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request
 
 	UE_LOG(LogTemp, Log, TEXT("Join Lobby Callback: Status: %d | Body: %s"), StatusCode, *Body);
 
-	Requester->OnLobbyJoined();
+	TSharedPtr<FJsonValue> Json;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+
+	if (!FJsonSerializer::Deserialize(Reader, Json))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON"));
+		return;
+	}
+	
+	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
+
+	Requester->OnLobbyJoined(Obj->GetStringField(TEXT("Id")));
+}
+
+void UMasterServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+	bool bSuccess, ACustomPlayerController* Requester)
+{
+	if (!bSuccess || !Response.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Request failed"));
+		return;
+	}
+
+	int32 StatusCode = Response->GetResponseCode();
+	FString Body = Response->GetContentAsString();
+
+	UE_LOG(LogTemp, Log, TEXT("Leave Lobby Callback: Status: %d | Body: %s"), StatusCode, *Body);
+
+	TSharedPtr<FJsonValue> Json;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+
+	if (!FJsonSerializer::Deserialize(Reader, Json))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON"));
+		return;
+	}
+	
+	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
+
+	Requester->OnLobbyLeft();
 }
 
 FString UMasterServerHttpClient::GetServerIP(bool UseLocalServerIP) const

@@ -20,11 +20,9 @@ public:
 
 	void JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
 
-	/*
-	void QuickSearchLobby();
-
-	void LeaveLobby(FLobby TargetLobby);
-	*/
+	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
+	
+	//void QuickSearchLobby();
 
 private:
 	FString GetServerIP(bool UseLocalServerIP) const;
@@ -38,6 +36,9 @@ private:
 		ACustomPlayerController* Requester);
 
 	void JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+		ACustomPlayerController* Requester);
+
+	void LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 		ACustomPlayerController* Requester);
 	
 };
