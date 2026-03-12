@@ -12,7 +12,7 @@ class OVERRIDE_API ACustomPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
-	void BeginPlay() override;
+	virtual void BeginPlay() override;
 	
 	UFUNCTION(BlueprintCallable)
 	void FetchLobbyList();
@@ -37,8 +37,8 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnLobbyLeft();
-
-	void ConnectToLobbyServer(FString LobbyIp, int LobbyPort);
+	
+	void ConnectToLobbyServer(FString LobbyId, FString LobbyIp, int LobbyPort);
 	
 private:
 	UPROPERTY()

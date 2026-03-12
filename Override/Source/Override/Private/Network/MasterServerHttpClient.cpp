@@ -77,7 +77,7 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 
 void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester)
 {
-	UE_LOG(LogTemp, Log, TEXT("Sending Leave Lobby Request to Master Server"));
+	UE_LOG(LogTemp, Log, TEXT("Sending Leave %s Request to Master Server"), *TargetLobbyId);
 
 	FString UriQuery = GetServerFullAddress(true) + TEXT("/lobby/playerleave");
 	FHttpModule& HttpModule = FHttpModule::Get();
@@ -203,8 +203,7 @@ void UMasterServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request
 	
 	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
 
-	Requester->ConnectToLobbyServer(Obj->GetStringField(TEXT("Ip")), Obj->GetIntegerField(TEXT("Port")));
-	Requester->OnLobbyJoined(Obj->GetStringField(TEXT("Id")));
+	Requester->ConnectToLobbyServer(Obj->GetStringField(TEXT("Id")), Obj->GetStringField(TEXT("serverIp")), Obj->GetIntegerField(TEXT("serverPort")));
 }
 
 void UMasterServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
@@ -220,17 +219,6 @@ void UMasterServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Reques
 	FString Body = Response->GetContentAsString();
 
 	UE_LOG(LogTemp, Log, TEXT("Leave Lobby Callback: Status: %d | Body: %s"), StatusCode, *Body);
-
-	TSharedPtr<FJsonValue> Json;
-	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
-
-	if (!FJsonSerializer::Deserialize(Reader, Json))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON"));
-		return;
-	}
-	
-	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
 
 	Requester->OnLobbyLeft();
 }

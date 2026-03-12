@@ -10,18 +10,18 @@ struct OVERRIDE_API FLobby
 	
 public:
 	UPROPERTY(BlueprintReadOnly)
-	FString Id;
+	FString Id = FString("");
 
 	UPROPERTY(BlueprintReadOnly)
-	FString Version;
+	FString Version = FString("");
 
 	UPROPERTY(BlueprintReadOnly)
-	int CurrentPlayersCount;
+	int CurrentPlayersCount = 0;
 	
 	UPROPERTY(BlueprintReadOnly)
-	int MaxPlayers;
+	int MaxPlayers = 7;
 
-	FString ServerIp;
+	FString ServerIp = FString("");
 
-	int ServerPort;
+	int ServerPort = 0;
 };

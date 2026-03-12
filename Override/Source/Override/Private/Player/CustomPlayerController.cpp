@@ -1,10 +1,21 @@
 #include "Player/CustomPlayerController.h"
 
+#include "GameMode/OverrideGameInstance.h"
+#include "Kismet/GameplayStatics.h"
+
 void ACustomPlayerController::BeginPlay()
 {
 	HttpClient = NewObject<UMasterServerHttpClient>(this);
-	
+
 	Super::BeginPlay();
+
+	const FString LevelName = UGameplayStatics::GetCurrentLevelName(GetWorld(), true);
+
+
+	if (LevelName == TEXT("Lvl_Lobby"))
+	{
+		OnLobbyJoined(GetGameInstance<UOverrideGameInstance>()->CurrentLobbyId);
+	}
 }
 
 void ACustomPlayerController::FetchLobbyList()
@@ -27,9 +38,13 @@ void ACustomPlayerController::LeaveLobby(FString LobbyId)
 	HttpClient->LeaveLobby(LobbyId, this);
 }
 
-void ACustomPlayerController::ConnectToLobbyServer(FString LobbyIp, int LobbyPort)
+void ACustomPlayerController::ConnectToLobbyServer(FString LobbyId, FString LobbyIp, int LobbyPort)
 {
-	FString Address = FString::Printf(TEXT("%s:%d"), *LobbyIp, LobbyPort);
+	GetGameInstance<UOverrideGameInstance>()->CurrentLobbyId = LobbyId;
 	
-	ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+	FString Address = FString::Printf(TEXT("%s:%d"), *LobbyIp, LobbyPort);
+
+	UE_LOG(LogTemp, Log, TEXT("Connecting client to %s..."), *Address);
+
+	this->ClientTravel(Address, TRAVEL_Absolute);
 }
