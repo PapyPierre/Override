@@ -340,6 +340,10 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 					CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeSlide, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 			}
 		}
+		else
+		{
+			ExitSlide(DeltaTime, Iterations);
+		}
 	}
 
 	if (bIsSliding)
@@ -411,7 +415,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 		UpdatedComponentLocation.Z -= 20.f;
 		FindFloor(UpdatedComponentLocation, NewFloor, false);
 
-		const float EdgeTolerance = 10.f;
+		const float EdgeTolerance = 20.f;
 
 		if (!NewFloor.IsWalkableFloor() || NewFloor.FloorDist > EdgeTolerance)
 		{
