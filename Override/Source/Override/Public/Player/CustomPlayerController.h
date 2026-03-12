@@ -37,6 +37,8 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnLobbyLeft();
+
+	void ConnectToLobbyServer(FString LobbyIp, int LobbyPort);
 	
 private:
 	UPROPERTY()

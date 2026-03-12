@@ -203,6 +203,7 @@ void UMasterServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request
 	
 	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
 
+	Requester->ConnectToLobbyServer(Obj->GetStringField(TEXT("Ip")), Obj->GetIntegerField(TEXT("Port")));
 	Requester->OnLobbyJoined(Obj->GetStringField(TEXT("Id")));
 }
 

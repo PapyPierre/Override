@@ -25,10 +25,11 @@ public:
 	//void QuickSearchLobby();
 
 private:
+	~UMasterServerHttpClient();
+	
 	FString GetServerIP(bool UseLocalServerIP) const;
 	FString GetServerFullAddress(bool UseLocalServerIP) const;
-	~UMasterServerHttpClient();
-
+	
 	void ListLobbiesCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                         ACustomPlayerController* Requester);
 
@@ -40,5 +41,7 @@ private:
 
 	void LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 		ACustomPlayerController* Requester);
+
+	
 	
 };

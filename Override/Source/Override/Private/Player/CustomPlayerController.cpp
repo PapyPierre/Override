@@ -26,3 +26,10 @@ void ACustomPlayerController::LeaveLobby(FString LobbyId)
 {
 	HttpClient->LeaveLobby(LobbyId, this);
 }
+
+void ACustomPlayerController::ConnectToLobbyServer(FString LobbyIp, int LobbyPort)
+{
+	FString Address = FString::Printf(TEXT("%s:%d"), *LobbyIp, LobbyPort);
+	
+	ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+}
