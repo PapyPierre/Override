@@ -242,10 +242,13 @@ void AModulation::OnInteract_Implementation(AActor* InteractingActor) // Server-
 		for (AModulation* Mod : Group->ModulationsInGroup)
 		{
 			Mod->RPC_ChangeState(ModState::Moving);
+			Mod->OnPostInteract(InteractingActor);
 		}
 
 		return;
 	}
 
 	RPC_ChangeState(ModState::Moving);
+
+	OnPostInteract(InteractingActor);
 }
