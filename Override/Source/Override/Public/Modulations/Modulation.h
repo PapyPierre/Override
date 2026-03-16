@@ -114,6 +114,9 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnStateChanged(ModState NewState);
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPostInteract(AActor* InteractingActor);
+	
 private:
 	UPROPERTY(Replicated)
 	float LerpTime;
