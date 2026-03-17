@@ -180,7 +180,7 @@ FVector UTargetingComponent::GetPointInSight() const
 
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByObjectType(Hit, Start, Start + CamPos->GetForwardVector() * MaxTargetingDistance,
-	                                        ECC_WorldStatic,
+	                                        ECC_MAX,
 	                                        QueryParams);
 	return Hit.ImpactPoint;
 }
