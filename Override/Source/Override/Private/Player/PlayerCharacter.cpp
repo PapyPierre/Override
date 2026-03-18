@@ -39,7 +39,6 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 	return nullptr;
 }
 
-
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
