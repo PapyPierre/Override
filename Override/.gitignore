@@ -76,9 +76,10 @@ Content/FMOD/Banks
 Content/FMOD/Buses
 Content/FMOD/Events
 Content/FMOD/PrivateIntegrationData
-!Plugins/FMODStudio/Binaries/*.dll
-!Plugins/FMODStudio/Binaries/*.lib
-!Plugins/FMODStudioNiagara/Binaries/*.dll
+!Plugins/FMODStudio/Binaries
+!Plugins/FMODStudio/Content
+!Plugins/FMODStudio/Source
+!Plugins/FMODStudioNiagara
 
 # Cache files for the editor to use
 DerivedDataCache/*
