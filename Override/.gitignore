@@ -72,9 +72,10 @@ Intermediate/*
 Plugins/**/Intermediate/*
 
 # FMOD
-Content/FMOD
-!Content/FMOD/Desktop
-!Content/FMOD/Mobile
+Content/FMOD/Banks
+Content/FMOD/Buses
+Content/FMOD/Events
+Content/FMOD/PrivateIntegrationData
 !Plugins/FMODStudio/Binaries/*.dll
 !Plugins/FMODStudio/Binaries/*.lib
 !Plugins/FMODStudioNiagara/Binaries/*.dll
