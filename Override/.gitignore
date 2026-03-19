@@ -74,7 +74,6 @@ Plugins/**/Intermediate/*
 # FMOD
 Content/FMOD/Banks
 Content/FMOD/Buses
-Content/FMOD/Events
 Content/FMOD/PrivateIntegrationData
 !Plugins/FMODStudio/Binaries
 !Plugins/FMODStudio/Content
