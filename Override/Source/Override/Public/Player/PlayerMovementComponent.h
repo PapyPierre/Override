@@ -34,6 +34,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	float DefaultMaxWalkSpeed;
 	float DefaultMaxAcceleration;
+	float CrouchJumpZVelocity;
 
 	float BackwardSpeed;
 	float SideSpeed;
