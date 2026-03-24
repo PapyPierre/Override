@@ -38,10 +38,12 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 		CurrentMovementMode = MovementMode::Dashing;
 	if (PlayerCharacter->bIsAimingWeapon)
 		CurrentMovementMode = MovementMode::Aiming;
-
+	if (LastMovementMode == MovementMode::Aiming && !PlayerCharacter->bIsAimingWeapon)
+		CurrentMovementMode = MovementMode::NotAiming;
+	
 	if (CurrentMovementMode == LastMovementMode)
 		return;
-
+	
 	if (FovTimeline.IsPlaying())
 		FovTimeline.Stop();
 	
@@ -56,6 +58,11 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 		{
 			TargetFov = PlayerCharacter->WalkFOV;
 			FovCurve = PlayerCharacter->CurveSlideEnd;
+		}
+		else if (LastMovementMode == MovementMode::NotAiming)
+		{
+			TargetFov = PlayerCharacter->DefaultFOV;
+			FovCurve = PlayerCharacter->CurveAimEnd;
 		}
 		else
 		{
@@ -75,12 +82,13 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 		TargetFov = PlayerCharacter->AimFOV;
 		FovCurve = PlayerCharacter->CurveAimStart;
 		break;
+	case MovementMode::NotAiming:
+		TargetFov = PlayerCharacter->DefaultFOV;
+		FovCurve = PlayerCharacter->CurveAimEnd;
+		break;
 	default:
 		break;
 	}
-
-	if (LastMovementMode == MovementMode::Aiming)
-		FovCurve = PlayerCharacter->CurveAimEnd;
 	
 	CurrentFov = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
 	FovTimeline.AddInterpFloat(FovCurve, OnTimelineCallback);
