@@ -83,6 +83,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	float CoyoteTime= 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
+	float CrouchJumpHeight = 300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	float JumpResetTime = 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement|Jump")
 	UCurveFloat* JumpCurve;
