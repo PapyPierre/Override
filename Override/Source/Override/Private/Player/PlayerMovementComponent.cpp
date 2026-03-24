@@ -306,6 +306,7 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 
 void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 {
+	CharacterRef->LastGroundedPosition = GetActorLocation();
 	Super::PhysWalking(DeltaTime, Iterations);
 }
 
