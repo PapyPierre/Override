@@ -80,7 +80,10 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 	}
 
 	if (LastMovementMode == MovementMode::Aiming)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FOV Curve Aim End"));
 		FovCurve = PlayerCharacter->CurveAimEnd;
+	}
 	
 	CurrentFov = PlayerCharacter->FirstPersonCameraComponent->GetFOVAngle();
 	FovTimeline.AddInterpFloat(FovCurve, OnTimelineCallback);
