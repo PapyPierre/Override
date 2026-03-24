@@ -21,7 +21,8 @@ public:
 		Aiming,
 		Walking,
 		Sliding,
-		Dashing
+		Dashing,
+		NotAiming
 	};
 
 	UCameraManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
