@@ -35,6 +35,7 @@ void UPlayerMovementComponent::BeginPlay()
 		CoyoteTime = MovementData->CoyoteTime;
 		JumpCurve = MovementData->JumpCurve;
 		JumpResetTime = MovementData->JumpResetTime;
+		CrouchJumpZVelocity = MovementData->CrouchJumpHeight;
 
 		//Melee
 		DashDuration = MovementData->DashDuration;
@@ -554,9 +555,9 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 		if (JumpTimeline.IsPlaying())
 			JumpTimeline.Stop();
 
-		if (!IsSliding() && IsCrouching())
+		if (!bIsSliding && IsCrouching())
 		{
-			JumpZVelocity = 300;
+			JumpZVelocity = CrouchJumpZVelocity;
 		}
 	}
 
