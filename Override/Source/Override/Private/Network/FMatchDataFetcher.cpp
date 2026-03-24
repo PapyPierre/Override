@@ -10,7 +10,7 @@ FSocket* FMatchDataFetcher::CreateSocketToDBServer(const int& Port)
 	return CreateSocket("10.51.0.137", Port);
 }
 
-FSocket* FMatchDataFetcher::CreateSocket(const FString& IPStr,  const int& Port)
+FSocket* FMatchDataFetcher::CreateSocket(const FString& IPStr, const int& Port)
 {
 	FSocket* Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)
 		->CreateSocket(NAME_Stream, TEXT("StatsSocket"), false);
@@ -28,12 +28,12 @@ FSocket* FMatchDataFetcher::CreateSocket(const FString& IPStr,  const int& Port)
 	if (Socket->Connect(*Addr))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Socket connected to %s successfully"),
-			   *Addr->ToString(true));
+		       *Addr->ToString(true));
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to connected to %s"),
-			   *Addr->ToString(true));
+		       *Addr->ToString(true));
 		return nullptr;
 	}
 
@@ -72,7 +72,7 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 
 	FString Response;
 	RecvAll(Socket, Response);
-	
+
 	if (Response.IsEmpty())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
@@ -91,20 +91,20 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 
 	const TArray<TSharedPtr<FJsonValue>>& Array = ResponseJson->AsArray();
 	TMap<int32, FMatchPlayerData> PlayersById;
-	
+
 	for (const TSharedPtr<FJsonValue>& Value : Array)
 	{
 		TSharedPtr<FJsonObject> Obj = Value->AsObject();
 
 		const int32 Player_Id = Obj->GetIntegerField(TEXT("player_id"));
-		const int32 Team_Id   = Obj->GetIntegerField(TEXT("team_id"));
+		const int32 Team_Id = Obj->GetIntegerField(TEXT("team_id"));
 
 		FMatchPlayerData& PlayerData = PlayersById.FindOrAdd(Player_Id);
 		PlayerData.PlayerId = Player_Id;
-		PlayerData.TeamId   = Team_Id;
+		PlayerData.TeamId = Team_Id;
 
 		FPlayerPosition Pos;
-		Pos.Time = Obj->GetIntegerField(TEXT("pos_id")); 
+		Pos.Time = Obj->GetIntegerField(TEXT("pos_id"));
 		Pos.Position = FVector(
 			Obj->GetNumberField(TEXT("pos_x")),
 			Obj->GetNumberField(TEXT("pos_y")),
@@ -117,7 +117,7 @@ bool FMatchDataFetcher::FetchMatch(FString VersionId, FString MatchId, FString P
 	PlayersById.GenerateValueArray(OutPlayers);
 
 	CloseSocket(Socket);
-	
+
 	return true;
 }
 
@@ -193,7 +193,7 @@ bool FMatchDataFetcher::RecvData(FSocket* Socket, uint8* Data, int32 Size)
 			FPlatformProcess::Sleep(0.001f);
 			continue;
 		}
-		
+
 		int32 Read = 0;
 		if (!Socket->Recv(Data + Total, Size - Total, Read)) return false;
 
@@ -210,12 +210,12 @@ bool FMatchDataFetcher::ParseJsonSafe(const FString& JsonString, TSharedPtr<FJso
 
 	int32 EndIndex;
 	FString FixedJson;
-	
+
 	if (JsonString.FindLastChar(TEXT(']'), EndIndex)) FixedJson = JsonString.Left(EndIndex + 1);
 	else FixedJson = JsonString;
-	
+
 	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FixedJson);
-	
+
 	return FJsonSerializer::Deserialize(Reader, OutRoot);
 }
 
@@ -254,7 +254,7 @@ bool FMatchDataFetcher::FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, 
 
 	FString Response;
 	RecvAll(Socket, Response);
-	
+
 	if (Response.IsEmpty())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
@@ -270,7 +270,9 @@ bool FMatchDataFetcher::FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, 
 		CloseSocket(Socket);
 		return false;
 	}
-	
+
+	TArray<FString> Versions;
+
 	for (const TSharedPtr<FJsonValue>& MatchInfo : ResponseJson->AsArray())
 	{
 		TArray<TSharedPtr<FJsonValue>> InfoAsArray = MatchInfo->AsArray();
@@ -278,8 +280,17 @@ bool FMatchDataFetcher::FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, 
 		const TSharedPtr<FJsonValue> Match = InfoAsArray[0];
 		const TSharedPtr<FJsonValue> Version = InfoAsArray[1];
 		
-		VersionIds.AddUnique(MakeShared<FString>(Version->AsString()));
+		if (!Versions.Contains(Version->AsString()))
+		{
+			Versions.Add(Version->AsString());
+		}
+		
 		MatchIds.AddUnique(MakeShared<FString>(Match->AsString()));
+	}
+
+	for (FString Version : Versions)
+	{
+		VersionIds.AddUnique(MakeShared<FString>(Version));
 	}
 
 	CloseSocket(Socket);
