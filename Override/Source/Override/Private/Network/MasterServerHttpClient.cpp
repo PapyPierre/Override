@@ -235,5 +235,5 @@ FString UMasterServerHttpClient::GetServerFullAddress(bool UseLocalServerIP) con
 
 UMasterServerHttpClient::~UMasterServerHttpClient()
 {
-	UE_LOG(LogTemp, Warning, TEXT("HttpClient destroyed"));
+	UE_LOG(LogTemp, Log, TEXT("HttpClient has been destroyed"));
 }
