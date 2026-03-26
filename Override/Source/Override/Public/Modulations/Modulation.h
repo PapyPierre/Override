@@ -106,7 +106,7 @@ protected:
 	void HandleLock(float DeltaTime);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable)
-	void Lock();
+	void Lock(bool ResetLockCD);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void RPC_ChangeState(ModState NewState);
@@ -114,6 +114,9 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnStateChanged(ModState NewState);
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPostInteract(AActor* InteractingActor);
+	
 private:
 	UPROPERTY(Replicated)
 	float LerpTime;

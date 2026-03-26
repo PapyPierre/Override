@@ -22,7 +22,10 @@ public:
 	FGameplayTag CooldownTag;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-	bool UseTargetingComponent;
+	bool RequiresTargets;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool SelfCast;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Cooldown")
 	TSubclassOf<UGameplayEffect> CooldownEffectClass;

@@ -39,7 +39,6 @@ UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 	return nullptr;
 }
 
-
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -47,9 +46,9 @@ void APlayerCharacter::BeginPlay()
 	if (PlayerMovementComponent->MovementData)
 	{
 		DefaultFOV = PlayerMovementComponent->MovementData->DefaultFOV;
-		MaxFOV = PlayerMovementComponent->MovementData->MaxFOV;
-		FOVInterpNormalSpeed = PlayerMovementComponent->MovementData->FOVInterpNormalSpeed;
-		FOVInterpAimSpeed = PlayerMovementComponent->MovementData->FOVInterpAimSpeed;
+		WalkFOV = PlayerMovementComponent->MovementData->WalkFOV;
+		SlideFOV = PlayerMovementComponent->MovementData->SlideFOV;
+		DashFOV = PlayerMovementComponent->MovementData->DashFOV;		
 
 		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
 		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
@@ -58,6 +57,9 @@ void APlayerCharacter::BeginPlay()
 		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
 	}
 
+	CameraManager = NewObject<UCameraManager>(this);
+	CameraManager->BeginPlay(this);
+	
 	DefaultCoyoteTime = PlayerMovementComponent->CoyoteTime;
 }
 
@@ -151,7 +153,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	if (IsLocallyControlled())
 	{
-		CameraManager.SetFov(this, PlayerMovementComponent, DeltaTime);
+		CameraManager->SetFov(this, PlayerMovementComponent, DeltaTime);
 	}
 
 	Super::Tick(DeltaTime);
@@ -160,26 +162,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-
-	if (PlayerMovementComponent->VelocityEaseTimeline.IsPlaying())
-	{
-		PlayerMovementComponent->VelocityEaseTimeline.SetPlayRate(1);
-		if (PlayerMovementComponent->Impact.Z <= PlayerMovementComponent->SlopeToleranceValue * -1)
-		{
-			PlayerMovementComponent->VelocityEaseTimeline.SetPlaybackPosition(0.5f, true);
-			PlayerMovementComponent->SetMovementMode(MOVE_Custom, CMOVE_Slide);
-		}
-		else
-		{
-			PlayerMovementComponent->InitialEaseVelocity = PlayerMovementComponent->Velocity;
-			PlayerMovementComponent->TargetEaseVelocity = PlayerMovementComponent->InitialEaseVelocity.GetSafeNormal() *
-				PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
-		}
-	}
-
 	if (PlayerMovementComponent->bResetSlideCrouch)
 		PlayerMovementComponent->bResetSlideLanded = true;
-
+	
 	if (!PlayerMovementComponent->JumpTimeline.IsPlaying())
 	{
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
@@ -188,6 +173,17 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	{
 		PlayerMovementComponent->JumpTimeline.Stop();
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
+	}
+
+	FVector CurrentVelocity = PlayerMovementComponent->Velocity;
+	FVector HorizontalVelocity = FVector(CurrentVelocity.X, CurrentVelocity.Y, 0.f);
+	float HorizontalSpeed = GetVelocity().Size();
+
+	if (PlayerMovementComponent->bIsSliding && PlayerMovementComponent->bWantsToCrouch && HorizontalSpeed > 1500.f)
+	{
+		float PreservePercent = 1.5f;
+		FVector NewHorizontalVelocity = HorizontalVelocity.GetSafeNormal() * (HorizontalSpeed * PreservePercent);
+		PlayerMovementComponent->Velocity += NewHorizontalVelocity;
 	}
 
 	if (IsLocallyControlled() && FirstPersonCameraComponent)
@@ -201,9 +197,11 @@ void APlayerCharacter::Falling()
 {
 	LastGroundedPosition = GetActorLocation();
 
-	if (!PlayerMovementComponent->bIsMelee)
+	if (!PlayerMovementComponent->bIsDashing)
+	{
 		JumpCurrentCount--;
-
+	}
+	
 	GetWorldTimerManager().SetTimer(
 		JumpDelayHandle,
 		this,
@@ -334,12 +332,12 @@ void APlayerCharacter::UseAbility(int index)
 					return;
 				}
 
-				if (TargetingComponent->CurrentTargets.IsEmpty() && BaseAbility->UseTargetingComponent) return;
+				if (TargetingComponent->CurrentTargets.IsEmpty() && BaseAbility->RequiresTargets) return;
 				
 				ActivateAbilityInSlotRPC(index, TargetingComponent->GetPointInSight(),
 				                         TargetingComponent->CurrentTargets);
 
-				OnAbilityActivated(index);
+				OnAbilityActivated(index, BaseAbility->SelfCast);
 			}
 		}
 	}

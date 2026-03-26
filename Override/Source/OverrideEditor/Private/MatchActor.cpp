@@ -49,7 +49,7 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 			FVector prevPos = Player.Positions[i - 1].Position;
 			FVector pos = Player.Positions[i].Position;
 			
-			if (FVector::Dist(prevPos, pos) < 1000)
+			if (FVector::Dist(prevPos, pos) < 1500)
 			{
 				DrawDebugLine(GetWorld(),prevPos,pos,Color,true,-1.f, Depth,8);
 			}

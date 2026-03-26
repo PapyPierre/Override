@@ -29,10 +29,7 @@ public:
 	float ShootRadius = 22.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	float FastReload = 0.5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	float SlowReload = 1.5f;
+	float Reload = 0.45f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	float RPM = 750;
@@ -45,7 +42,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	int StockMunition = 200;	
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
-	float MeleeCoolDown = 1.2f;
 };

@@ -24,8 +24,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PlayerController;
-	
-	CameraManager CameraManager;
+
+	UPROPERTY(BlueprintReadOnly)
+	UCameraManager* CameraManager;
 	
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	APlayerCameraManager* FirstPersonCameraComponent;
@@ -71,12 +72,35 @@ public:
 
 #pragma region FOV
 	float DefaultFOV;
-	float MaxFOV;
+	float WalkFOV;
+	float SlideFOV;
+	float DashFOV;
 
 	float FOVInterpSlideSpeed;
 	float FOVInterpSprintSpeed;
 	float FOVInterpAimSpeed;
 	float FOVInterpNormalSpeed;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveWalkStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveIdleStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveSlideStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveSlideEnd;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveDashStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveAimStart;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	UCurveFloat* CurveAimEnd;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeIdle;
@@ -91,7 +115,13 @@ public:
 	TSubclassOf<UCameraShakeBase> ShakeWalk;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeWalkCrouch;
+	
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
 	TSubclassOf<UCameraShakeBase> ShakeLanding;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "FOV")
+	TSubclassOf<UCameraShakeBase> ShakeDash;
 #pragma endregion
 		
 #pragma region WallRun
@@ -178,7 +208,7 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnAbilityActivated(int index);
+	void OnAbilityActivated(int SlotIndex, bool IsSelfCast);
 
 private:
 	void SetControllerRef();

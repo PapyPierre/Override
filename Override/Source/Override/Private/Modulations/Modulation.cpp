@@ -111,9 +111,9 @@ void AModulation::RPC_ChangeState_Implementation(ModState NewState)
 	OnStateChanged(NewState);
 }
 
-void AModulation::Lock_Implementation()
+void AModulation::Lock_Implementation(bool ResetLockCD)
 {
-	if (CurrentState == ModState::Locked)return;
+	if (!ResetLockCD && CurrentState == ModState::Locked) return;
 	if (CurrentState == ModState::InCD) return;
 
 	if (Group)
@@ -242,10 +242,13 @@ void AModulation::OnInteract_Implementation(AActor* InteractingActor) // Server-
 		for (AModulation* Mod : Group->ModulationsInGroup)
 		{
 			Mod->RPC_ChangeState(ModState::Moving);
+			Mod->OnPostInteract(InteractingActor);
 		}
 
 		return;
 	}
 
 	RPC_ChangeState(ModState::Moving);
+
+	OnPostInteract(InteractingActor);
 }

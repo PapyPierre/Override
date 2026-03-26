@@ -11,8 +11,7 @@ class UMovementStats;
 UENUM()
 enum ECustomMovementMode
 {
-	CMOVE_Melee = 0,
-	CMOVE_Crouch = 1,
+	CMOVE_Dash = 0,
 	CMOVE_Slide = 2,
 };
 
@@ -30,11 +29,20 @@ public:
 	int32 FrameCounter = 0;
 	float DefaultGroundFriction;
 	float DefaultBrakingDecelerationWalking;
+	UPROPERTY(BlueprintReadOnly)
 	float DefaultMaxWalkSpeedCrouched;
+	UPROPERTY(BlueprintReadOnly)
 	float DefaultMaxWalkSpeed;
+	float DefaultMaxAcceleration;
+	float CrouchJumpZVelocity;
 
 	float BackwardSpeed;
 	float SideSpeed;
+	float SlowedSpeed;
+	float ShootingSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsShooting = false;
 
 	FVector CharaLocation;
 	FVector CharaForward;
@@ -47,20 +55,26 @@ public:
 	virtual bool IsMovingOnGround() const override;
 	bool IsCustomMovementModeOn(uint8 customMovementMode) const;
 
+	UPROPERTY(BlueprintReadWrite)
+	bool IsSlowed;
+
 #pragma region Dash
-	UPROPERTY()
-	FTimeline DashTimeline;
-	
-	float EaseOutTimeDash = 0.15f;
 	float DashImpulse = 2000.f;
+	float DashCoolDown = 0.3f;
+	float DashDuration = 0.2f;
+	float LastDashTime = -1000.f;
+	float DashStartTime = -1000.f;
 	
 	FVector MoveDirectionMelee;
 	FTimerHandle SimpleDelayHandle;
 
-	void OnDelayFinished();
+	void EndOfDash(float DeltaSeconds, int32 Iterations);
+	void DashDurationCheck(float DeltaSeconds, int32 Iterations);
+	bool CanDash() const;
+	void DebugDashValues();
 
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
-	bool bIsMelee = false;
+	bool bIsDashing = false;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
 	bool bWantsToDash;
@@ -74,60 +88,37 @@ public:
 	bool bIsSliding = false;
 	
 	UPROPERTY(Replicated)
-	bool bResetSlideCrouch = false;
-	
-	UPROPERTY(Replicated)
-	bool bResetSlideLanded = true;
-	
-	UPROPERTY(Replicated)
 	FVector VelocityAtCrouch;
-
+	
+	bool bResetSlideCrouch = false;
+	bool bResetSlideLanded = true;
 	bool bWantsToSlide = false;
-	bool bStopSliding = false;
-	bool bShouldStopSliding = false;
-	bool bPendingCancelSlide = false;
+	bool SlideLineTrace();
 	bool bCoolDownFinished = true;
-
+	
 	float TimeSliding = 0.f;
-	float SlidingCoolDown;
-	float BoostSlidingTime;
-	float EaseOutTime;
 	float SlideImpulse;
 	float SlopeToleranceValue;
-	float MinDiffVelocityToAllowSlide;
+	
+	float SlideCooldownDuration = 0.3f;
+	float SlideCooldownRemaining = 0;
+	float SpeedIncreaseInSlope = 20000;
+	float SpeedDecreaseInSlope = 1000;
+	float FrictionInSlide = 0.25f;
+	float BrakingDecelerationInSlide = 750;
 	float MaxVelocityForSlide;
-	float TimeToWaitBetweenSlide = 0;
+	float MaxAccelerationForSlide;
 	
-	bool SlideLineTrace();
-
-	EMovementMode _PreviousMovementMode;
 	FHitResult SlideHit;
-	FTimeline VelocityEaseTimeline;
-
 	FVector Impact;
-
-	UPROPERTY(EditAnywhere, Category = "CMC|Slide")
-	UCurveFloat* VelocityEaseCurve;
-
-	FVector InitialEaseVelocity;
-	FVector TargetEaseVelocity;
-
-	UFUNCTION()
-	void EaseVelocityUpdate(float Value);
 	
-	UFUNCTION()
-	void StopVelocityEaseTimeline();
-	UFUNCTION(Client, Reliable)
-	void Client_StopVelocityEaseTimeline();
-	
-	
-	void StartVelocityEase(const FVector& NewTargetVelocity);
-	void DebugSlideState(const FString& Context);
-	bool CanSlide();
-	void ResetSlideValues();
-
 	UFUNCTION(BlueprintCallable)
 	bool IsSliding() const;
+	void DebugSlideNetwork(const FString& Context);
+	bool CanSlide();
+	void ResetSlideValues();
+	void ExitSlide(float DeltaTime, int32 Iterations);
+	
 #pragma endregion
 
 #pragma region Jump
@@ -149,18 +140,19 @@ public:
 #pragma endregion
 
 private:
+	
 	virtual void BeginPlay() override;
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
 	
-	virtual void PhysMelee(float DeltaTime, int32 Iterations);
+	virtual void PhysDash(float DeltaTime, int32 Iterations);
+
+	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 	
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 	
 	virtual void PhysWalking(float DeltaTime, int32 Iterations) override;
-	
-	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 
 	virtual void PhysFalling(float DeltaTime, int32 Iterations) override;
 	
@@ -169,7 +161,7 @@ private:
 	virtual bool CanAttemptJump() const override;
 	
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
-
+	
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
@@ -193,7 +185,6 @@ class FSavedMove_MyMovement : public FSavedMove_Character
 public:
 
     #define FLAG_STOP_SLIDE 0x10
-    #define FLAG_SHOULD_STOP_SLIDE  0x20
 	#define FLAG_WANT_TO_DASH 0x40
 	#define FLAG_WANT_TO_SLIDE 0x80 
 	
@@ -204,8 +195,6 @@ public:
 	bool bWantsToDash;
 
 	//Slide
-	bool bShouldStopSliding;
-	bool bStopSliding;
 	bool bWantsToSlide;
 	
 	///@brief Resets all saved variables.
