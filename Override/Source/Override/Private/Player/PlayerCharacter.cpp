@@ -53,7 +53,8 @@ void APlayerCharacter::BeginPlay()
 		AimFOV = PlayerMovementComponent->MovementData->AimFOV;
 		AimCrouchedSpeed = PlayerMovementComponent->MovementData->AimCrouchedSpeed;
 		AimSpeed = PlayerMovementComponent->MovementData->AimSpeed;
-		MouseSensitivity = PlayerMovementComponent->MovementData->MouseSensitivity;
+		DefaultMouseSensitivity = PlayerMovementComponent->MovementData->MouseSensitivity;
+		CurrentMouseSensitivity = DefaultMouseSensitivity;
 		MouseAimSensitivity = PlayerMovementComponent->MovementData->MouseAimSensitivity;
 	}
 
@@ -91,13 +92,13 @@ void APlayerCharacter::UpdateAimingSettings()
 {
 	if (bIsAimingWeapon)
 	{
-		MouseSensitivity = MouseAimSensitivity;
+		CurrentMouseSensitivity = MouseAimSensitivity;
 		PlayerMovementComponent->MaxWalkSpeedCrouched = AimCrouchedSpeed;
 		PlayerMovementComponent->MaxWalkSpeed = AimSpeed;
 	}
 	else
 	{
-		MouseSensitivity = 1.0f;
+		CurrentMouseSensitivity = DefaultMouseSensitivity;
 		PlayerMovementComponent->MaxWalkSpeedCrouched = PlayerMovementComponent->DefaultMaxWalkSpeedCrouched;
 		PlayerMovementComponent->MaxWalkSpeed = PlayerMovementComponent->DefaultMaxWalkSpeed;
 	}
@@ -195,8 +196,6 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 
 void APlayerCharacter::Falling()
 {
-	LastGroundedPosition = GetActorLocation();
-
 	if (!PlayerMovementComponent->bIsDashing)
 	{
 		JumpCurrentCount--;
