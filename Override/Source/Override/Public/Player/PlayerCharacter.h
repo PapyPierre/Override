@@ -159,8 +159,9 @@ public:
 	float AimFOV;
 	float AimCrouchedSpeed;
 	float AimSpeed;
+	float DefaultMouseSensitivity;
 	UPROPERTY(BlueprintReadOnly)
-	float MouseSensitivity = 1.0f;
+	float CurrentMouseSensitivity;
 	UPROPERTY(BlueprintReadOnly)
 	float MouseAimSensitivity;
 

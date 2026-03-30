@@ -43,6 +43,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsShooting = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bHasFlagCMC = false;
 
 	FVector CharaLocation;
 	FVector CharaForward;

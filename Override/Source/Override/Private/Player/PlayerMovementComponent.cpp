@@ -75,8 +75,23 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	JumpTimeline.TickTimeline(DeltaTime);
 
-	//DebugSlideNetwork(TEXT("Tick"));
-	//DebugDashValues();
+	if (CharacterRef->HasAuthority())
+	{
+		bool bValidGrounded =
+			IsMovingOnGround() &&
+			CurrentFloor.IsWalkableFloor() &&
+			CurrentFloor.bBlockingHit &&
+			!IsFalling() &&
+			FMath::Abs(Velocity.Z) < 1.f &&
+			CurrentFloor.FloorDist <= MaxStepHeight &&
+			!bJustTeleported &&
+				bHasFlagCMC;
+
+		if (bValidGrounded)
+		{
+			CharacterRef->LastGroundedPosition = CharacterRef->GetActorLocation();
+		}
+	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
@@ -307,7 +322,6 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 
 void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 {
-	CharacterRef->LastGroundedPosition = GetActorLocation();
 	Super::PhysWalking(DeltaTime, Iterations);
 }
 
