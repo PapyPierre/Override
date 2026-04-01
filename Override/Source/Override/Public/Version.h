@@ -1,3 +1,3 @@
 #pragma once
 
-#define GAME_VERSION "dev-0.0.0.090326"
+#define GAME_VERSION "dev-0.6.52.300326"
