@@ -12,11 +12,11 @@
 				"Engine"
 			]
 		},
-        {
-            "Name": "OverrideEditor",
-            "Type": "Editor",
-            "LoadingPhase": "Default"
-        }
+		{
+			"Name": "OverrideEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
 	],
 	"Plugins": [
 		{
@@ -33,6 +33,10 @@
 		},
 		{
 			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "GPULightmass",
 			"Enabled": true
 		}
 	],
