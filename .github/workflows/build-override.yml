@@ -60,11 +60,13 @@ jobs:
         run: |
           & $env:VERSION_UPDATE_SCRIPT -Branch "${{ github.ref_name }}"
 
-      - name: Delete FMOD Intermediate Folder
-        shell: cmd
-        run: |
-          rd /s /q C:\actions-runner\_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
-
+  #
+  #    - name: Delete FMOD Intermediate Folder
+  #      shell: cmd
+  #      run: |
+  #        rd /s /q C:\actions-runner\_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
+  #
+      
       - name: Build Editor
         shell: cmd
         run: |

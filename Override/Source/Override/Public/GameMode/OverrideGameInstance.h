@@ -13,4 +13,7 @@ class OVERRIDE_API UOverrideGameInstance : public UCustomGameInstance
 public:
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FMatchPlayerData> MatchPlayers;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString CurrentLobbyId = FString("");
 };
