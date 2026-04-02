@@ -101,6 +101,9 @@ void UCameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlaye
 {
 	if (!PlayerCharacter->FirstPersonCameraComponent)
 		return;
+
+	if (PlayerCharacter->bIsAimingWeapon)
+		return;
 	
 	if (PlayerMovementComponent->IsMovingOnGround())
 	{
