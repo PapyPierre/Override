@@ -11,7 +11,6 @@ void ACustomPlayerController::BeginPlay()
 
 	const FString LevelName = UGameplayStatics::GetCurrentLevelName(GetWorld(), true);
 
-
 	if (LevelName == TEXT("Lvl_Lobby"))
 	{
 		OnLobbyJoined(GetGameInstance<UOverrideGameInstance>()->CurrentLobbyId);
@@ -25,7 +24,11 @@ void ACustomPlayerController::FetchLobbyList()
 
 void ACustomPlayerController::CreateNewLobby()
 {
+#if WITH_EDITOR
+	OnLobbyJoined("Editor Lobby");
+#else
 	HttpClient->CreateLobby(this);
+#endif
 }
 
 void ACustomPlayerController::JoinLobby(FString LobbyId)
