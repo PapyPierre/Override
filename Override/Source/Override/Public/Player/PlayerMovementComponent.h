@@ -73,6 +73,7 @@ public:
 
 	void EndOfDash(float DeltaSeconds, int32 Iterations);
 	void DashDurationCheck(float DeltaSeconds, int32 Iterations);
+	UFUNCTION(BlueprintCallable)
 	bool CanDash() const;
 	void DebugDashValues();
 
