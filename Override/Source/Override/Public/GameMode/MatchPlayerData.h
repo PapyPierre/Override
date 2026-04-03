@@ -9,10 +9,10 @@ struct OVERRIDE_API FMatchPlayerData
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 PlayerId;
+	int32 PlayerId = -1;
 	
 	UPROPERTY(BlueprintReadWrite)
-	int32 TeamId;
+	int32 TeamId = -1;
 
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FPlayerPosition> Positions;
