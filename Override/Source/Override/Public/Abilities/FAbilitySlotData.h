@@ -14,7 +14,7 @@ public:
 	TSubclassOf<UGameplayAbility> AbilityClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SlotIndex;
+	int32 SlotIndex = -1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FGameplayTag InputTag;
