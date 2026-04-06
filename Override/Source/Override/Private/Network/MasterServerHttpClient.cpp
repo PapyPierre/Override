@@ -75,11 +75,14 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester)
+void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Leave %s Request to Master Server"), *TargetLobbyId);
 
-	FString UriQuery = GetServerFullAddress(true) + TEXT("/lobby/playerleave");
+	FString UriQuery = ServerSide
+	? TEXT("http://127.0.0.1:5000/lobby/playerleave")
+	: GetServerFullAddress(true) + TEXT("/lobby/playerleave");
+	
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();

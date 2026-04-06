@@ -36,14 +36,16 @@ void ACustomPlayerController::JoinLobby(FString LobbyId)
 	HttpClient->JoinLobby(LobbyId, this);
 }
 
-void ACustomPlayerController::RPC_OnClientLogout_Implementation()
+void ACustomPlayerController::OnLogout()
 {
-	LeaveLobby(GetGameInstance<UOverrideGameInstance>()->CurrentLobbyId);
+	FString LobbyId = GetGameInstance<UOverrideGameInstance>()->CurrentLobbyId;
+
+	HttpClient->LeaveLobby(LobbyId, this, true);
 }
 
 void ACustomPlayerController::LeaveLobby(FString LobbyId)
 {
-	HttpClient->LeaveLobby(LobbyId, this);
+	HttpClient->LeaveLobby(LobbyId, this, false);
 }
 
 void ACustomPlayerController::ConnectToLobbyServer(FString LobbyId, FString LobbyIp, int LobbyPort)

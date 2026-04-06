@@ -90,7 +90,7 @@ void AFirstPersonGameMode::Logout(AController* Exiting)
 		UE_LOG(LogTemp, Warning, TEXT("Player disconnected: %s"),
 			*PC->GetPlayerState<APlayerState>()->GetPlayerName());
 
-		PC->RPC_OnClientLogout();
+		PC->OnLogout();
 	}
 }
 

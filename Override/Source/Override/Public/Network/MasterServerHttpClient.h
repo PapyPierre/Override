@@ -20,7 +20,7 @@ public:
 
 	void JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
 
-	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
+	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide = false);
 
 	void SendHeartbeat(FString TargetLobbyId);
 	

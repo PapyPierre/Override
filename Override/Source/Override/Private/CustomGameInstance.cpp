@@ -10,7 +10,7 @@ void UCustomGameInstance::Init()
 
 	if (IsRunningDedicatedServer())
 	{
-		StartHealthCheck();
+		//StartHealthCheck();
 	}
 }
 
