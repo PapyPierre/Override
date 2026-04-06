@@ -5,15 +5,17 @@
 #include "IPAddress.h"
 #include "GameMode/OverrideGameInstance.h"
 #include "winsock.h"
+#include "GameFramework/PlayerState.h"
 #include "Network/FMatchDataFetcher.h"
+#include "Player/CustomPlayerController.h"
 
 void AFirstPersonGameMode::SendDataToDB()
 {
 	UE_LOG(LogTemp, Error, TEXT("Trying to send match data to DB..."));
-	
+
 	FMatchDataFetcher MatchDataFetcher;
-	
-	FSocket* Socket = MatchDataFetcher.CreateSocket("127.0.0.1",6000);
+
+	FSocket* Socket = MatchDataFetcher.CreateSocket("127.0.0.1", 6000);
 
 	// BUILD JSON
 	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
@@ -59,7 +61,7 @@ void AFirstPersonGameMode::SendDataToDB()
 	MatchDataFetcher.SendData(Socket, Payload);
 
 	FPlatformProcess::Sleep(0.05f);
-	
+
 	FString Response;
 	MatchDataFetcher.RecvAll(Socket, Response);
 
@@ -68,15 +70,29 @@ void AFirstPersonGameMode::SendDataToDB()
 		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
 		MatchDataFetcher.CloseSocket(Socket);
 	}
-	
+
 	TSharedPtr<FJsonValue> ResponseJson;
-	
+
 	if (!MatchDataFetcher.ParseJsonSafe(Response, ResponseJson))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Invalid JSON from DB server"));
 	}
 
 	MatchDataFetcher.CloseSocket(Socket);
+}
+
+void AFirstPersonGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+
+	if (ACustomPlayerController* PC = Cast<ACustomPlayerController>(Exiting))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Player disconnected: %s"),
+			*PC->GetPlayerState<APlayerState>()->GetPlayerName());
+
+		const UOverrideGameInstance* GI = Cast<UOverrideGameInstance>(GetGameInstance());
+		PC->LeaveLobby(GI->CurrentLobbyId);
+	}
 }
 
 FString AFirstPersonGameMode::GetVersionFromFile(const FString& FilePath)

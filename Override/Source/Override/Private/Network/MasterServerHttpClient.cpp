@@ -103,6 +103,32 @@ void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerCon
 	Request->ProcessRequest();
 }
 
+void UMasterServerHttpClient::SendHeartbeat(FString TargetLobbyId)
+{
+	UE_LOG(LogTemp, Log, TEXT("Sending Heartbeat of %s to Master Server"), *TargetLobbyId);
+
+	FString UriQuery = TEXT("http://127.0.0.1:5000/lobby/heartbeat");
+	FHttpModule& HttpModule = FHttpModule::Get();
+
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
+
+	Request->SetURL(UriQuery);
+	Request->SetVerb(TEXT("POST"));
+
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+	TSharedPtr<FJsonObject> JsonBody = MakeShareable(new FJsonObject);
+	JsonBody->SetStringField(TEXT("lobbyId"), TargetLobbyId);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	FJsonSerializer::Serialize(JsonBody.ToSharedRef(), Writer);
+
+	Request->SetContentAsString(JsonString);
+
+	Request->ProcessRequest();
+}
+
 void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Request,
                                                   TSharedPtr<IHttpResponse> Response, bool bSuccess,
                                                   ACustomPlayerController* Requester)

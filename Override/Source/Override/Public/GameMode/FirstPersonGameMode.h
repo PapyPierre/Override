@@ -14,5 +14,7 @@ protected:
 	void SendDataToDB();
 
 private:
+	virtual void Logout(AController* Exiting) override;
+	
 	static FString GetVersionFromFile(const FString& FilePath);
 };

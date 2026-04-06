@@ -21,6 +21,8 @@ public:
 	void JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
 
 	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
+
+	void SendHeartbeat(FString TargetLobbyId);
 	
 	//void QuickSearchLobby();
 
@@ -42,6 +44,6 @@ private:
 	void LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 		ACustomPlayerController* Requester);
 
-	
-	
+	void SendHeartbeatCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+		ACustomPlayerController* Requester);
 };
