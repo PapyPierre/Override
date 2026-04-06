@@ -23,6 +23,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void JoinLobby(FString LobbyId);
 
+	UFUNCTION(Client, Reliable)
+	void RPC_OnClientLogout();
+
 	UFUNCTION(BlueprintCallable)
 	void LeaveLobby(FString LobbyId);
 	

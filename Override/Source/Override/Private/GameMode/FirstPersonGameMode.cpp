@@ -90,8 +90,7 @@ void AFirstPersonGameMode::Logout(AController* Exiting)
 		UE_LOG(LogTemp, Warning, TEXT("Player disconnected: %s"),
 			*PC->GetPlayerState<APlayerState>()->GetPlayerName());
 
-		const UOverrideGameInstance* GI = Cast<UOverrideGameInstance>(GetGameInstance());
-		PC->LeaveLobby(GI->CurrentLobbyId);
+		PC->RPC_OnClientLogout();
 	}
 }
 
