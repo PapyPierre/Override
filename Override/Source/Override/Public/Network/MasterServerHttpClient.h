@@ -14,8 +14,6 @@ class OVERRIDE_API UMasterServerHttpClient : public UObject
 	GENERATED_BODY()
 	
 public:
-	
-	
 	void ListLobbies(ACustomPlayerController* Requester);
 
 	void CreateLobby(ACustomPlayerController* Requester);
