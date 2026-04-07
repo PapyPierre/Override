@@ -533,10 +533,10 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	}
 	if (ForwardDot < -0.5f)
 	{
-		return SuperMaxSpeed * BackwardSpeed * ShootingSpeedBase;
+		return SuperMaxSpeed * BackwardSpeed;
 	}
 	
-	return SuperMaxSpeed * SideSpeed * ShootingSpeedBase;
+	return SuperMaxSpeed * SideSpeed;
 }
 
 bool UPlayerMovementComponent::IsMovingOnGround() const

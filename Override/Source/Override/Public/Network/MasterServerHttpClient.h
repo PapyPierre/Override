@@ -23,6 +23,8 @@ public:
 	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide = false);
 
 	void SendHeartbeat(FString TargetLobbyId);
+
+	void SetLobbyInGame(FString TargetLobbyId, bool Value);
 	
 	//void QuickSearchLobby();
 

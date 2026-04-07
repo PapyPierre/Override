@@ -24,4 +24,7 @@ public:
 	FString ServerIp = FString("");
 
 	int ServerPort = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool IsInGame = false;
 };
