@@ -30,6 +30,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	float Reload = 0.45f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	float EndOfShootStance = 0.8f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Weapon")
 	float RPM = 750;
