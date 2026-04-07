@@ -16,7 +16,8 @@ public:
 
 #pragma region Server Function
 	void OnLogout();
-	
+
+	UFUNCTION(BlueprintCallable)
 	void SetLobbyInGame(FString LobbyId, bool Value);
 #pragma endregion
 	

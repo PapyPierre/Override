@@ -24,4 +24,6 @@ public:
 	FString ServerIp = FString("");
 
 	int ServerPort = 0;
+
+	bool IsInGame = false;
 };

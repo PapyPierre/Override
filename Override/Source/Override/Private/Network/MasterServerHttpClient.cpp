@@ -206,6 +206,7 @@ void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Reque
 		Lobby.MaxPlayers = Obj->GetIntegerField(TEXT("MaxPlayers"));
 		Lobby.ServerIp = GetServerIP(true);
 		Lobby.ServerPort = Obj->GetNumberField(TEXT("ServerPort"));
+		Lobby.IsInGame = Obj->GetBoolField(TEXT("IsInGame"));
 
 		Lobbies.Add(Lobby);
 	}
