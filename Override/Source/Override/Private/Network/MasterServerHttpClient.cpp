@@ -2,11 +2,26 @@
 #include "BlueprintHelpers.h"
 #include "Player/CustomPlayerController.h"
 
+void UMasterServerHttpClient::ResolveMasterServerIp()
+{
+	FString UriQuery = "http://192.168.140.201:5000/ipcheck";
+	FHttpModule& HttpModule = FHttpModule::Get();
+
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
+
+	Request->SetURL(UriQuery);
+	Request->SetVerb(TEXT("GET"));
+
+	Request->OnProcessRequestComplete().BindUObject(this, &UMasterServerHttpClient::ResolveMasterServerIpCallback, true);
+
+	Request->ProcessRequest();
+}
+
 void UMasterServerHttpClient::ListLobbies(ACustomPlayerController* Requester)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending List Lobbies Request to Master Server"));
 
-	FString UriQuery = GetServerFullAddress(true) + TEXT("/lobbies");
+	FString UriQuery = GetServerFullAddress() + TEXT("/lobbies");
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
@@ -23,7 +38,7 @@ void UMasterServerHttpClient::CreateLobby(ACustomPlayerController* Requester)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Create Lobby Request to Master Server"));
 
-	FString UriQuery = GetServerFullAddress(true) + TEXT("/lobby/create");
+	FString UriQuery = GetServerFullAddress() + TEXT("/lobby/create");
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
@@ -51,7 +66,7 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Join Lobby Request to Master Server"));
 
-	FString UriQuery = GetServerFullAddress(true) + TEXT("/lobby/playerjoin");
+	FString UriQuery = GetServerFullAddress() + TEXT("/lobby/playerjoin");
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
@@ -81,7 +96,7 @@ void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerCon
 
 	FString UriQuery = ServerSide
 	? TEXT("http://127.0.0.1:5000/lobby/playerleave")
-	: GetServerFullAddress(true) + TEXT("/lobby/playerleave");
+	: GetServerFullAddress() + TEXT("/lobby/playerleave");
 	
 	FHttpModule& HttpModule = FHttpModule::Get();
 
@@ -204,7 +219,7 @@ void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Reque
 		Lobby.Version = Obj->GetStringField(TEXT("Version"));
 		Lobby.CurrentPlayersCount = Obj->GetIntegerField(TEXT("CurrentPlayersCount"));
 		Lobby.MaxPlayers = Obj->GetIntegerField(TEXT("MaxPlayers"));
-		Lobby.ServerIp = GetServerIP(true);
+		Lobby.ServerIp = GetServerIP();
 		Lobby.ServerPort = Obj->GetNumberField(TEXT("ServerPort"));
 		Lobby.IsInGame = Obj->GetBoolField(TEXT("IsInGame"));
 
@@ -287,14 +302,38 @@ void UMasterServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Reques
 	Requester->OnLobbyLeft();
 }
 
-FString UMasterServerHttpClient::GetServerIP(bool UseLocalServerIP) const
+FString UMasterServerHttpClient::GetServerIP() const
 {
-	return UseLocalServerIP ? "192.168.140.201" : "185.30.209.201";
+	return UseLocalServerIp ? "192.168.140.201" : "185.30.209.201";
 }
 
-FString UMasterServerHttpClient::GetServerFullAddress(bool UseLocalServerIP) const
+FString UMasterServerHttpClient::GetServerFullAddress() const
 {
-	return TEXT("http://") + GetServerIP(UseLocalServerIP) + TEXT(":5000");
+	return TEXT("http://") + GetServerIP() + TEXT(":5000");
+}
+
+void UMasterServerHttpClient::ResolveMasterServerIpCallback(TSharedPtr<IHttpRequest> Request,
+	TSharedPtr<IHttpResponse> Response, bool bSuccess, bool LocalIpTest)
+{
+	if (!bSuccess || !Response.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Request failed"));
+		return;
+	}
+
+	int32 StatusCode = Response->GetResponseCode();
+	FString Body = Response->GetContentAsString();
+
+	UE_LOG(LogTemp, Log, TEXT("Resolve Master Server Ip Callback: Status: %d | Body: %s"), StatusCode, *Body);
+
+	if (StatusCode == 200) UseLocalServerIp = LocalIpTest;
+}
+
+UMasterServerHttpClient::UMasterServerHttpClient()
+{
+	UE_LOG(LogTemp, Log, TEXT("HttpClient has been constructed"));
+	
+	ResolveMasterServerIp();
 }
 
 UMasterServerHttpClient::~UMasterServerHttpClient()

@@ -14,6 +14,8 @@ class OVERRIDE_API UMasterServerHttpClient : public UObject
 	GENERATED_BODY()
 	
 public:
+	
+	
 	void ListLobbies(ACustomPlayerController* Requester);
 
 	void CreateLobby(ACustomPlayerController* Requester);
@@ -29,10 +31,18 @@ public:
 	//void QuickSearchLobby();
 
 private:
+	bool UseLocalServerIp = false;
+
+	UMasterServerHttpClient();
 	~UMasterServerHttpClient();
+
+	void ResolveMasterServerIp();
 	
-	FString GetServerIP(bool UseLocalServerIP) const;
-	FString GetServerFullAddress(bool UseLocalServerIP) const;
+	FString GetServerIP() const;
+	FString GetServerFullAddress() const;
+
+	void ResolveMasterServerIpCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+		bool bSuccess, bool LocalIpTest);
 	
 	void ListLobbiesCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                         ACustomPlayerController* Requester);
