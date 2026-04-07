@@ -132,6 +132,40 @@ void UMasterServerHttpClient::SendHeartbeat(FString TargetLobbyId)
 	Request->ProcessRequest();
 }
 
+void UMasterServerHttpClient::SetLobbyInGame(FString TargetLobbyId, const bool Value)
+{
+	if (Value)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Sending request to set %s IsInGame to true to Master Server"), *TargetLobbyId);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Sending request to set %s IsInGame to false to Master Server"), *TargetLobbyId);
+	}
+
+	FString UriQuery = TEXT("http://127.0.0.1:5000/lobby/setingame");
+	FHttpModule& HttpModule = FHttpModule::Get();
+
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
+
+	Request->SetURL(UriQuery);
+	Request->SetVerb(TEXT("PATCH"));
+
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+	TSharedPtr<FJsonObject> JsonBody = MakeShareable(new FJsonObject);
+	JsonBody->SetStringField(TEXT("lobbyId"), TargetLobbyId);
+	JsonBody->SetBoolField(TEXT("value"), Value);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	FJsonSerializer::Serialize(JsonBody.ToSharedRef(), Writer);
+
+	Request->SetContentAsString(JsonString);
+
+	Request->ProcessRequest();
+}
+
 void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Request,
                                                   TSharedPtr<IHttpResponse> Response, bool bSuccess,
                                                   ACustomPlayerController* Requester)
@@ -172,6 +206,7 @@ void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Reque
 		Lobby.MaxPlayers = Obj->GetIntegerField(TEXT("MaxPlayers"));
 		Lobby.ServerIp = GetServerIP(true);
 		Lobby.ServerPort = Obj->GetNumberField(TEXT("ServerPort"));
+		Lobby.IsInGame = Obj->GetBoolField(TEXT("IsInGame"));
 
 		Lobbies.Add(Lobby);
 	}
@@ -259,7 +294,7 @@ FString UMasterServerHttpClient::GetServerIP(bool UseLocalServerIP) const
 
 FString UMasterServerHttpClient::GetServerFullAddress(bool UseLocalServerIP) const
 {
-	return UseLocalServerIP ? "http://192.168.140.201:5000" : "http://185.30.209.201:5000";
+	return TEXT("http://") + GetServerIP(UseLocalServerIP) + TEXT(":5000");
 }
 
 UMasterServerHttpClient::~UMasterServerHttpClient()

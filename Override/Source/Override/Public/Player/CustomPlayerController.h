@@ -13,6 +13,13 @@ class OVERRIDE_API ACustomPlayerController : public APlayerController
 
 public:
 	virtual void BeginPlay() override;
+
+#pragma region Server Function
+	void OnLogout();
+
+	UFUNCTION(BlueprintCallable)
+	void SetLobbyInGame(FString LobbyId, bool Value);
+#pragma endregion
 	
 	UFUNCTION(BlueprintCallable)
 	void FetchLobbyList();
@@ -22,8 +29,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void JoinLobby(FString LobbyId);
-	
-	void OnLogout();
 
 	UFUNCTION(BlueprintCallable)
 	void LeaveLobby(FString LobbyId);
