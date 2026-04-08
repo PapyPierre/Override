@@ -78,7 +78,8 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 
 	TSharedPtr<FJsonObject> JsonBody = MakeShareable(new FJsonObject);
 	JsonBody->SetStringField(TEXT("lobbyId"), TargetLobbyId);
-
+	JsonBody->SetStringField(TEXT("clientVersion"), UBlueprintHelpers::GetProjectVersion());
+	
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(JsonBody.ToSharedRef(), Writer);
