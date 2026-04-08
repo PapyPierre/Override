@@ -78,7 +78,8 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 
 	TSharedPtr<FJsonObject> JsonBody = MakeShareable(new FJsonObject);
 	JsonBody->SetStringField(TEXT("lobbyId"), TargetLobbyId);
-
+	JsonBody->SetStringField(TEXT("clientVersion"), UBlueprintHelpers::GetProjectVersion());
+	
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(JsonBody.ToSharedRef(), Writer);
@@ -341,8 +342,9 @@ void UMasterServerHttpClient::ResolveMasterServerIpCallback(TSharedPtr<IHttpRequ
 UMasterServerHttpClient::UMasterServerHttpClient()
 {
 	UE_LOG(LogTemp, Log, TEXT("HttpClient has been constructed"));
-	
+#if !WITH_EDITOR
 	ResolveMasterServerIp();
+#endif
 }
 
 UMasterServerHttpClient::~UMasterServerHttpClient()
