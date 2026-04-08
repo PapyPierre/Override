@@ -36,6 +36,14 @@ public:
 	float MouseSensitivity = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Camera|Aim")
 	float MouseAimSensitivity = 0.4f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
+	float speedBuffer = 20.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
+	float speedValueForMaxEffect = 900.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
+	bool allowOvershoot = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
+	float effectIntensityMultiplier = 5.f;
 #pragma endregion
 
 #pragma region Aiming
