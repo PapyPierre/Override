@@ -78,7 +78,8 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 
 	TSharedPtr<FJsonObject> JsonBody = MakeShareable(new FJsonObject);
 	JsonBody->SetStringField(TEXT("lobbyId"), TargetLobbyId);
-
+	JsonBody->SetStringField(TEXT("clientVersion"), UBlueprintHelpers::GetProjectVersion());
+	
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(JsonBody.ToSharedRef(), Writer);
@@ -282,7 +283,7 @@ void UMasterServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request
 	
 	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
 
-	Requester->ConnectToLobbyServer(Obj->GetStringField(TEXT("Id")), Obj->GetStringField(TEXT("serverIp")), Obj->GetIntegerField(TEXT("serverPort")));
+	Requester->ConnectToLobbyServer(Obj->GetStringField(TEXT("Id")), GetServerIP(), Obj->GetIntegerField(TEXT("serverPort")));
 }
 
 void UMasterServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
@@ -326,14 +327,24 @@ void UMasterServerHttpClient::ResolveMasterServerIpCallback(TSharedPtr<IHttpRequ
 
 	UE_LOG(LogTemp, Log, TEXT("Resolve Master Server Ip Callback: Status: %d | Body: %s"), StatusCode, *Body);
 
-	if (StatusCode == 200) UseLocalServerIp = LocalIpTest;
+	if (StatusCode == 200)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Ip Check Succeed: Client will use local ip adress (192.168.140.201)"));
+		UseLocalServerIp = true;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Ip Check Failed (Status Code: %d): Client will try use remote ip adress (185.30.209.201)"), StatusCode);
+		UseLocalServerIp = false;
+	}
 }
 
 UMasterServerHttpClient::UMasterServerHttpClient()
 {
 	UE_LOG(LogTemp, Log, TEXT("HttpClient has been constructed"));
-	
+#if !WITH_EDITOR
 	ResolveMasterServerIp();
+#endif
 }
 
 UMasterServerHttpClient::~UMasterServerHttpClient()

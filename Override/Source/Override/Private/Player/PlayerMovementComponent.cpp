@@ -74,7 +74,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
                                              FActorComponentTickFunction* ThisTickFunction)
 {
 	JumpTimeline.TickTimeline(DeltaTime);
-
+	
 	if (CharacterRef->HasAuthority())
 	{
 		bool bValidGrounded =
@@ -343,8 +343,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 	{
 		if (SlideLineTrace())
 		{
-			if (Impact.Z <= SlopeToleranceValue)
-			{
+			
 				bIsSliding = true;
 				bResetSlideCrouch = false;
 				TimeSliding = 0.f;
@@ -354,7 +353,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				Velocity += SlideDir * SlideImpulse;
 				if (CharacterRef->IsLocallyControlled())
 					CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeSlide, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-			}
+			
 		}
 		else
 		{
@@ -469,7 +468,6 @@ bool UPlayerMovementComponent::CanSlide()
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround();
 	bResult &= VelocityAtCrouch.Size() >= DefaultMaxWalkSpeed - 10;
-	bResult &= Impact.Z <= SlopeToleranceValue;
 	bResult &= bResetSlideCrouch;
 	bResult &= bResetSlideLanded;
 	return bResult;
