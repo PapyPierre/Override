@@ -125,7 +125,7 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 	// Server-side
 	SetControllerRef();
 
-	if (PlayerController && IsLocallyControlled()m)
+	if (PlayerController && IsLocallyControlled())
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
 			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
