@@ -100,22 +100,20 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 
 void UCameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent)
 {
-	//PlayerCharacter->FirstPersonCameraComponent->StopAllCameraShakes(true);
+	PlayerCharacter->FirstPersonCameraComponent->StopCameraShake(CameraShakeRef, false);
 	
 	switch (CurrentMovementMode)
 	{
 	case MovementMode::Idle:
-		PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
-		UE_LOG(LogTemp, Log, TEXT("Idle"));
+		CameraShakeRef = PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
 		break;
 	case MovementMode::Walking:
-		UE_LOG(LogTemp, Log, TEXT("Walking"));
 		if (PlayerCharacter->IsCrouched())
 		{
-			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalkCrouch, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
+			CameraShakeRef = PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalkCrouch, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
 			break;
 		}
-		PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
+		CameraShakeRef = PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
 		break;
 	}
 }
