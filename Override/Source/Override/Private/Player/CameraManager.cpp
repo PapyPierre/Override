@@ -26,7 +26,6 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 		return;
 
 	FovTimeline.TickTimeline(DeltaTime);
-	CameraShake(PlayerCharacter, PlayerMovementComponent);
 	
 	if (PlayerMovementComponent->Velocity.IsNearlyZero())
 		CurrentMovementMode = MovementMode::Idle;
@@ -46,6 +45,8 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 	
 	if (FovTimeline.IsPlaying())
 		FovTimeline.Stop();
+
+	CameraShake(PlayerCharacter, PlayerMovementComponent);
 	
 	switch (CurrentMovementMode)
 	{
@@ -99,24 +100,23 @@ void UCameraManager::SetFov(APlayerCharacter* PlayerCharacter, const UPlayerMove
 
 void UCameraManager::CameraShake(APlayerCharacter* PlayerCharacter, const UPlayerMovementComponent* PlayerMovementComponent)
 {
-	if (!PlayerCharacter->FirstPersonCameraComponent)
-		return;
-
-	if (PlayerCharacter->bIsAimingWeapon)
-		return;
+	//PlayerCharacter->FirstPersonCameraComponent->StopAllCameraShakes(true);
 	
-	if (PlayerMovementComponent->IsMovingOnGround())
+	switch (CurrentMovementMode)
 	{
-		if (PlayerMovementComponent->Velocity.IsNearlyZero())
-			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,
-														 FRotator::ZeroRotator);
-		
-		else if (PlayerMovementComponent->IsWalking() && !PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->bIsDashing && !PlayerMovementComponent->IsCrouching())
-			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,
-														 FRotator::ZeroRotator);
-		else if (PlayerMovementComponent->IsWalking() && !PlayerMovementComponent->IsSliding() && !PlayerMovementComponent->bIsDashing && PlayerMovementComponent->IsCrouching())
-			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalkCrouch, 1.0f, ECameraShakePlaySpace::CameraLocal,
-											 FRotator::ZeroRotator);	
+	case MovementMode::Idle:
+		PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeIdle, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
+		UE_LOG(LogTemp, Log, TEXT("Idle"));
+		break;
+	case MovementMode::Walking:
+		UE_LOG(LogTemp, Log, TEXT("Walking"));
+		if (PlayerCharacter->IsCrouched())
+		{
+			PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalkCrouch, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
+			break;
+		}
+		PlayerCharacter->FirstPersonCameraComponent->StartCameraShake(PlayerCharacter->ShakeWalk, 1.0f, ECameraShakePlaySpace::CameraLocal,FRotator::ZeroRotator);
+		break;
 	}
 }
 
