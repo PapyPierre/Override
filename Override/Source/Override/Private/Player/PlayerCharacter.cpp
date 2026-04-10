@@ -5,8 +5,8 @@
 #include "Engine/Engine.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Abilities/CustomAbilityTargetData.h"
-#include "Abilities/FAbilitySlotData.h"
 #include "Player/CustomPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/MovementStats.h"
@@ -19,6 +19,11 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 
 	if (!PlayerMovementComponent) PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
 
+	TPV = CreateDefaultSubobject<USceneComponent>(TEXT("TPV"));
+	TPV->SetupAttachment(GetCapsuleComponent());
+
+	GetMesh()->SetupAttachment(TPV);
+	
 	PlayerMovementComponent->CharacterRef = this;
 	bReplicates = true;
 	GetCharacterMovement()->SetIsReplicated(true);
@@ -213,10 +218,6 @@ void APlayerCharacter::Falling()
 void APlayerCharacter::Jump()
 {
 	Super::Jump();
-
-	if (IsLocallyControlled())
-		FirstPersonCameraComponent->StartCameraShake(ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
-		                                             FRotator::ZeroRotator);
 }
 
 bool APlayerCharacter::CanJumpInternal_Implementation() const
