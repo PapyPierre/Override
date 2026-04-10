@@ -74,6 +74,8 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
                                              FActorComponentTickFunction* ThisTickFunction)
 {
 	JumpTimeline.TickTimeline(DeltaTime);
+
+	DebugSlideNetwork("TickComponent");
 	
 	if (CharacterRef->HasAuthority())
 	{
@@ -208,7 +210,9 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
 	// SPEED / VELOCITY
 	// ==========================
 
-	float Speed = Velocity.Size();
+	FVector speedHorizontal = Velocity;
+	speedHorizontal.Z = 0.f;
+	float Speed = speedHorizontal.Size();
 
 	// ==========================
 	// LOCATION
@@ -441,7 +445,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 		CurrentFloor = NewFloor;
 
-		if ((Velocity.Size() < DefaultMaxWalkSpeedCrouched && TimeSliding >= 0.3f) || !bWantsToSlide || JumpCount > 4)
+		if ((Velocity.Size() < DefaultMaxWalkSpeedCrouched && TimeSliding >= 0.3f) || !bWantsToSlide)
 		{
 			ExitSlide(DeltaTime, Iterations);
 		}
@@ -467,7 +471,6 @@ bool UPlayerMovementComponent::CanSlide()
 		return true;
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround();
-	bResult &= VelocityAtCrouch.Size() >= DefaultMaxWalkSpeed - 10;
 	bResult &= bResetSlideCrouch;
 	bResult &= bResetSlideLanded;
 	return bResult;
@@ -573,7 +576,14 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 		}
 	}
 
-	return Super::DoJump(bReplayingMoves, DeltaTime);
+	if (Super::DoJump(bReplayingMoves, DeltaTime))
+	{
+		if (CharacterRef->IsLocallyControlled())
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+														 FRotator::ZeroRotator);
+		return true;
+	}
+	return false;
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
