@@ -1,19 +1,19 @@
 #pragma once
 
-#include "Lobby.h"
-#include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
-#include "MasterServerHttpClient.generated.h"
+#include "ServerHttpClient.generated.h"
 
+class IHttpRequester;
 class ACustomPlayerController;
 
 UCLASS()
-class OVERRIDE_API UMasterServerHttpClient : public UObject
+class OVERRIDE_API UServerHttpClient : public UObject
 {
 	GENERATED_BODY()
-	
+
 public:
+#pragma region Lobbies
 	void ListLobbies(ACustomPlayerController* Requester);
 
 	void CreateLobby(ACustomPlayerController* Requester);
@@ -22,38 +22,51 @@ public:
 
 	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide = false);
 
-	void SendHeartbeat(FString TargetLobbyId);
+	void SendLobbyHeartbeat(FString TargetLobbyId);
 
 	void SetLobbyInGame(FString TargetLobbyId, bool Value);
-	
+
 	//void QuickSearchLobby();
+#pragma endregion
+
+#pragma region Telemetry
+	void FetchMatchesData(IHttpRequester* Requester,
+		FString VersionId, FString MatchId, FString PlayerId, FString TeamId);
+#pragma endregion
 
 private:
 	bool UseLocalServerIp = false;
 
-	UMasterServerHttpClient();
-	~UMasterServerHttpClient();
+	UServerHttpClient();
+	~UServerHttpClient();
 
 	void ResolveMasterServerIp();
-	
+
 	FString GetServerIP() const;
-	FString GetServerFullAddress() const;
+	FString GetMasterServerFullAddress() const;
+	FString GetTelemetryServerFullAddress() const;
 
 	void ResolveMasterServerIpCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
-		bool bSuccess, bool LocalIpTest);
-	
+	                                   bool bSuccess, bool LocalIpTest);
+
 	void ListLobbiesCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                         ACustomPlayerController* Requester);
 
 	void CreateLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
-		ACustomPlayerController* Requester);
+	                         ACustomPlayerController* Requester);
 
 	void JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
-		ACustomPlayerController* Requester);
+	                       ACustomPlayerController* Requester);
 
 	void LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
-		ACustomPlayerController* Requester);
+	                        ACustomPlayerController* Requester);
 
 	void SendHeartbeatCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
-		ACustomPlayerController* Requester);
+	                           ACustomPlayerController* Requester);
+
+	void FetchMatchListCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+	                            IHttpRequester* Requester);
+
+	void FetchMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+	                            IHttpRequester* Requester);
 };

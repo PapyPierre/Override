@@ -1,4 +1,6 @@
 #include "GameMode/FirstPersonGameMode.h"
+
+#include "HttpModule.h"
 #include "SocketTypes.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
@@ -13,39 +15,31 @@ void AFirstPersonGameMode::SendDataToDB()
 {
 	UE_LOG(LogTemp, Error, TEXT("Trying to send match data to DB..."));
 
-	FMatchDataFetcher MatchDataFetcher;
-
-	FSocket* Socket = MatchDataFetcher.CreateSocket("127.0.0.1", 6000);
-
 	// BUILD JSON
 	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
 	if (Version.IsEmpty()) Version = TEXT("editor");
 
-	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
-	Json->SetStringField("action", "set_match_info");
-	Json->SetStringField("version_id", Version);
-	Json->SetStringField("token", "override_db_token");
-
 	UOverrideGameInstance* GameInst = Cast<UOverrideGameInstance>(GetGameInstance());
+
+	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
+	Json->SetStringField("versionId", Version);
 
 	TArray<TSharedPtr<FJsonValue>> PlayersArray;
 
 	for (const FMatchPlayerData& Player : GameInst->MatchPlayers)
 	{
 		TSharedPtr<FJsonObject> PlayerObj = MakeShared<FJsonObject>();
-		PlayerObj->SetNumberField(TEXT("player_id"), Player.PlayerId);
-		PlayerObj->SetNumberField(TEXT("team_id"), Player.TeamId);
+		PlayerObj->SetNumberField(TEXT("playerId"), Player.PlayerId);
+		PlayerObj->SetNumberField(TEXT("teamId"), Player.TeamId);
 
 		TArray<TSharedPtr<FJsonValue>> PositionsArray;
 		for (const FPlayerPosition& Pos : Player.Positions)
 		{
-			TArray<TSharedPtr<FJsonValue>> PosArray;
-			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Time));
-			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.X));
-			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.Y));
-			PosArray.Add(MakeShared<FJsonValueNumber>(Pos.Position.Z));
-
-			PositionsArray.Add(MakeShared<FJsonValueArray>(PosArray));
+			TSharedPtr<FJsonObject> PosObj = MakeShared<FJsonObject>();
+			PosObj->SetNumberField(TEXT("posX"), Pos.Position.X);
+			PosObj->SetNumberField(TEXT("posY"), Pos.Position.Y);
+			PosObj->SetNumberField(TEXT("posZ"), Pos.Position.Z);
+			PositionsArray.Add(MakeShared<FJsonValueObject>(PosObj));
 		}
 
 		PlayerObj->SetArrayField(TEXT("positions"), PositionsArray);
@@ -58,27 +52,25 @@ void AFirstPersonGameMode::SendDataToDB()
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
 	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
 
-	MatchDataFetcher.SendData(Socket, Payload);
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(TEXT("http://localhost:5000/matches"));
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetContentAsString(Payload);
+	
+	Request->OnProcessRequestComplete().BindLambda(
+		[](FHttpRequestPtr Req, FHttpResponsePtr Response, bool bSuccess)
+		{
+			if (!bSuccess || !Response.IsValid())
+			{
+				UE_LOG(LogTemp, Error, TEXT("HTTP request failed"));
+				return;
+			}
+			UE_LOG(LogTemp, Log, TEXT("Response: %s"), *Response->GetContentAsString());
+		}
+	);
 
-	FPlatformProcess::Sleep(0.05f);
-
-	FString Response;
-	MatchDataFetcher.RecvAll(Socket, Response);
-
-	if (Response.IsEmpty())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
-		MatchDataFetcher.CloseSocket(Socket);
-	}
-
-	TSharedPtr<FJsonValue> ResponseJson;
-
-	if (!MatchDataFetcher.ParseJsonSafe(Response, ResponseJson))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Invalid JSON from DB server"));
-	}
-
-	MatchDataFetcher.CloseSocket(Socket);
+	Request->ProcessRequest();
 }
 
 void AFirstPersonGameMode::Logout(AController* Exiting)
