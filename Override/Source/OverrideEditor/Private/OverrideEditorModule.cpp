@@ -2,12 +2,16 @@
 #include "MatchActor.h"
 #include "LevelEditor.h"
 #include "STchoupiVisualizerWidget.h"
+#include "GameMode/MatchData.h"
 #include "Network/FMatchDataFetcher.h"
+#include "Network/ServerHttpClient.h"
 
 IMPLEMENT_MODULE(FOverrideEditorModule, OverrideEditor)
 
 void FOverrideEditorModule::StartupModule()
 {
+	HttpClient = NewObject<UServerHttpClient>();
+	
 	// Register tab in tab manager
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
 		                        TabName, FOnSpawnTab::CreateRaw(this, &FOverrideEditorModule::SpawnTab))
@@ -26,18 +30,6 @@ void FOverrideEditorModule::StartupModule()
 	);
 
 	LevelEditor.GetMenuExtensibilityManager()->AddExtender(Extender);
-}
-
-void FOverrideEditorModule::UpdateLists(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds)
-{
-	VersionIds.Empty();
-	MatchIds.Empty();
-	
-	VersionIds.Add(MakeShared<FString>("All"));
-	MatchIds.Add(MakeShared<FString>("All"));
-	
-	FMatchDataFetcher MatchDataFetcher;
-	MatchDataFetcher.FetchMatchList(VersionIds, MatchIds);
 }
 
 // When the given menu entry is clicked, invoke the tab
@@ -70,24 +62,41 @@ TSharedRef<SDockTab> FOverrideEditorModule::SpawnTab(const FSpawnTabArgs& Args)
 
 const FName FOverrideEditorModule::TabName("Tchoupi Visualizer");
 
-void FOverrideEditorModule::VisualizeMatch(FString VersionID, FString MatchID, FString PlayerID, FString TeamID, bool SeeThrough, float TimeValue)
+void FOverrideEditorModule::RequestData(IHttpRequester* Requester,
+	FString VersionID, FString MatchID, FString PlayerID, FString TeamID)
 {
-	UE_LOG(LogTemp, Log, TEXT("Trying to visualizing players positions of match %s"), *MatchID);
+	UE_LOG(LogTemp, Log, TEXT("Trying to fetch data from DB"));
 
 	TArray<FMatchPlayerData> MatchPlayersData;
 
-	FMatchDataFetcher MatchDataFetcher;
-	MatchDataFetcher.FetchMatch(VersionID, MatchID, PlayerID, TeamID, MatchPlayersData);
+	HttpClient->FetchMatchesData(Requester, VersionID, MatchID, PlayerID, TeamID);
+}
 
+void FOverrideEditorModule::ShowVisualization(const TArray<FMatchData>& MatchesData,
+	TSharedPtr<FString> SelectedVersionId, TSharedPtr<FString> SelectedMatchId,
+	TSharedPtr<FString> SelectedTeamId, TSharedPtr<FString> SelectedPlayerId, const bool SeeThrough, const float TimeValue)
+{
+	UE_LOG(LogTemp, Log, TEXT("Starting visualization"));
+	
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	if (!World) return;
 
-	AMatchActor* MatchActor = World->SpawnActor<AMatchActor>();
-	MatchActor->Players = MatchPlayersData;
-	MatchActor->SeeThrough = SeeThrough;
-	MatchActor->TimeValue = TimeValue;
-	MatchActor->RerunConstructionScripts();
-	SpawnedActors.Add(MatchActor);
+	for (const FMatchData MatchData : MatchesData)
+	{
+		if (*SelectedMatchId != TEXT("All") && *SelectedMatchId != TEXT(""))
+		{
+			if (*SelectedMatchId != MatchData.Id) continue;
+		}
+		
+		UE_LOG(LogTemp, Log, TEXT("Trying to visualizing data of match %s"), *MatchData.Id);
+		
+		AMatchActor* MatchActor = World->SpawnActor<AMatchActor>();
+		MatchActor->Players = MatchData.Players;
+		MatchActor->SeeThrough = SeeThrough;
+		MatchActor->TimeValue = TimeValue;
+		MatchActor->RerunConstructionScripts();
+		SpawnedActors.Add(MatchActor);
+	}
 }
 
 void FOverrideEditorModule::ClearVisualization()

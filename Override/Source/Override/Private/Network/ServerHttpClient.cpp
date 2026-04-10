@@ -1,8 +1,12 @@
-#include "Network/MasterServerHttpClient.h"
+#include "Network/ServerHttpClient.h"
 #include "BlueprintHelpers.h"
+#include "HttpModule.h"
+#include "GameMode/MatchData.h"
+#include "GameMode/MatchPlayerData.h"
+#include "Network/HttpRequester.h"
 #include "Player/CustomPlayerController.h"
 
-void UMasterServerHttpClient::ResolveMasterServerIp()
+void UServerHttpClient::ResolveMasterServerIp()
 {
 	FString UriQuery = "http://192.168.140.201:5000/ipcheck";
 	FHttpModule& HttpModule = FHttpModule::Get();
@@ -12,16 +16,16 @@ void UMasterServerHttpClient::ResolveMasterServerIp()
 	Request->SetURL(UriQuery);
 	Request->SetVerb(TEXT("GET"));
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UMasterServerHttpClient::ResolveMasterServerIpCallback, true);
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::ResolveMasterServerIpCallback, true);
 
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::ListLobbies(ACustomPlayerController* Requester)
+void UServerHttpClient::ListLobbies(ACustomPlayerController* Requester)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending List Lobbies Request to Master Server"));
 
-	FString UriQuery = GetServerFullAddress() + TEXT("/lobbies");
+	FString UriQuery = GetMasterServerFullAddress() + TEXT("/lobbies");
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
@@ -29,16 +33,16 @@ void UMasterServerHttpClient::ListLobbies(ACustomPlayerController* Requester)
 	Request->SetURL(UriQuery);
 	Request->SetVerb(TEXT("GET"));
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UMasterServerHttpClient::ListLobbiesCallback, Requester);
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::ListLobbiesCallback, Requester);
 
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::CreateLobby(ACustomPlayerController* Requester)
+void UServerHttpClient::CreateLobby(ACustomPlayerController* Requester)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Create Lobby Request to Master Server"));
 
-	FString UriQuery = GetServerFullAddress() + TEXT("/lobby/create");
+	FString UriQuery = GetMasterServerFullAddress() + TEXT("/lobby/create");
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
@@ -57,16 +61,16 @@ void UMasterServerHttpClient::CreateLobby(ACustomPlayerController* Requester)
 
 	Request->SetContentAsString(JsonString);
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UMasterServerHttpClient::CreateLobbyCallback, Requester);
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::CreateLobbyCallback, Requester);
 
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester)
+void UServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Join Lobby Request to Master Server"));
 
-	FString UriQuery = GetServerFullAddress() + TEXT("/lobby/playerjoin");
+	FString UriQuery = GetMasterServerFullAddress() + TEXT("/lobby/playerjoin");
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
@@ -79,26 +83,26 @@ void UMasterServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerCont
 	TSharedPtr<FJsonObject> JsonBody = MakeShareable(new FJsonObject);
 	JsonBody->SetStringField(TEXT("lobbyId"), TargetLobbyId);
 	JsonBody->SetStringField(TEXT("clientVersion"), UBlueprintHelpers::GetProjectVersion());
-	
+
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(JsonBody.ToSharedRef(), Writer);
 
 	Request->SetContentAsString(JsonString);
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UMasterServerHttpClient::JoinLobbyCallback, Requester);
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::JoinLobbyCallback, Requester);
 
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide)
+void UServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Leave %s Request to Master Server"), *TargetLobbyId);
 
 	FString UriQuery = ServerSide
-	? TEXT("http://127.0.0.1:5000/lobby/playerleave")
-	: GetServerFullAddress() + TEXT("/lobby/playerleave");
-	
+		                   ? TEXT("http://127.0.0.1:5000/lobby/playerleave")
+		                   : GetMasterServerFullAddress() + TEXT("/lobby/playerleave");
+
 	FHttpModule& HttpModule = FHttpModule::Get();
 
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = HttpModule.CreateRequest();
@@ -117,12 +121,12 @@ void UMasterServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerCon
 
 	Request->SetContentAsString(JsonString);
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UMasterServerHttpClient::LeaveLobbyCallback, Requester);
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::LeaveLobbyCallback, Requester);
 
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::SendHeartbeat(FString TargetLobbyId)
+void UServerHttpClient::SendLobbyHeartbeat(FString TargetLobbyId)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Heartbeat of %s to Master Server"), *TargetLobbyId);
 
@@ -148,7 +152,7 @@ void UMasterServerHttpClient::SendHeartbeat(FString TargetLobbyId)
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::SetLobbyInGame(FString TargetLobbyId, const bool Value)
+void UServerHttpClient::SetLobbyInGame(FString TargetLobbyId, const bool Value)
 {
 	if (Value)
 	{
@@ -182,9 +186,33 @@ void UMasterServerHttpClient::SetLobbyInGame(FString TargetLobbyId, const bool V
 	Request->ProcessRequest();
 }
 
-void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Request,
-                                                  TSharedPtr<IHttpResponse> Response, bool bSuccess,
-                                                  ACustomPlayerController* Requester)
+void UServerHttpClient::FetchMatchesData(IHttpRequester* Requester,
+	FString VersionId, FString MatchId, FString PlayerId, FString TeamId)
+{
+	UE_LOG(LogTemp, Log, TEXT("Fetching Match Data from DB"));
+
+	FString UrlQuery = GetTelemetryServerFullAddress() + TEXT("/matches");
+
+	TArray<FString> Params;
+	if (!VersionId.IsEmpty()) Params.Add(FString::Printf(TEXT("versionId=%s"), *VersionId));
+	if (!MatchId.IsEmpty())   Params.Add(FString::Printf(TEXT("matchId=%s"), *MatchId));
+	if (!PlayerId.IsEmpty())  Params.Add(FString::Printf(TEXT("playerId=%s"), *PlayerId));
+	if (!TeamId.IsEmpty())    Params.Add(FString::Printf(TEXT("teamId=%s"), *TeamId));
+	UrlQuery += FString::Join(Params, TEXT("&"));
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(UrlQuery);
+	Request->SetVerb(TEXT("GET"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::FetchMatchDataCallback, Requester);
+
+	Request->ProcessRequest();
+}
+
+void UServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Request,
+                                            TSharedPtr<IHttpResponse> Response, bool bSuccess,
+                                            ACustomPlayerController* Requester)
 {
 	if (!bSuccess || !Response.IsValid())
 	{
@@ -226,12 +254,12 @@ void UMasterServerHttpClient::ListLobbiesCallback(TSharedPtr<IHttpRequest> Reque
 
 		Lobbies.Add(Lobby);
 	}
-	
+
 	Requester->OnLobbyListReceived(Lobbies);
 }
 
-void UMasterServerHttpClient::CreateLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
-                                                  bool bSuccess, ACustomPlayerController* Requester)
+void UServerHttpClient::CreateLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+                                            bool bSuccess, ACustomPlayerController* Requester)
 {
 	if (!bSuccess || !Response.IsValid())
 	{
@@ -252,14 +280,14 @@ void UMasterServerHttpClient::CreateLobbyCallback(TSharedPtr<IHttpRequest> Reque
 		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON"));
 		return;
 	}
-	
+
 	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
-	
+
 	Requester->OnLobbyCreated(Obj->GetStringField(TEXT("Id")));
 }
 
-void UMasterServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
-	bool bSuccess, ACustomPlayerController* Requester)
+void UServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+                                          bool bSuccess, ACustomPlayerController* Requester)
 {
 	if (!bSuccess || !Response.IsValid())
 	{
@@ -280,14 +308,15 @@ void UMasterServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request
 		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON"));
 		return;
 	}
-	
+
 	const TSharedPtr<FJsonObject> Obj = Json->AsObject();
 
-	Requester->ConnectToLobbyServer(Obj->GetStringField(TEXT("Id")), GetServerIP(), Obj->GetIntegerField(TEXT("serverPort")));
+	Requester->ConnectToLobbyServer(Obj->GetStringField(TEXT("Id")), GetServerIP(),
+	                                Obj->GetIntegerField(TEXT("serverPort")));
 }
 
-void UMasterServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
-	bool bSuccess, ACustomPlayerController* Requester)
+void UServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+                                           bool bSuccess, ACustomPlayerController* Requester)
 {
 	if (!bSuccess || !Response.IsValid())
 	{
@@ -303,18 +332,98 @@ void UMasterServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Reques
 	Requester->OnLobbyLeft();
 }
 
-FString UMasterServerHttpClient::GetServerIP() const
+void UServerHttpClient::FetchMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+                                               bool bSuccess, IHttpRequester* Requester)
+{
+	if (!bSuccess || !Response.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Request failed"));
+		return;
+	}
+
+	int32 StatusCode = Response->GetResponseCode();
+	FString Body = Response->GetContentAsString();
+
+	UE_LOG(LogTemp, Log, TEXT("Fetch Match Data Callback: Status: %d | Body: %s"), StatusCode, *Body);
+
+	TArray<TSharedPtr<FJsonValue>> MatchesArray;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Body);
+
+	if (!FJsonSerializer::Deserialize(Reader, MatchesArray))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON response"));
+		return;
+	}
+
+	TArray<FMatchData> Matches;
+	
+	for (const TSharedPtr<FJsonValue>& MatchValue : MatchesArray)
+	{
+		TSharedPtr<FJsonObject> MatchObj = MatchValue->AsObject();
+		
+		FMatchData Match;
+		
+		Match.Id = FString::FromInt(MatchObj->GetNumberField(TEXT("matchId")));
+		Match.Version = MatchObj->GetStringField(TEXT("versionId"));
+		
+		TArray<FMatchPlayerData> Players;
+		
+		const TArray<TSharedPtr<FJsonValue>>& PlayersArray = MatchObj->GetArrayField(TEXT("players"));
+
+		for (const TSharedPtr<FJsonValue>& PlayerValue : PlayersArray)
+		{
+			TSharedPtr<FJsonObject> PlayerObj = PlayerValue->AsObject();
+
+			FMatchPlayerData PlayerData;
+
+			PlayerData.PlayerId = PlayerObj->GetIntegerField(TEXT("playerId"));
+			PlayerData.TeamId = PlayerObj->GetIntegerField(TEXT("teamId"));
+
+			const TArray<TSharedPtr<FJsonValue>>& PositionsArray = PlayerObj->GetArrayField(TEXT("positions"));
+
+			for (const TSharedPtr<FJsonValue>& PosValue : PositionsArray)
+			{
+				TSharedPtr<FJsonObject> PosObj = PosValue->AsObject();
+
+				FPlayerPosition PlayerPos;
+
+				PlayerPos.Time = PosObj->GetIntegerField(TEXT("posId"));
+				PlayerPos.Position.X = PosObj->GetNumberField(TEXT("posX"));
+				PlayerPos.Position.Y = PosObj->GetNumberField(TEXT("posY"));
+				PlayerPos.Position.Z = PosObj->GetNumberField(TEXT("posZ"));
+
+				PlayerData.Positions.Add(PlayerPos);
+			}
+
+			Players.Add(PlayerData);
+		}
+
+		Match.Players = Players;
+		
+		Matches.Add(Match);
+	}
+
+	Requester->OnMatchesDataReceived(Matches);
+}
+
+FString UServerHttpClient::GetServerIP() const
 {
 	return UseLocalServerIp ? "192.168.140.201" : "185.30.209.201";
 }
 
-FString UMasterServerHttpClient::GetServerFullAddress() const
+FString UServerHttpClient::GetMasterServerFullAddress() const
 {
 	return TEXT("http://") + GetServerIP() + TEXT(":5000");
 }
 
-void UMasterServerHttpClient::ResolveMasterServerIpCallback(TSharedPtr<IHttpRequest> Request,
-	TSharedPtr<IHttpResponse> Response, bool bSuccess, bool LocalIpTest)
+FString UServerHttpClient::GetTelemetryServerFullAddress() const
+{
+	return TEXT("http://") + GetServerIP() + TEXT(":6000");
+}
+
+void UServerHttpClient::ResolveMasterServerIpCallback(TSharedPtr<IHttpRequest> Request,
+                                                      TSharedPtr<IHttpResponse> Response, bool bSuccess,
+                                                      bool LocalIpTest)
 {
 	if (!bSuccess || !Response.IsValid())
 	{
@@ -334,20 +443,21 @@ void UMasterServerHttpClient::ResolveMasterServerIpCallback(TSharedPtr<IHttpRequ
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("Ip Check Failed (Status Code: %d): Client will try use remote ip adress (185.30.209.201)"), StatusCode);
+		UE_LOG(LogTemp, Log,
+		       TEXT("Ip Check Failed (Status Code: %d): Client will try use remote ip adress (185.30.209.201)"),
+		       StatusCode);
 		UseLocalServerIp = false;
 	}
 }
 
-UMasterServerHttpClient::UMasterServerHttpClient()
+UServerHttpClient::UServerHttpClient()
 {
 	UE_LOG(LogTemp, Log, TEXT("HttpClient has been constructed"));
-#if !WITH_EDITOR
+
 	ResolveMasterServerIp();
-#endif
 }
 
-UMasterServerHttpClient::~UMasterServerHttpClient()
+UServerHttpClient::~UServerHttpClient()
 {
 	UE_LOG(LogTemp, Log, TEXT("HttpClient has been destroyed"));
 }
