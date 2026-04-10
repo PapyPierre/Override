@@ -469,6 +469,7 @@ bool UPlayerMovementComponent::CanSlide()
 		return true;
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround();
+	bResult &= VelocityAtCrouch.Size() >= DefaultMaxWalkSpeed - 10;
 	bResult &= bResetSlideCrouch;
 	bResult &= bResetSlideLanded;
 	return bResult;
