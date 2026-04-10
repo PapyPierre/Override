@@ -74,8 +74,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
                                              FActorComponentTickFunction* ThisTickFunction)
 {
 	JumpTimeline.TickTimeline(DeltaTime);
-
-	DebugSlideNetwork("TickComponent");
 	
 	if (CharacterRef->HasAuthority())
 	{
