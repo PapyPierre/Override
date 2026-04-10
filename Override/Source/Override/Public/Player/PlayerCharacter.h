@@ -159,6 +159,7 @@ public:
 	float AimFOV;
 	float AimCrouchedSpeed;
 	float AimSpeed;
+	UPROPERTY(BlueprintReadOnly)
 	float DefaultMouseSensitivity;
 	UPROPERTY(BlueprintReadOnly)
 	float CurrentMouseSensitivity;
@@ -182,8 +183,6 @@ public:
 	void UseAbility(int index);
 
 protected:
-	
-	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;
@@ -212,6 +211,9 @@ protected:
 	void OnAbilityActivated(int SlotIndex, bool IsSelfCast);
 
 private:
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	TObjectPtr<USceneComponent> TPV;
+	
 	void SetControllerRef();
 	
 	void InitAbilitySystem();
