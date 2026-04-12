@@ -20,11 +20,11 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 		switch (Player.TeamId)
 		{
 		case 0:
-			Color = team1Count == 0 ? FColor::Cyan : FColor(0, 200, 200, 255);
+			Color = team1Count == 0 ? FColor::Red : FColor(255, 0, 130, 255);
 			team1Count++;
 			break;
 		case 1:
-			Color = team2Count == 0 ? FColor::Red : FColor(255, 0, 130, 255);
+			Color = team2Count == 0 ? FColor::Cyan : FColor(0, 200, 200, 255);
 			team2Count++;
 			break;
 		case 2:
@@ -49,10 +49,9 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 
 			if (FVector::Dist(prevPos, pos) < 1500)
 			{
-				DrawDebugLine(GetWorld(), prevPos, pos, Color, true, -1.f, Depth, 8);
+				DrawDebugDirectionalArrow(GetWorld(), prevPos, pos,
+					100.f, Color, true, -1.f, Depth, 4.f);
 			}
-
-			DrawDebugPoint(GetWorld(), Player.Positions[i].Position, 12.f, Color, true);
 		}
 	}
 }
