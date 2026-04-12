@@ -5,7 +5,7 @@
 
 void ACustomPlayerController::BeginPlay()
 {
-	HttpClient = NewObject<UMasterServerHttpClient>(this);
+	HttpClient = NewObject<UServerHttpClient>(this);
 
 	Super::BeginPlay();
 

@@ -2,31 +2,16 @@
 #include "OverrideEditorModule.h"
 #include "Chaos/AABB.h"
 #include "Chaos/AABB.h"
+#include "GameMode/MatchData.h"
+#include "Network/ServerHttpClient.h"
 #include "Widgets/Input/SSlider.h"
 #include "Widgets/SBoxPanel.h"
+
+struct FMatchData;
 
 void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 {
 	EditorModule = InArgs._EditorModule;
-
-	EditorModule->UpdateLists(VersionIds, MatchIds);
-
-	PlayerIds = {
-		MakeShared<FString>("All"),
-		MakeShared<FString>("0"),
-		MakeShared<FString>("1"),
-		MakeShared<FString>("2"),
-		MakeShared<FString>("3"),
-		MakeShared<FString>("4"),
-		MakeShared<FString>("5")
-	};
-
-	TeamIds = {
-		MakeShared<FString>("All"),
-		MakeShared<FString>("0"),
-		MakeShared<FString>("1"),
-		MakeShared<FString>("2")
-	};
 
 	ChildSlot
 	[
@@ -220,7 +205,7 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 			.Padding(5)
 			[
 				SNew(SSlider)
-				
+
 				.Visibility(EVisibility::Visible)
 				.OnValueChanged(this, &STchoupiVisualizerWidget::OnSliderValueChanged)
 			]
@@ -268,6 +253,61 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 	];
 }
 
+void STchoupiVisualizerWidget::UpdateLists(const TArray<TSharedPtr<FString>>& Versions, const TArray<TSharedPtr<FString>>& Matches)
+{
+	VersionIds.Empty();
+	MatchIds.Empty();
+
+	VersionIds.Add(MakeShared<FString>("All"));
+	MatchIds.Add(MakeShared<FString>("All"));
+
+	VersionIds.Append(Versions);
+	MatchIds.Append(Matches);
+
+	for (TSharedPtr<FString> str : VersionIds)
+	{
+		UE_LOG(LogTemp, Log, TEXT("%p"), str.Get());
+	}
+
+	PlayerIds = {
+		MakeShared<FString>("All"),
+		MakeShared<FString>("0"),
+		MakeShared<FString>("1"),
+		MakeShared<FString>("2"),
+		MakeShared<FString>("3"),
+		MakeShared<FString>("4"),
+		MakeShared<FString>("5")
+	};
+
+	TeamIds = {
+		MakeShared<FString>("All"),
+		MakeShared<FString>("0"),
+		MakeShared<FString>("1"),
+		MakeShared<FString>("2")
+	};
+}
+
+
+void STchoupiVisualizerWidget::OnMatchesDataReceived(TArray<FMatchData> MatchesData)
+{
+	UE_LOG(LogTemp, Log, TEXT("%i Matches data received"), MatchesData.Num());
+	
+	CachedMatchesData = MatchesData;
+
+	TArray<TSharedPtr<FString>> Versions;
+	TArray<TSharedPtr<FString>> MatchesIds;
+
+	for (FMatchData Match : CachedMatchesData)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Found match %s with version: %s"), *Match.Id, *Match.Version);
+		
+		Versions.AddUnique(MakeShared<FString>(Match.Version));
+		MatchesIds.AddUnique(MakeShared<FString>(Match.Id));
+	}
+
+	UpdateLists(Versions, MatchesIds);
+}
+
 TSharedRef<SWidget> STchoupiVisualizerWidget::GenerateVersionItem(TSharedPtr<FString> Item)
 {
 	return SNew(STextBlock).Text(FText::FromString(*Item));
@@ -310,10 +350,9 @@ void STchoupiVisualizerWidget::OnTeamSelected(TSharedPtr<FString> Item, ESelectI
 
 FReply STchoupiVisualizerWidget::OnVisualizeClicked()
 {
-	if (EditorModule && SelectedMatchId.IsValid())
+	if (CachedMatchesData.Num() > 0)
 	{
-		EditorModule->VisualizeMatch(*SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId,
-		                             SeeThrough, SliderValue);
+		EditorModule->ShowVisualization(CachedMatchesData, SelectedVersionId, SelectedMatchId, SelectedTeamId, SelectedPlayerId, SeeThrough, SliderValue);
 	}
 
 	return FReply::Handled();
@@ -333,7 +372,14 @@ FReply STchoupiVisualizerWidget::OnUpdateClicked()
 {
 	if (EditorModule)
 	{
-		EditorModule->UpdateLists(VersionIds, MatchIds);
+		if (CachedMatchesData.Num() > 0)
+		{
+			EditorModule->RequestData(this, *SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId);
+		}
+		else
+		{
+			EditorModule->RequestData(this);
+		}
 	}
 
 	return FReply::Handled();
@@ -350,7 +396,7 @@ void STchoupiVisualizerWidget::OnSliderValueChanged(float NewValue)
 
 	if (EditorModule && SelectedMatchId.IsValid())
 	{
-		EditorModule->VisualizeMatch(*SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId,
-									 SeeThrough, SliderValue);
+		EditorModule->RequestData(this,
+		                          *SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId);
 	}
 }
