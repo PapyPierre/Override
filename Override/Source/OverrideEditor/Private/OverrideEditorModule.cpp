@@ -1,4 +1,7 @@
 #include "OverrideEditorModule.h"
+
+#include <string>
+
 #include "MatchActor.h"
 #include "LevelEditor.h"
 #include "STchoupiVisualizerWidget.h"
@@ -83,6 +86,11 @@ void FOverrideEditorModule::ShowVisualization(const TArray<FMatchData>& MatchesD
 
 	for (const FMatchData MatchData : MatchesData)
 	{
+		if (*SelectedVersionId != TEXT("All") && *SelectedVersionId != TEXT(""))
+		{
+			if (*SelectedVersionId != MatchData.Version) continue;
+		}
+		
 		if (*SelectedMatchId != TEXT("All") && *SelectedMatchId != TEXT(""))
 		{
 			if (*SelectedMatchId != MatchData.Id) continue;
@@ -91,7 +99,28 @@ void FOverrideEditorModule::ShowVisualization(const TArray<FMatchData>& MatchesD
 		UE_LOG(LogTemp, Log, TEXT("Trying to visualizing data of match %s"), *MatchData.Id);
 		
 		AMatchActor* MatchActor = World->SpawnActor<AMatchActor>();
-		MatchActor->Players = MatchData.Players;
+
+		TArray<FMatchPlayerData> MatchPlayers;
+		
+		bool bFilterPlayer = (*SelectedPlayerId != TEXT("All") && *SelectedPlayerId != TEXT(""));
+		bool bFilterTeam   = (*SelectedTeamId   != TEXT("All") && *SelectedTeamId   != TEXT(""));
+
+		if (bFilterPlayer || bFilterTeam)
+		{
+			for (FMatchPlayerData Player : MatchData.Players)
+			{
+				if (bFilterPlayer && FString::FromInt(Player.PlayerId) != *SelectedPlayerId) continue;
+				if (bFilterTeam && FString::FromInt(Player.TeamId) != *SelectedTeamId) continue;
+				
+				MatchPlayers.Add(Player);
+			}
+		}
+		else
+		{
+			MatchPlayers = MatchData.Players;
+		}
+		
+		MatchActor->Players = MatchPlayers;
 		MatchActor->SeeThrough = SeeThrough;
 		MatchActor->TimeValue = TimeValue;
 		MatchActor->RerunConstructionScripts();

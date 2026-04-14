@@ -15,7 +15,7 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
-	void UpdateLists(const TArray<TSharedPtr<FString>>& Versions, const TArray<TSharedPtr<FString>>& Matches);
+	void UpdateLists(const TArray<FString>& Versions, const TArray<FString>& Matches);
 
 private:
 	virtual void OnMatchesDataReceived(TArray<FMatchData> MatchesData) override;
@@ -54,7 +54,7 @@ private:
 
 	FReply OnClearClicked();
 
-	FReply OnUpdateClicked();
+	FReply OnFetchDataClicked();
 
 	void OnSeeThroughChecked(ECheckBoxState CheckBoxState);
 	

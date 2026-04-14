@@ -245,15 +245,15 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 			.Padding(5)
 			[
 				SNew(SButton)
-				.Text(FText::FromString("Update Data"))
+				.Text(FText::FromString("Fetch Data"))
 				.HAlign(HAlign_Center)
-				.OnClicked(this, &STchoupiVisualizerWidget::OnUpdateClicked)
+				.OnClicked(this, &STchoupiVisualizerWidget::OnFetchDataClicked)
 			]
 		]
 	];
 }
 
-void STchoupiVisualizerWidget::UpdateLists(const TArray<TSharedPtr<FString>>& Versions, const TArray<TSharedPtr<FString>>& Matches)
+void STchoupiVisualizerWidget::UpdateLists(const TArray<FString>& Versions, const TArray<FString>& Matches)
 {
 	VersionIds.Empty();
 	MatchIds.Empty();
@@ -261,12 +261,16 @@ void STchoupiVisualizerWidget::UpdateLists(const TArray<TSharedPtr<FString>>& Ve
 	VersionIds.Add(MakeShared<FString>("All"));
 	MatchIds.Add(MakeShared<FString>("All"));
 
-	VersionIds.Append(Versions);
-	MatchIds.Append(Matches);
-
-	for (TSharedPtr<FString> str : VersionIds)
+	for (FString Str : Versions)
 	{
-		UE_LOG(LogTemp, Log, TEXT("%p"), str.Get());
+		UE_LOG(LogTemp, Log, TEXT("%s"), *Str);
+		VersionIds.Add(MakeShared<FString>(Str));
+	}
+	
+	for (FString Str : Matches)
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s"), *Str);
+		MatchIds.Add(MakeShared<FString>(Str));
 	}
 
 	PlayerIds = {
@@ -278,31 +282,36 @@ void STchoupiVisualizerWidget::UpdateLists(const TArray<TSharedPtr<FString>>& Ve
 		MakeShared<FString>("4"),
 		MakeShared<FString>("5")
 	};
-
+	
 	TeamIds = {
 		MakeShared<FString>("All"),
 		MakeShared<FString>("0"),
 		MakeShared<FString>("1"),
 		MakeShared<FString>("2")
 	};
-}
 
+	SelectedVersionId = VersionIds[0];
+	SelectedMatchId = MatchIds[0];
+	SelectedPlayerId = PlayerIds[0];
+	SelectedTeamId = TeamIds[0];
+}
 
 void STchoupiVisualizerWidget::OnMatchesDataReceived(TArray<FMatchData> MatchesData)
 {
 	UE_LOG(LogTemp, Log, TEXT("%i Matches data received"), MatchesData.Num());
-	
+
 	CachedMatchesData = MatchesData;
 
-	TArray<TSharedPtr<FString>> Versions;
-	TArray<TSharedPtr<FString>> MatchesIds;
+	TArray<FString> Versions;
+	TArray<FString> MatchesIds;
 
 	for (FMatchData Match : CachedMatchesData)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Found match %s with version: %s"), *Match.Id, *Match.Version);
-		
-		Versions.AddUnique(MakeShared<FString>(Match.Version));
-		MatchesIds.AddUnique(MakeShared<FString>(Match.Id));
+
+		// Can't convert already to shrd ptr because we need to be able to compare strings values
+		Versions.AddUnique(Match.Version);
+		MatchesIds.AddUnique(Match.Id);
 	}
 
 	UpdateLists(Versions, MatchesIds);
@@ -352,7 +361,8 @@ FReply STchoupiVisualizerWidget::OnVisualizeClicked()
 {
 	if (CachedMatchesData.Num() > 0)
 	{
-		EditorModule->ShowVisualization(CachedMatchesData, SelectedVersionId, SelectedMatchId, SelectedTeamId, SelectedPlayerId, SeeThrough, SliderValue);
+		EditorModule->ShowVisualization(CachedMatchesData, SelectedVersionId, SelectedMatchId, SelectedTeamId,
+		                                SelectedPlayerId, SeeThrough, SliderValue);
 	}
 
 	return FReply::Handled();
@@ -368,18 +378,11 @@ FReply STchoupiVisualizerWidget::OnClearClicked()
 	return FReply::Handled();
 }
 
-FReply STchoupiVisualizerWidget::OnUpdateClicked()
+FReply STchoupiVisualizerWidget::OnFetchDataClicked()
 {
 	if (EditorModule)
 	{
-		if (CachedMatchesData.Num() > 0)
-		{
-			EditorModule->RequestData(this, *SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId);
-		}
-		else
-		{
-			EditorModule->RequestData(this);
-		}
+		EditorModule->RequestData(this);
 	}
 
 	return FReply::Handled();
@@ -394,9 +397,10 @@ void STchoupiVisualizerWidget::OnSliderValueChanged(float NewValue)
 {
 	SliderValue = NewValue;
 
-	if (EditorModule && SelectedMatchId.IsValid())
+	if (EditorModule)
 	{
-		EditorModule->RequestData(this,
-		                          *SelectedVersionId, *SelectedMatchId, *SelectedPlayerId, *SelectedTeamId);
+		EditorModule->ClearVisualization();
+		EditorModule->ShowVisualization(CachedMatchesData, SelectedVersionId, SelectedMatchId, SelectedTeamId,
+										SelectedPlayerId, SeeThrough, SliderValue);
 	}
 }
