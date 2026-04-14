@@ -13,7 +13,7 @@
 
 void AFirstPersonGameMode::SendDataToDB()
 {
-	UE_LOG(LogTemp, Error, TEXT("Trying to send match data to DB..."));
+	UE_LOG(LogTemp, Log, TEXT("Trying to send match data to DB..."));
 
 	// BUILD JSON
 	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
