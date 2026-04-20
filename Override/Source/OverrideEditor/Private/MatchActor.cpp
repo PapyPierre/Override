@@ -42,7 +42,8 @@ void AMatchActor::OnConstruction(const FTransform& Transform)
 
 		for (int32 i = 1; i < PosCount; ++i)
 		{
-			if (static_cast<float>(i) / static_cast<float>(PosCount) > TimeValue) break;
+			float timeValue = static_cast<float>(i) / static_cast<float>(PosCount);
+			if (timeValue < MinTimeValue || timeValue > MaxTimeValue) continue;
 
 			FVector prevPos = Player.Positions[i - 1].Position;
 			FVector pos = Player.Positions[i].Position;

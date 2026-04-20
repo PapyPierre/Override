@@ -6,6 +6,7 @@
 #include "Network/ServerHttpClient.h"
 #include "Widgets/Input/SSlider.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SSpinBox.h"
 
 struct FMatchData;
 
@@ -197,17 +198,43 @@ void STchoupiVisualizerWidget::Construct(const FArguments& InArgs)
 			.Padding(5)
 			[
 				SNew(STextBlock)
-				.Text(FText::FromString("Timeline"))
+				.Text(FText::FromString("Timeline min"))
+			]
+
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2)
+			[
+				SNew(SSpinBox<float>)
+				.MinValue(0.f)
+				.MaxValue(1.f)
+				.Value(this, &STchoupiVisualizerWidget::GetRangeMin)
+				.OnValueChanged(this, &STchoupiVisualizerWidget::OnRangeMinChanged)
+				.MinDesiredWidth(60.f)
 			]
 
 			+ SHorizontalBox::Slot()
-			.FillWidth(1.f)
-			.Padding(5)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2)
 			[
-				SNew(SSlider)
+				SNew(STextBlock)
+				.Text(FText::FromString("max"))
+			]
 
-				.Visibility(EVisibility::Visible)
-				.OnValueChanged(this, &STchoupiVisualizerWidget::OnSliderValueChanged)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2)
+			[
+				SNew(SSpinBox<float>)
+				.MinValue(0.f)
+				.MaxValue(1.f)
+				.Value(this, &STchoupiVisualizerWidget::GetRangeMax)
+				.OnValueChanged(this, &STchoupiVisualizerWidget::OnRangeMaxChanged)
+				.MinDesiredWidth(60.f)
 			]
 		]
 
@@ -266,7 +293,7 @@ void STchoupiVisualizerWidget::UpdateLists(const TArray<FString>& Versions, cons
 		UE_LOG(LogTemp, Log, TEXT("%s"), *Str);
 		VersionIds.Add(MakeShared<FString>(Str));
 	}
-	
+
 	for (FString Str : Matches)
 	{
 		UE_LOG(LogTemp, Log, TEXT("%s"), *Str);
@@ -282,7 +309,7 @@ void STchoupiVisualizerWidget::UpdateLists(const TArray<FString>& Versions, cons
 		MakeShared<FString>("4"),
 		MakeShared<FString>("5")
 	};
-	
+
 	TeamIds = {
 		MakeShared<FString>("All"),
 		MakeShared<FString>("0"),
@@ -362,7 +389,7 @@ FReply STchoupiVisualizerWidget::OnVisualizeClicked()
 	if (CachedMatchesData.Num() > 0)
 	{
 		EditorModule->ShowVisualization(CachedMatchesData, SelectedVersionId, SelectedMatchId, SelectedTeamId,
-		                                SelectedPlayerId, SeeThrough, SliderValue);
+		                                SelectedPlayerId, SeeThrough, GetRangeMin(), GetRangeMax());
 	}
 
 	return FReply::Handled();
@@ -393,14 +420,26 @@ void STchoupiVisualizerWidget::OnSeeThroughChecked(ECheckBoxState CheckBoxState)
 	SeeThrough = CheckBoxState == ECheckBoxState::Checked;
 }
 
-void STchoupiVisualizerWidget::OnSliderValueChanged(float NewValue)
+void STchoupiVisualizerWidget::OnRangeMinChanged(float NewValue)
 {
-	SliderValue = NewValue;
+	RangeMin = FMath::Min(NewValue, RangeMax);
 
 	if (EditorModule)
 	{
 		EditorModule->ClearVisualization();
 		EditorModule->ShowVisualization(CachedMatchesData, SelectedVersionId, SelectedMatchId, SelectedTeamId,
-										SelectedPlayerId, SeeThrough, SliderValue);
+										SelectedPlayerId, SeeThrough, GetRangeMin(), GetRangeMax());
+	}
+}
+
+void STchoupiVisualizerWidget::OnRangeMaxChanged(float NewValue)
+{
+	RangeMax = FMath::Max(NewValue, RangeMin);
+
+	if (EditorModule)
+	{
+		EditorModule->ClearVisualization();
+		EditorModule->ShowVisualization(CachedMatchesData, SelectedVersionId, SelectedMatchId, SelectedTeamId,
+										SelectedPlayerId, SeeThrough, GetRangeMin(), GetRangeMax());
 	}
 }
