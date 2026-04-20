@@ -4,6 +4,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "ServerHttpClient.generated.h"
 
+class UOverrideGameInstance;
 class IHttpRequester;
 class ACustomPlayerController;
 
@@ -32,6 +33,8 @@ public:
 #pragma region Telemetry
 	void FetchMatchesData(IHttpRequester* Requester,
 		FString VersionId, FString MatchId, FString PlayerId, FString TeamId);
+
+	void SetMatchData(FString Version, UOverrideGameInstance* GameInst);
 #pragma endregion
 
 private:
@@ -69,4 +72,6 @@ private:
 
 	void FetchMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                            IHttpRequester* Requester);
+
+	void SetMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess);
 };
