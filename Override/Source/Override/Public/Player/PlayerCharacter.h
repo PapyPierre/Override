@@ -36,6 +36,9 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Dash")
+	void Dash();
+
 #pragma region GAS
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
