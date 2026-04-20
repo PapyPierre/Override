@@ -36,8 +36,12 @@ private:
 
 	bool SeeThrough = false;
 
-	float SliderValue = 1;
+	float RangeMin = 0.f;
+	float RangeMax = 1.f;
 
+	float GetRangeMin() const { return RangeMin; }
+	float GetRangeMax() const { return RangeMax; }
+	
 	TSharedRef<SWidget> GenerateVersionItem(TSharedPtr<FString> Item);
 	void OnVersionSelected(TSharedPtr<FString> Item, ESelectInfo::Type);
 
@@ -57,8 +61,10 @@ private:
 	FReply OnFetchDataClicked();
 
 	void OnSeeThroughChecked(ECheckBoxState CheckBoxState);
+
+	void OnRangeMinChanged(float NewValue);
 	
-	void OnSliderValueChanged(float NewValue);
+	void OnRangeMaxChanged(float NewValue);
 
 	FOverrideEditorModule* EditorModule = nullptr;
 };

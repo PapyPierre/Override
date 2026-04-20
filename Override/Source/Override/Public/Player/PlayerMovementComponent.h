@@ -151,7 +151,7 @@ private:
 							   FActorComponentTickFunction* ThisTickFunction) override;
 	
 	virtual void PhysDash(float DeltaTime, int32 Iterations);
-
+	
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 	
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;

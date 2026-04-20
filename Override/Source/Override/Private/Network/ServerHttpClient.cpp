@@ -3,6 +3,7 @@
 #include "HttpModule.h"
 #include "GameMode/MatchData.h"
 #include "GameMode/MatchPlayerData.h"
+#include "GameMode/OverrideGameInstance.h"
 #include "Network/HttpRequester.h"
 #include "Player/CustomPlayerController.h"
 
@@ -187,7 +188,7 @@ void UServerHttpClient::SetLobbyInGame(FString TargetLobbyId, const bool Value)
 }
 
 void UServerHttpClient::FetchMatchesData(IHttpRequester* Requester,
-	FString VersionId, FString MatchId, FString PlayerId, FString TeamId)
+                                         FString VersionId, FString MatchId, FString PlayerId, FString TeamId)
 {
 	UE_LOG(LogTemp, Log, TEXT("Fetching Match Data from DB"));
 
@@ -195,17 +196,66 @@ void UServerHttpClient::FetchMatchesData(IHttpRequester* Requester,
 
 	TArray<FString> Params;
 	if (!VersionId.IsEmpty()) Params.Add(FString::Printf(TEXT("versionId=%s"), *VersionId));
-	if (!MatchId.IsEmpty())   Params.Add(FString::Printf(TEXT("matchId=%s"), *MatchId));
-	if (!PlayerId.IsEmpty())  Params.Add(FString::Printf(TEXT("playerId=%s"), *PlayerId));
-	if (!TeamId.IsEmpty())    Params.Add(FString::Printf(TEXT("teamId=%s"), *TeamId));
+	if (!MatchId.IsEmpty()) Params.Add(FString::Printf(TEXT("matchId=%s"), *MatchId));
+	if (!PlayerId.IsEmpty()) Params.Add(FString::Printf(TEXT("playerId=%s"), *PlayerId));
+	if (!TeamId.IsEmpty()) Params.Add(FString::Printf(TEXT("teamId=%s"), *TeamId));
 	UrlQuery += FString::Join(Params, TEXT("&"));
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(UrlQuery);
 	Request->SetVerb(TEXT("GET"));
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-	
+
 	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::FetchMatchDataCallback, Requester);
+
+	Request->ProcessRequest();
+}
+
+void UServerHttpClient::SetMatchData(FString Version, UOverrideGameInstance* GameInst)
+{
+	UE_LOG(LogTemp, Error, TEXT("Trying to send match data to DB..."));
+
+	// BUILD JSON
+	if (Version.IsEmpty()) Version = TEXT("editor");
+
+	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
+	Json->SetStringField("versionId", Version);
+
+	TArray<TSharedPtr<FJsonValue>> PlayersArray;
+
+	for (const FMatchPlayerData& Player : GameInst->MatchPlayers)
+	{
+		TSharedPtr<FJsonObject> PlayerObj = MakeShared<FJsonObject>();
+		PlayerObj->SetNumberField(TEXT("playerId"), Player.PlayerId);
+		PlayerObj->SetNumberField(TEXT("teamId"), Player.TeamId);
+
+		TArray<TSharedPtr<FJsonValue>> PositionsArray;
+		for (const FPlayerPosition& Pos : Player.Positions)
+		{
+			TSharedPtr<FJsonObject> PosObj = MakeShared<FJsonObject>();
+			PosObj->SetNumberField(TEXT("posX"), Pos.Position.X);
+			PosObj->SetNumberField(TEXT("posY"), Pos.Position.Y);
+			PosObj->SetNumberField(TEXT("posZ"), Pos.Position.Z);
+			PositionsArray.Add(MakeShared<FJsonValueObject>(PosObj));
+		}
+
+		PlayerObj->SetArrayField(TEXT("positions"), PositionsArray);
+		PlayersArray.Add(MakeShared<FJsonValueObject>(PlayerObj));
+	}
+
+	Json->SetArrayField(TEXT("players"), PlayersArray);
+
+	FString Payload;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
+	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(TEXT("http://localhost:6000/matches"));
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetContentAsString(Payload);
+
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::SetMatchDataCallback);
 
 	Request->ProcessRequest();
 }
@@ -356,18 +406,18 @@ void UServerHttpClient::FetchMatchDataCallback(TSharedPtr<IHttpRequest> Request,
 	}
 
 	TArray<FMatchData> Matches;
-	
+
 	for (const TSharedPtr<FJsonValue>& MatchValue : MatchesArray)
 	{
 		TSharedPtr<FJsonObject> MatchObj = MatchValue->AsObject();
-		
+
 		FMatchData Match;
-		
+
 		Match.Id = FString::FromInt(MatchObj->GetNumberField(TEXT("matchId")));
 		Match.Version = MatchObj->GetStringField(TEXT("versionId"));
-		
+
 		TArray<FMatchPlayerData> Players;
-		
+
 		const TArray<TSharedPtr<FJsonValue>>& PlayersArray = MatchObj->GetArrayField(TEXT("players"));
 
 		for (const TSharedPtr<FJsonValue>& PlayerValue : PlayersArray)
@@ -399,11 +449,26 @@ void UServerHttpClient::FetchMatchDataCallback(TSharedPtr<IHttpRequest> Request,
 		}
 
 		Match.Players = Players;
-		
+
 		Matches.Add(Match);
 	}
 
 	Requester->OnMatchesDataReceived(Matches);
+}
+
+void UServerHttpClient::SetMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+                                             bool bSuccess)
+{
+	if (!bSuccess || !Response.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("HTTP request failed"));
+		return;
+	}
+
+	int32 StatusCode = Response->GetResponseCode();
+	FString Body = Response->GetContentAsString();
+	
+	UE_LOG(LogTemp, Log, TEXT("Set Match Data Callback: Status: %d | Body: %s"), StatusCode, *Body);
 }
 
 FString UServerHttpClient::GetServerIP() const
