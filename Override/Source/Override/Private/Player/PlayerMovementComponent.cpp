@@ -130,6 +130,7 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	if (!bIsDashing)
 	{
 		DashStartTime = GetWorld()->GetTimeSeconds();
+		CharacterRef->Dash();
 		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
 			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 	}
