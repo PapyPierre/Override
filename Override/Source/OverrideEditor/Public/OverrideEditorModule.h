@@ -28,8 +28,9 @@ public:
 		FString VersionID  = TEXT(""), FString MatchID  = TEXT(""), FString PlayerID  = TEXT(""), FString TeamID = TEXT(""));
 
 	void ShowVisualization(const TArray<FMatchData>& MatchesData,
-	TSharedPtr<FString> SelectedVersionId, TSharedPtr<FString> SelectedMatchId,
-	TSharedPtr<FString> SelectedTeamId, TSharedPtr<FString> SelectedPlayerId, bool SeeThrough, float TimeValue);
+	const TSharedPtr<FString>& SelectedVersionId, const TSharedPtr<FString>& SelectedMatchId,
+	const TSharedPtr<FString>& SelectedTeamId, const TSharedPtr<FString>& SelectedPlayerId,
+	const bool SeeThrough, const float MinTimeValue, const float MaxTimeValue);
 
 	void ClearVisualization();
 

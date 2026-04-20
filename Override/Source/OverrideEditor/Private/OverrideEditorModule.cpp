@@ -76,8 +76,9 @@ void FOverrideEditorModule::RequestData(IHttpRequester* Requester,
 }
 
 void FOverrideEditorModule::ShowVisualization(const TArray<FMatchData>& MatchesData,
-	TSharedPtr<FString> SelectedVersionId, TSharedPtr<FString> SelectedMatchId,
-	TSharedPtr<FString> SelectedTeamId, TSharedPtr<FString> SelectedPlayerId, const bool SeeThrough, const float TimeValue)
+	const TSharedPtr<FString>& SelectedVersionId, const TSharedPtr<FString>& SelectedMatchId,
+	const TSharedPtr<FString>& SelectedTeamId, const TSharedPtr<FString>& SelectedPlayerId, const bool SeeThrough,
+	const float MinTimeValue, const float MaxTimeValue)
 {
 	UE_LOG(LogTemp, Log, TEXT("Starting visualization"));
 	
@@ -122,7 +123,8 @@ void FOverrideEditorModule::ShowVisualization(const TArray<FMatchData>& MatchesD
 		
 		MatchActor->Players = MatchPlayers;
 		MatchActor->SeeThrough = SeeThrough;
-		MatchActor->TimeValue = TimeValue;
+		MatchActor->MinTimeValue = MinTimeValue;
+		MatchActor->MaxTimeValue = MaxTimeValue;
 		MatchActor->RerunConstructionScripts();
 		SpawnedActors.Add(MatchActor);
 	}
