@@ -121,6 +121,8 @@ void URollbackComponent::OnRep_IsRollingBack() const
 	bIsRollingBack
 		? InputSystem->RemoveMappingContext(IMC_MouseLook)
 		: InputSystem->AddMappingContext(IMC_MouseLook, 0);
+
+	Owner->OnRollingBack(bIsRollingBack);
 }
 
 void URollbackComponent::PurgeOldSnapshots()
