@@ -74,6 +74,13 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
                                              FActorComponentTickFunction* ThisTickFunction)
 {
 	JumpTimeline.TickTimeline(DeltaTime);
+
+	if (IsSlowed)
+	{
+		float Z = Velocity.Z;
+		Velocity *= SlowedSpeed;
+		Velocity.Z = Z;
+	}
 	
 	if (CharacterRef->HasAuthority())
 	{
@@ -520,9 +527,6 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	float ForwardDot = FVector::DotProduct(Forward, VelocityDir);
 
 	float SuperMaxSpeed = Super::GetMaxSpeed();
-	
-	if (IsSlowed)
-		SuperMaxSpeed *= SlowedSpeed;
 
 	float ShootingSpeedBase = 1.0f;
 	if (bIsShooting)
