@@ -31,7 +31,7 @@ public:
 	URollbackComponent();
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Rollback")
-	float RollbackSpeed = 1.5f;
+	float RollbackSpeed = 1.0f;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Rollback")
 	float MaxHistoryDuration = 3.0f;
@@ -58,11 +58,11 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_IsRollingBack)
 	bool bIsRollingBack = false;
 
+	UFUNCTION()
+	void OnRep_IsRollingBack();
+
 	UPROPERTY(EditDefaultsOnly)
 	UInputMappingContext* IMC_MouseLook;
-
-	UFUNCTION()
-	void OnRep_IsRollingBack() const;
 
 	float RollbackTargetTime = 0.f;
 

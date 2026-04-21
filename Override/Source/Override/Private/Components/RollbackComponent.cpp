@@ -8,6 +8,7 @@
 URollbackComponent::URollbackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	SetIsReplicatedByDefault(true);
 }
 
 void URollbackComponent::CaptureSnapshot()
@@ -35,6 +36,8 @@ void URollbackComponent::StartRollback()
 	bIsRollingBack = true;
 	RollbackTargetTime = GetWorld()->GetTimeSeconds();
 	GetOwner()->SetActorEnableCollision(false);
+
+	UE_LOG(LogTemp, Log, TEXT("Start Rollback"));
 }
 
 void URollbackComponent::StopRollback()
@@ -76,7 +79,8 @@ void URollbackComponent::Client_ApplySnapshot_Implementation(FRotator NewControl
 {
 	APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
 	if (!Owner) return;
-
+	 AController* controller = Owner->GetController();
+	if (!controller) return;
 	Owner->GetController()->SetControlRotation(NewControlRot);
 }
 
@@ -105,23 +109,26 @@ void URollbackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 }
 
-void URollbackComponent::OnRep_IsRollingBack() const
+void URollbackComponent::OnRep_IsRollingBack()
 {
 	APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
 	if (!Owner) return;
+
+	UE_LOG(LogTemp, Log, TEXT("Rollingback: %i"), bIsRollingBack);
 
 	if (Owner->IsLocallyControlled())
 	{
 		Owner->GetController()->SetIgnoreLookInput(bIsRollingBack);
 		Owner->GetController()->SetIgnoreMoveInput(bIsRollingBack);
 	}
-
+	/*
 	const ULocalPlayer* Player = Cast<ULocalPlayer>(GetOwner());
 	UEnhancedInputLocalPlayerSubsystem* InputSystem = Player->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
 	bIsRollingBack
 		? InputSystem->RemoveMappingContext(IMC_MouseLook)
 		: InputSystem->AddMappingContext(IMC_MouseLook, 0);
-
+	*/
+	
 	Owner->OnRollingBack(bIsRollingBack);
 }
 
