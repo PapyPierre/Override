@@ -15,7 +15,6 @@ void FOverrideEditorModule::StartupModule()
 {
 	HttpClient = NewObject<UServerHttpClient>();
 	
-	// Register tab in tab manager
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
 		                        TabName, FOnSpawnTab::CreateRaw(this, &FOverrideEditorModule::SpawnTab))
 	                        .SetDisplayName(FText::FromString(TabName.ToString()))
@@ -23,7 +22,6 @@ void FOverrideEditorModule::StartupModule()
 
 	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
-	// Add a menu entry in UE's Editor layout
 	TSharedPtr<FExtender> Extender = MakeShared<FExtender>();
 	Extender->AddMenuExtension(
 		"WindowLayout",
@@ -35,7 +33,6 @@ void FOverrideEditorModule::StartupModule()
 	LevelEditor.GetMenuExtensibilityManager()->AddExtender(Extender);
 }
 
-// When the given menu entry is clicked, invoke the tab
 void FOverrideEditorModule::AddMenuEntry(FMenuBuilder& Builder)
 {
 	Builder.AddMenuEntry(
