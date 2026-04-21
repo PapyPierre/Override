@@ -1,9 +1,9 @@
 #include "Components/RollbackComponent.h"
-
 #include "AbilitySystemComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "Attribute/UHealthAttributeSet.h"
-#include "GameFramework/Character.h"
 #include "Player/PlayerCharacter.h"
+#include "Net/UnrealNetwork.h"
 
 URollbackComponent::URollbackComponent()
 {
@@ -16,10 +16,14 @@ void URollbackComponent::CaptureSnapshot()
 	if (!Owner) return;
 
 	FPlayerSnapshot Snap;
-	Snap.Location = Owner->GetActorLocation();
-	Snap.Rotation = Owner->GetActorRotation();
+	Snap.PlayerLoc = Owner->GetActorLocation();
+	Snap.PlayerRot = Owner->GetActorRotation();
+
+	if (const auto Controller = Owner->GetController()) Snap.ControlRot = Controller->GetControlRotation();
 	Snap.Timestamp = GetWorld()->GetTimeSeconds();
-	Snap.Health = Owner->GetAbilitySystemComponent()->GetNumericAttribute(UHealthAttributeSet::GetHealthAttribute());
+
+	UAbilitySystemComponent* ASC = Owner->GetAbilitySystemComponent();
+	Snap.Health = ASC ? ASC->GetNumericAttribute(UHealthAttributeSet::GetHealthAttribute()) : 3;
 
 	History.Add(Snap);
 }
@@ -39,7 +43,7 @@ void URollbackComponent::StopRollback()
 	GetOwner()->SetActorEnableCollision(true);
 }
 
-void URollbackComponent::ApplySnapshot(float TargetTime)
+void URollbackComponent::ApplySnapshotOnServer(float TargetTime)
 {
 	for (int32 i = History.Num() - 1; i > 0; --i)
 	{
@@ -51,19 +55,29 @@ void URollbackComponent::ApplySnapshot(float TargetTime)
 			APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
 			if (!Owner) return;
 
-			const FVector NewLoc = FMath::Lerp(History[i - 1].Location, History[i].Location, Alpha);
-			const FRotator NewRot = FMath::Lerp(History[i - 1].Rotation, History[i].Rotation, Alpha);
+			const FVector NewLoc = FMath::Lerp(History[i - 1].PlayerLoc, History[i].PlayerLoc, Alpha);
+			const FRotator NewRot = FMath::Lerp(History[i - 1].PlayerRot, History[i].PlayerRot, Alpha);
+			const FRotator NewControlRot = FMath::Lerp(History[i - 1].ControlRot, History[i].ControlRot, Alpha);
 			const float NewHP = FMath::Lerp(History[i - 1].Health, History[i].Health, Alpha);
 
 			Owner->SetActorLocationAndRotation(NewLoc, NewRot, false, nullptr,
 			                                   ETeleportType::TeleportPhysics);
-			
+			Client_ApplySnapshot(NewControlRot);
+
 			if (UAbilitySystemComponent* ASC = Owner->GetAbilitySystemComponent())
 				ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHP);
 
 			return;
 		}
 	}
+}
+
+void URollbackComponent::Client_ApplySnapshot_Implementation(FRotator NewControlRot)
+{
+	APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
+	if (!Owner) return;
+
+	Owner->GetController()->SetControlRotation(NewControlRot);
 }
 
 void URollbackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -82,13 +96,31 @@ void URollbackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 			StopRollback();
 		}
 
-		ApplySnapshot(RollbackTargetTime);
+		ApplySnapshotOnServer(RollbackTargetTime);
 	}
 	else
 	{
 		CaptureSnapshot();
 		PurgeOldSnapshots();
 	}
+}
+
+void URollbackComponent::OnRep_IsRollingBack() const
+{
+	APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
+	if (!Owner) return;
+
+	if (Owner->IsLocallyControlled())
+	{
+		Owner->GetController()->SetIgnoreLookInput(bIsRollingBack);
+		Owner->GetController()->SetIgnoreMoveInput(bIsRollingBack);
+	}
+
+	const ULocalPlayer* Player = Cast<ULocalPlayer>(GetOwner());
+	UEnhancedInputLocalPlayerSubsystem* InputSystem = Player->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+	bIsRollingBack
+		? InputSystem->RemoveMappingContext(IMC_MouseLook)
+		: InputSystem->AddMappingContext(IMC_MouseLook, 0);
 }
 
 void URollbackComponent::PurgeOldSnapshots()
@@ -98,4 +130,10 @@ void URollbackComponent::PurgeOldSnapshots()
 	{
 		return (Now - S.Timestamp) > MaxHistoryDuration;
 	});
+}
+
+void URollbackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(URollbackComponent, bIsRollingBack);
 }

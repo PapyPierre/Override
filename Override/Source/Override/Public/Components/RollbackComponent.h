@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Modulations/Modulation.h"
 #include "RollbackComponent.generated.h"
 
 USTRUCT(BlueprintType)
@@ -10,9 +11,11 @@ struct FPlayerSnapshot
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FVector Location;
+	FVector PlayerLoc;
 	UPROPERTY()
-	FRotator Rotation;
+	FRotator PlayerRot;
+	UPROPERTY()
+	FRotator ControlRot;
 	UPROPERTY()
 	float Health;
 	UPROPERTY()
@@ -27,28 +30,43 @@ class OVERRIDE_API URollbackComponent : public UActorComponent
 public:
 	URollbackComponent();
 
-	UPROPERTY(EditDefaultsOnly, Category="Rollback")
-	float RollbackSpeed = 2.0f;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Rollback")
+	float RollbackSpeed = 1.5f;
 
-	UPROPERTY(EditDefaultsOnly, Category="Rollback")
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Rollback")
 	float MaxHistoryDuration = 3.0f;
 
 	void CaptureSnapshot();
 
+	UFUNCTION(BlueprintCallable)
 	void StartRollback();
+
+	UFUNCTION(BlueprintCallable)
 	void StopRollback();
 	bool IsRollingBack() const { return bIsRollingBack; }
 
 protected:
-	void ApplySnapshot(float TargetTime);
+	void ApplySnapshotOnServer(float TargetTime);
+
+	UFUNCTION(Client, Unreliable)
+	void Client_ApplySnapshot(FRotator NewControlRot);
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-		FActorComponentTickFunction* ThisTickFunction) override;
-	
+	                           FActorComponentTickFunction* ThisTickFunction) override;
+
 private:
+	UPROPERTY(ReplicatedUsing = OnRep_IsRollingBack)
 	bool bIsRollingBack = false;
+
+	UPROPERTY(EditDefaultsOnly)
+	UInputMappingContext* IMC_MouseLook;
+
+	UFUNCTION()
+	void OnRep_IsRollingBack() const;
+
 	float RollbackTargetTime = 0.f;
 
 	TArray<FPlayerSnapshot> History;
+
 	void PurgeOldSnapshots();
 };
