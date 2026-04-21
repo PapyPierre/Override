@@ -181,16 +181,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 		PlayerMovementComponent->JumpTimeline.PlayFromStart();
 	}
 
-	FVector CurrentVelocity = PlayerMovementComponent->Velocity;
-	FVector HorizontalVelocity = FVector(CurrentVelocity.X, CurrentVelocity.Y, 0.f);
-	float HorizontalSpeed = GetVelocity().Size();
-
-	if (PlayerMovementComponent->bIsSliding && PlayerMovementComponent->bWantsToCrouch && HorizontalSpeed > 1500.f)
-	{
-		float PreservePercent = 1.5f;
-		FVector NewHorizontalVelocity = HorizontalVelocity.GetSafeNormal() * (HorizontalSpeed * PreservePercent);
-		PlayerMovementComponent->Velocity += NewHorizontalVelocity;
-	}
+	
 
 	if (IsLocallyControlled() && FirstPersonCameraComponent)
 	{
