@@ -33,15 +33,17 @@ void URollbackComponent::StartRollback()
 {
 	if (History.IsEmpty()) return;
 
+	UE_LOG(LogTemp, Log, TEXT("Start Rollback"));
+
 	bIsRollingBack = true;
 	RollbackTargetTime = GetWorld()->GetTimeSeconds();
 	GetOwner()->SetActorEnableCollision(false);
-
-	UE_LOG(LogTemp, Log, TEXT("Start Rollback"));
 }
 
 void URollbackComponent::StopRollback()
 {
+	UE_LOG(LogTemp, Log, TEXT("Stop Rollback"));
+
 	bIsRollingBack = false;
 	GetOwner()->SetActorEnableCollision(true);
 }
@@ -63,13 +65,14 @@ void URollbackComponent::ApplySnapshotOnServer(float TargetTime)
 			const FRotator NewControlRot = FMath::Lerp(History[i - 1].ControlRot, History[i].ControlRot, Alpha);
 			const float NewHP = FMath::Lerp(History[i - 1].Health, History[i].Health, Alpha);
 
+			Client_ApplySnapshot(NewControlRot);
+			
 			Owner->SetActorLocationAndRotation(NewLoc, NewRot, false, nullptr,
 			                                   ETeleportType::TeleportPhysics);
-			Client_ApplySnapshot(NewControlRot);
 
 			if (UAbilitySystemComponent* ASC = Owner->GetAbilitySystemComponent())
 				ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHP);
-
+			
 			return;
 		}
 	}
@@ -77,11 +80,9 @@ void URollbackComponent::ApplySnapshotOnServer(float TargetTime)
 
 void URollbackComponent::Client_ApplySnapshot_Implementation(FRotator NewControlRot)
 {
-	APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
+	const APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
 	if (!Owner) return;
-	 AController* controller = Owner->GetController();
-	if (!controller) return;
-	Owner->GetController()->SetControlRotation(NewControlRot);
+	if (AController* Controller = Owner->GetController()) Controller->SetControlRotation(NewControlRot);
 }
 
 void URollbackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -89,6 +90,8 @@ void URollbackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (!GetOwner()->HasAuthority()) return;
+	
 	if (bIsRollingBack)
 	{
 		RollbackTargetTime -= DeltaTime * RollbackSpeed;
@@ -112,7 +115,11 @@ void URollbackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void URollbackComponent::OnRep_IsRollingBack()
 {
 	APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
-	if (!Owner) return;
+	if (!Owner)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Owner is null in OnRep_IsRollingBack"));
+		return;
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("Rollingback: %i"), bIsRollingBack);
 
@@ -121,14 +128,7 @@ void URollbackComponent::OnRep_IsRollingBack()
 		Owner->GetController()->SetIgnoreLookInput(bIsRollingBack);
 		Owner->GetController()->SetIgnoreMoveInput(bIsRollingBack);
 	}
-	/*
-	const ULocalPlayer* Player = Cast<ULocalPlayer>(GetOwner());
-	UEnhancedInputLocalPlayerSubsystem* InputSystem = Player->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-	bIsRollingBack
-		? InputSystem->RemoveMappingContext(IMC_MouseLook)
-		: InputSystem->AddMappingContext(IMC_MouseLook, 0);
-	*/
-	
+
 	Owner->OnRollingBack(bIsRollingBack);
 }
 
