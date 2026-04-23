@@ -1,10 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Network/HttpRequester.h"
 
+struct FMatchData;
 class FOverrideEditorModule;
 
-class OVERRIDEEDITOR_API STchoupiVisualizerWidget : public SCompoundWidget
+class OVERRIDEEDITOR_API STchoupiVisualizerWidget : public SCompoundWidget, public IHttpRequester
 {
 public:
 	SLATE_BEGIN_ARGS(STchoupiVisualizerWidget) {}
@@ -12,8 +14,14 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
-	
+
+	void UpdateLists(const TArray<FString>& Versions, const TArray<FString>& Matches);
+
 private:
+	virtual void OnMatchesDataReceived(TArray<FMatchData> MatchesData) override;
+
+	TArray<FMatchData> CachedMatchesData;
+	
 	TArray<TSharedPtr<FString>> VersionIds;
 	TSharedPtr<FString> SelectedVersionId;
 	
@@ -28,8 +36,12 @@ private:
 
 	bool SeeThrough = false;
 
-	float SliderValue = 1;
+	float RangeMin = 0.f;
+	float RangeMax = 1.f;
 
+	float GetRangeMin() const { return RangeMin; }
+	float GetRangeMax() const { return RangeMax; }
+	
 	TSharedRef<SWidget> GenerateVersionItem(TSharedPtr<FString> Item);
 	void OnVersionSelected(TSharedPtr<FString> Item, ESelectInfo::Type);
 
@@ -46,11 +58,13 @@ private:
 
 	FReply OnClearClicked();
 
-	FReply OnUpdateClicked();
+	FReply OnFetchDataClicked();
 
 	void OnSeeThroughChecked(ECheckBoxState CheckBoxState);
+
+	void OnRangeMinChanged(float NewValue);
 	
-	void OnSliderValueChanged(float NewValue);
+	void OnRangeMaxChanged(float NewValue);
 
 	FOverrideEditorModule* EditorModule = nullptr;
 };

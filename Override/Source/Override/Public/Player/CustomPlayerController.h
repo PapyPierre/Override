@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Network/Lobby.h"
-#include "Network/MasterServerHttpClient.h"
+#include "Network/ServerHttpClient.h"
 #include "UObject/Object.h"
 #include "CustomPlayerController.generated.h"
 
@@ -49,5 +49,5 @@ public:
 	
 private:
 	UPROPERTY()
-	TObjectPtr<UMasterServerHttpClient> HttpClient;
+	TObjectPtr<UServerHttpClient> HttpClient;
 };

@@ -74,6 +74,13 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
                                              FActorComponentTickFunction* ThisTickFunction)
 {
 	JumpTimeline.TickTimeline(DeltaTime);
+
+	if (IsSlowed)
+	{
+		float Z = Velocity.Z;
+		Velocity *= SlowedSpeed;
+		Velocity.Z = Z;
+	}
 	
 	if (CharacterRef->HasAuthority())
 	{
@@ -130,6 +137,7 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	if (!bIsDashing)
 	{
 		DashStartTime = GetWorld()->GetTimeSeconds();
+		CharacterRef->Dash();
 		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
 			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
 	}
@@ -208,7 +216,9 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
 	// SPEED / VELOCITY
 	// ==========================
 
-	float Speed = Velocity.Size();
+	FVector speedHorizontal = Velocity;
+	speedHorizontal.Z = 0.f;
+	float Speed = speedHorizontal.Size();
 
 	// ==========================
 	// LOCATION
@@ -441,7 +451,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 		CurrentFloor = NewFloor;
 
-		if ((Velocity.Size() < DefaultMaxWalkSpeedCrouched && TimeSliding >= 0.3f) || !bWantsToSlide || JumpCount > 4)
+		if ((Velocity.Size() < DefaultMaxWalkSpeedCrouched && TimeSliding >= 0.3f) || !bWantsToSlide)
 		{
 			ExitSlide(DeltaTime, Iterations);
 		}
@@ -517,9 +527,6 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	float ForwardDot = FVector::DotProduct(Forward, VelocityDir);
 
 	float SuperMaxSpeed = Super::GetMaxSpeed();
-	
-	if (IsSlowed)
-		SuperMaxSpeed *= SlowedSpeed;
 
 	float ShootingSpeedBase = 1.0f;
 	if (bIsShooting)
@@ -573,7 +580,14 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 		}
 	}
 
-	return Super::DoJump(bReplayingMoves, DeltaTime);
+	if (Super::DoJump(bReplayingMoves, DeltaTime))
+	{
+		if (CharacterRef->IsLocallyControlled())
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+														 FRotator::ZeroRotator);
+		return true;
+	}
+	return false;
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,
