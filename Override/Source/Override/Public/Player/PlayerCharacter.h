@@ -63,6 +63,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void GiveCharacterAbilities(TArray<TSubclassOf<UGA_BaseAbility>> Abilities);
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnRollingBack(bool IsRollingBack);
+
 #pragma endregion
 
 #pragma region Components
