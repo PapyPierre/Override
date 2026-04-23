@@ -8,5 +8,6 @@ public class OverrideTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 		ExtraModuleNames.AddRange(new string[] { "Override", "HTTPServer" });
         CppStandard = CppStandardVersion.Latest;
+        bUseLoggingInShipping = true;
 	}
 }
