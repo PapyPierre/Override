@@ -1,13 +1,16 @@
 #include "Network/FMatchDataFetcher.h"
+
+#include "HttpModule.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "winsock.h"
 #include "GameMode/MatchPlayerData.h"
+#include "Interfaces/IHttpRequest.h"
 
 FSocket* FMatchDataFetcher::CreateSocketToDBServer(const int& Port)
 {
-	return CreateSocket("10.51.0.137", Port);
+	return CreateSocket("10.51.1.82", Port);
 }
 
 FSocket* FMatchDataFetcher::CreateSocket(const FString& IPStr, const int& Port)
@@ -227,73 +230,4 @@ bool FMatchDataFetcher::ParseJsonArraySafe(const FString& JsonString, TArray<TSh
 		TJsonReaderFactory<>::Create(JsonString);
 
 	return FJsonSerializer::Deserialize(Reader, OutArray);
-}
-
-bool FMatchDataFetcher::FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds)
-{
-	FSocket* Socket = CreateSocketToDBServer(5000);
-
-	if (Socket == nullptr)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Socket is null, will not fetch match list"));
-		return false;
-	}
-
-	// BUILD JSON
-	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
-	Json->SetStringField("action", "get_match_list");
-	Json->SetStringField("token", "override_db_token");
-
-	FString Payload;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
-	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
-
-	SendData(Socket, Payload);
-
-	FPlatformProcess::Sleep(0.05f);
-
-	FString Response;
-	RecvAll(Socket, Response);
-
-	if (Response.IsEmpty())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Empty response from DB server"));
-		CloseSocket(Socket);
-		return false;
-	}
-
-	TSharedPtr<FJsonValue> ResponseJson;
-
-	if (!ParseJsonSafe(Response, ResponseJson))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Invalid JSON: %s"), *Response);
-		CloseSocket(Socket);
-		return false;
-	}
-
-	TArray<FString> Versions;
-
-	for (const TSharedPtr<FJsonValue>& MatchInfo : ResponseJson->AsArray())
-	{
-		TArray<TSharedPtr<FJsonValue>> InfoAsArray = MatchInfo->AsArray();
-
-		const TSharedPtr<FJsonValue> Match = InfoAsArray[0];
-		const TSharedPtr<FJsonValue> Version = InfoAsArray[1];
-		
-		if (!Versions.Contains(Version->AsString()))
-		{
-			Versions.Add(Version->AsString());
-		}
-		
-		MatchIds.AddUnique(MakeShared<FString>(Match->AsString()));
-	}
-
-	for (FString Version : Versions)
-	{
-		VersionIds.AddUnique(MakeShared<FString>(Version));
-	}
-
-	CloseSocket(Socket);
-
-	return true;
 }

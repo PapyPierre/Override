@@ -43,6 +43,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsShooting = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bHasFlagCMC = false;
 
 	FVector CharaLocation;
 	FVector CharaForward;
@@ -70,6 +73,7 @@ public:
 
 	void EndOfDash(float DeltaSeconds, int32 Iterations);
 	void DashDurationCheck(float DeltaSeconds, int32 Iterations);
+	UFUNCTION(BlueprintCallable)
 	bool CanDash() const;
 	void DebugDashValues();
 
@@ -147,7 +151,7 @@ private:
 							   FActorComponentTickFunction* ThisTickFunction) override;
 	
 	virtual void PhysDash(float DeltaTime, int32 Iterations);
-
+	
 	virtual void PhysSlide(float DeltaTime, int32 Iterations);
 	
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;

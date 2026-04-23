@@ -8,8 +8,8 @@ struct OVERRIDE_API FPlayerPosition
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 Time;
-
+	int32 Time = -1;
+	
 	UPROPERTY(BlueprintReadWrite)
-	FVector Position;
+	FVector Position = FVector::ZeroVector;
 };

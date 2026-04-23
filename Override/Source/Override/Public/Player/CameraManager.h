@@ -36,6 +36,7 @@ public:
 	float TargetFov;
 
 	APlayerCharacter* PlayerRef;
+	UCameraShakeBase* CameraShakeRef;
 
 	UPROPERTY()
 	UCurveFloat* FovCurve;
