@@ -31,7 +31,7 @@ public:
 	URollbackComponent();
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Rollback")
-	float RollbackSpeed = 1.0f;
+	float RollbackSpeed = 1.6f;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Rollback")
 	float MaxHistoryDuration = 3.0f;
