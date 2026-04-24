@@ -8,5 +8,6 @@ public class OverrideClientTarget : TargetRules
         DefaultBuildSettings = BuildSettingsVersion.V5;
         ExtraModuleNames.AddRange( new string[] { "Override" } );
         CppStandard = CppStandardVersion.Latest;
+        bUseLoggingInShipping = true;
     }
 }
