@@ -38,6 +38,8 @@ void URollbackComponent::StartRollback()
 	bIsRollingBack = true;
 	RollbackTargetTime = GetWorld()->GetTimeSeconds();
 	GetOwner()->SetActorEnableCollision(false);
+	APlayerCharacter* Owner = Cast<APlayerCharacter>(GetOwner());
+	Owner->GetMovementComponent()->Velocity = FVector::ZeroVector;
 }
 
 void URollbackComponent::StopRollback()
