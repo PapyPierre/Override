@@ -116,6 +116,16 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 		StartNewPhysics(DeltaTime,Iterations);
 		return;
 	}
+
+	if (!bIsDashing)
+	{
+		DashStartTime = GetWorld()->GetTimeSeconds();
+		CharacterRef->Dash();
+		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+	}
+
+	bIsDashing = true;
 	
 	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
@@ -133,16 +143,6 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 0;
 	MaxAcceleration = 0;
-
-	if (!bIsDashing)
-	{
-		DashStartTime = GetWorld()->GetTimeSeconds();
-		CharacterRef->Dash();
-		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
-			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-	}
-
-	bIsDashing = true;
 }
 
 void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
