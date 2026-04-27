@@ -36,6 +36,9 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Dash")
+	void Dash();
+
 #pragma region GAS
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
@@ -59,6 +62,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void GiveCharacterAbilities(TArray<TSubclassOf<UGA_BaseAbility>> Abilities);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnRollingBack(bool IsRollingBack);
 
 #pragma endregion
 
@@ -160,7 +166,9 @@ public:
 	float AimCrouchedSpeed;
 	float AimSpeed;
 	UPROPERTY(BlueprintReadOnly)
-	float MouseSensitivity = 1.0f;
+	float DefaultMouseSensitivity;
+	UPROPERTY(BlueprintReadOnly)
+	float CurrentMouseSensitivity;
 	UPROPERTY(BlueprintReadOnly)
 	float MouseAimSensitivity;
 
@@ -181,8 +189,6 @@ public:
 	void UseAbility(int index);
 
 protected:
-	
-	
 	virtual void BeginPlay() override;
 
 	virtual void Landed(const FHitResult& Hit) override;
@@ -211,6 +217,9 @@ protected:
 	void OnAbilityActivated(int SlotIndex, bool IsSelfCast);
 
 private:
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	TObjectPtr<USceneComponent> TPV;
+	
 	void SetControllerRef();
 	
 	void InitAbilitySystem();

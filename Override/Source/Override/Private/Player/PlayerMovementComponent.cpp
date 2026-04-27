@@ -75,8 +75,30 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	JumpTimeline.TickTimeline(DeltaTime);
 
-	//DebugSlideNetwork(TEXT("Tick"));
-	//DebugDashValues();
+	if (IsSlowed)
+	{
+		float Z = Velocity.Z;
+		Velocity *= SlowedSpeed;
+		Velocity.Z = Z;
+	}
+	
+	if (CharacterRef->HasAuthority())
+	{
+		bool bValidGrounded =
+			IsMovingOnGround() &&
+			CurrentFloor.IsWalkableFloor() &&
+			CurrentFloor.bBlockingHit &&
+			!IsFalling() &&
+			FMath::Abs(Velocity.Z) < 1.f &&
+			CurrentFloor.FloorDist <= MaxStepHeight &&
+			!bJustTeleported &&
+				bHasFlagCMC;
+
+		if (bValidGrounded)
+		{
+			CharacterRef->LastGroundedPosition = CharacterRef->GetActorLocation();
+		}
+	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
@@ -87,13 +109,23 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	{
 		return;
 	}
-
+	
 	if (!bWantsToDash)
 	{
 		SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime,Iterations);
 		return;
 	}
+
+	if (!bIsDashing)
+	{
+		DashStartTime = GetWorld()->GetTimeSeconds();
+		CharacterRef->Dash();
+		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+	}
+
+	bIsDashing = true;
 	
 	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
@@ -111,15 +143,6 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 0;
 	MaxAcceleration = 0;
-
-	if (!bIsDashing)
-	{
-		DashStartTime = GetWorld()->GetTimeSeconds();
-		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
-			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-	}
-
-	bIsDashing = true;
 }
 
 void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
@@ -193,7 +216,9 @@ void UPlayerMovementComponent::DebugSlideNetwork(const FString& Context)
 	// SPEED / VELOCITY
 	// ==========================
 
-	float Speed = Velocity.Size();
+	FVector speedHorizontal = Velocity;
+	speedHorizontal.Z = 0.f;
+	float Speed = speedHorizontal.Size();
 
 	// ==========================
 	// LOCATION
@@ -307,7 +332,6 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 
 void UPlayerMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 {
-	CharacterRef->LastGroundedPosition = GetActorLocation();
 	Super::PhysWalking(DeltaTime, Iterations);
 }
 
@@ -329,8 +353,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 	{
 		if (SlideLineTrace())
 		{
-			if (Impact.Z <= SlopeToleranceValue)
-			{
+			
 				bIsSliding = true;
 				bResetSlideCrouch = false;
 				TimeSliding = 0.f;
@@ -340,7 +363,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 				Velocity += SlideDir * SlideImpulse;
 				if (CharacterRef->IsLocallyControlled())
 					CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeSlide, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-			}
+			
 		}
 		else
 		{
@@ -428,7 +451,7 @@ void UPlayerMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 
 		CurrentFloor = NewFloor;
 
-		if ((Velocity.Size() < DefaultMaxWalkSpeedCrouched && TimeSliding >= 0.3f) || !bWantsToSlide || JumpCount > 4)
+		if ((Velocity.Size() < DefaultMaxWalkSpeedCrouched && TimeSliding >= 0.3f) || !bWantsToSlide)
 		{
 			ExitSlide(DeltaTime, Iterations);
 		}
@@ -455,7 +478,6 @@ bool UPlayerMovementComponent::CanSlide()
 	SlideLineTrace();
 	bool bResult = IsMovingOnGround();
 	bResult &= VelocityAtCrouch.Size() >= DefaultMaxWalkSpeed - 10;
-	bResult &= Impact.Z <= SlopeToleranceValue;
 	bResult &= bResetSlideCrouch;
 	bResult &= bResetSlideLanded;
 	return bResult;
@@ -505,9 +527,6 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	float ForwardDot = FVector::DotProduct(Forward, VelocityDir);
 
 	float SuperMaxSpeed = Super::GetMaxSpeed();
-	
-	if (IsSlowed)
-		SuperMaxSpeed *= SlowedSpeed;
 
 	float ShootingSpeedBase = 1.0f;
 	if (bIsShooting)
@@ -519,10 +538,10 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	}
 	if (ForwardDot < -0.5f)
 	{
-		return SuperMaxSpeed * BackwardSpeed * ShootingSpeedBase;
+		return SuperMaxSpeed * BackwardSpeed;
 	}
 	
-	return SuperMaxSpeed * SideSpeed * ShootingSpeedBase;
+	return SuperMaxSpeed * SideSpeed;
 }
 
 bool UPlayerMovementComponent::IsMovingOnGround() const
@@ -561,7 +580,14 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves, float DeltaTime)
 		}
 	}
 
-	return Super::DoJump(bReplayingMoves, DeltaTime);
+	if (Super::DoJump(bReplayingMoves, DeltaTime))
+	{
+		if (CharacterRef->IsLocallyControlled())
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeJump, 1.0f, ECameraShakePlaySpace::CameraLocal,
+														 FRotator::ZeroRotator);
+		return true;
+	}
+	return false;
 }
 
 void UPlayerMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation,

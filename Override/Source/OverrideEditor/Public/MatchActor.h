@@ -16,8 +16,9 @@ public:
 
 	bool SeeThrough;
 
-	float TimeValue;
-
+	float MinTimeValue;
+	float MaxTimeValue;
+	
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual bool ShouldTickIfViewportsOnly() const override { return true; }
 

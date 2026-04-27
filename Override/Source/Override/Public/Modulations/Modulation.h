@@ -69,7 +69,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Default")
 	float CooldownDuration = 0;
 
-	UPROPERTY(EditAnywhere, Category="Default")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Default")
 	float LockDuration = 2;
 
 	UPROPERTY(EditAnywhere, Category="Default")

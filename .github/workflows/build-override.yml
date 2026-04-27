@@ -22,6 +22,7 @@ jobs:
       OUTPUT_DIR: C:\Users\SIG5-PROJ05\Desktop\Build_Archive\Server\Win64
       SERVER_BUILD_OUTPUT: C:\Users\SIG5-PROJ05\Desktop\
       DOTNET_DISABLE_VULNERABILITY_ANALYSIS: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
     
     steps:
       - name: Set start time
@@ -60,11 +61,13 @@ jobs:
         run: |
           & $env:VERSION_UPDATE_SCRIPT -Branch "${{ github.ref_name }}"
 
-      - name: Delete FMOD Intermediate Folder
-        shell: cmd
-        run: |
-          rd /s /q C:\actions-runner\_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
-
+  #
+  #    - name: Delete FMOD Intermediate Folder
+  #      shell: cmd
+  #      run: |
+  #        rd /s /q C:\actions-runner\_work\Override\Override\Override\Plugins\FMODStudio\Intermediate
+  #
+      
       - name: Build Editor
         shell: cmd
         run: |

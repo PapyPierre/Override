@@ -9,7 +9,6 @@ public:
 	static FSocket* CreateSocket(const FString& IPStr, const int& Port);
 	static bool FetchMatch(FString VersionId, FString MatchId, FString PlayerId, FString TeamId,
 	                       TArray<FMatchPlayerData>& OutPlayers);
-	static bool FetchMatchList(TArray<TSharedPtr<FString>>& VersionIds, TArray<TSharedPtr<FString>>& MatchIds);
 	static void CloseSocket(FSocket* Socket);
 	static bool SendData(FSocket* Socket, FString Payload);
 	static bool RecvAll(FSocket* Socket, FString& OutResponse);

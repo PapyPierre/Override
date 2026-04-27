@@ -1,0 +1,53 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Network/Lobby.h"
+#include "Network/ServerHttpClient.h"
+#include "UObject/Object.h"
+#include "CustomPlayerController.generated.h"
+
+UCLASS()
+class OVERRIDE_API ACustomPlayerController : public APlayerController
+{
+	GENERATED_BODY()
+
+public:
+	virtual void BeginPlay() override;
+
+#pragma region Server Function
+	void OnLogout();
+
+	UFUNCTION(BlueprintCallable)
+	void SetLobbyInGame(FString LobbyId, bool Value);
+#pragma endregion
+	
+	UFUNCTION(BlueprintCallable)
+	void FetchLobbyList();
+
+	UFUNCTION(BlueprintCallable)
+	void CreateNewLobby();
+
+	UFUNCTION(BlueprintCallable)
+	void JoinLobby(FString LobbyId);
+
+	UFUNCTION(BlueprintCallable)
+	void LeaveLobby(FString LobbyId);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnLobbyListReceived(const TArray<FLobby>& Lobbies);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnLobbyCreated(const FString& LobbyId);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnLobbyJoined(const FString& LobbyId);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnLobbyLeft();
+	
+	void ConnectToLobbyServer(FString LobbyId, FString LobbyIp, int LobbyPort);
+	
+private:
+	UPROPERTY()
+	TObjectPtr<UServerHttpClient> HttpClient;
+};
