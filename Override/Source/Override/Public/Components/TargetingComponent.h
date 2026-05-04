@@ -22,7 +22,7 @@ public:
 	float ScreenPadding = -220;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float MaxDistFromCursor = 100; // In Screen Space
+	float MaxDistFromCursor = 220; // In Screen Space
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -44,7 +44,7 @@ protected:
 	float MaxTargetingDistance = 15000;
 
 	UPROPERTY(EditAnywhere, Category = "Targeting")
-	float TargetingAccuracy = 120;
+	float TargetingAccuracy = 180;
 	
 	virtual void BeginPlay() override;
 
