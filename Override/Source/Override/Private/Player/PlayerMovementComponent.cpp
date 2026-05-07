@@ -92,7 +92,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			FMath::Abs(Velocity.Z) < 1.f &&
 			CurrentFloor.FloorDist <= MaxStepHeight &&
 			!bJustTeleported &&
-				bHasFlagCMC;
+			bHasFlagCMC;
 
 		if (bValidGrounded)
 		{
