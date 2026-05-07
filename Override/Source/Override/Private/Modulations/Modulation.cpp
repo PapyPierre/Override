@@ -94,7 +94,6 @@ void AModulation::HandleLock(float DeltaTime)
 	if (LockTime > LockDuration)
 	{
 		LockTime = 0;
-
 		if (PreviousState == ModState::Moving) RPC_ChangeState(ModState::Moving);
 		else RPC_ChangeState(ModState::Stopped);
 	}
@@ -102,7 +101,8 @@ void AModulation::HandleLock(float DeltaTime)
 
 void AModulation::RPC_ChangeState_Implementation(ModState NewState)
 {
-	PreviousState = CurrentState;
+	if (CurrentState != NewState)
+		PreviousState = CurrentState;
 	CurrentState = NewState;
 
 	if (NewState == ModState::InCD) CdTime = 0;
