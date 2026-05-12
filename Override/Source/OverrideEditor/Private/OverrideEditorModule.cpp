@@ -15,7 +15,6 @@ void FOverrideEditorModule::StartupModule()
 {
 	HttpClient = NewObject<UServerHttpClient>();
 	
-	// Register tab in tab manager
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
 		                        TabName, FOnSpawnTab::CreateRaw(this, &FOverrideEditorModule::SpawnTab))
 	                        .SetDisplayName(FText::FromString(TabName.ToString()))
@@ -23,7 +22,6 @@ void FOverrideEditorModule::StartupModule()
 
 	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
-	// Add a menu entry in UE's Editor layout
 	TSharedPtr<FExtender> Extender = MakeShared<FExtender>();
 	Extender->AddMenuExtension(
 		"WindowLayout",
@@ -35,7 +33,6 @@ void FOverrideEditorModule::StartupModule()
 	LevelEditor.GetMenuExtensibilityManager()->AddExtender(Extender);
 }
 
-// When the given menu entry is clicked, invoke the tab
 void FOverrideEditorModule::AddMenuEntry(FMenuBuilder& Builder)
 {
 	Builder.AddMenuEntry(
@@ -76,8 +73,9 @@ void FOverrideEditorModule::RequestData(IHttpRequester* Requester,
 }
 
 void FOverrideEditorModule::ShowVisualization(const TArray<FMatchData>& MatchesData,
-	TSharedPtr<FString> SelectedVersionId, TSharedPtr<FString> SelectedMatchId,
-	TSharedPtr<FString> SelectedTeamId, TSharedPtr<FString> SelectedPlayerId, const bool SeeThrough, const float TimeValue)
+	const TSharedPtr<FString>& SelectedVersionId, const TSharedPtr<FString>& SelectedMatchId,
+	const TSharedPtr<FString>& SelectedTeamId, const TSharedPtr<FString>& SelectedPlayerId, const bool SeeThrough,
+	const float MinTimeValue, const float MaxTimeValue)
 {
 	UE_LOG(LogTemp, Log, TEXT("Starting visualization"));
 	
@@ -122,7 +120,8 @@ void FOverrideEditorModule::ShowVisualization(const TArray<FMatchData>& MatchesD
 		
 		MatchActor->Players = MatchPlayers;
 		MatchActor->SeeThrough = SeeThrough;
-		MatchActor->TimeValue = TimeValue;
+		MatchActor->MinTimeValue = MinTimeValue;
+		MatchActor->MaxTimeValue = MaxTimeValue;
 		MatchActor->RerunConstructionScripts();
 		SpawnedActors.Add(MatchActor);
 	}

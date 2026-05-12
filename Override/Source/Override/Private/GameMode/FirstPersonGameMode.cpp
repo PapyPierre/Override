@@ -11,66 +11,19 @@
 #include "Network/FMatchDataFetcher.h"
 #include "Player/CustomPlayerController.h"
 
+void AFirstPersonGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	HttpClient = NewObject<UServerHttpClient>();
+}
+
 void AFirstPersonGameMode::SendDataToDB()
 {
-	UE_LOG(LogTemp, Log, TEXT("Trying to send match data to DB..."));
-
-	// BUILD JSON
 	FString Version = GetVersionFromFile("C:/Users/SIG5-PROJ05/Desktop/Tchoupi_Tools/VersionInfo.txt");
-	if (Version.IsEmpty()) Version = TEXT("editor");
-
 	UOverrideGameInstance* GameInst = Cast<UOverrideGameInstance>(GetGameInstance());
 
-	const TSharedPtr<FJsonObject> Json = MakeShared<FJsonObject>();
-	Json->SetStringField("versionId", Version);
-
-	TArray<TSharedPtr<FJsonValue>> PlayersArray;
-
-	for (const FMatchPlayerData& Player : GameInst->MatchPlayers)
-	{
-		TSharedPtr<FJsonObject> PlayerObj = MakeShared<FJsonObject>();
-		PlayerObj->SetNumberField(TEXT("playerId"), Player.PlayerId);
-		PlayerObj->SetNumberField(TEXT("teamId"), Player.TeamId);
-
-		TArray<TSharedPtr<FJsonValue>> PositionsArray;
-		for (const FPlayerPosition& Pos : Player.Positions)
-		{
-			TSharedPtr<FJsonObject> PosObj = MakeShared<FJsonObject>();
-			PosObj->SetNumberField(TEXT("posX"), Pos.Position.X);
-			PosObj->SetNumberField(TEXT("posY"), Pos.Position.Y);
-			PosObj->SetNumberField(TEXT("posZ"), Pos.Position.Z);
-			PositionsArray.Add(MakeShared<FJsonValueObject>(PosObj));
-		}
-
-		PlayerObj->SetArrayField(TEXT("positions"), PositionsArray);
-		PlayersArray.Add(MakeShared<FJsonValueObject>(PlayerObj));
-	}
-
-	Json->SetArrayField(TEXT("players"), PlayersArray);
-
-	FString Payload;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Payload);
-	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
-
-	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-	Request->SetURL(TEXT("http://localhost:5000/matches"));
-	Request->SetVerb(TEXT("POST"));
-	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-	Request->SetContentAsString(Payload);
-	
-	Request->OnProcessRequestComplete().BindLambda(
-		[](FHttpRequestPtr Req, FHttpResponsePtr Response, bool bSuccess)
-		{
-			if (!bSuccess || !Response.IsValid())
-			{
-				UE_LOG(LogTemp, Error, TEXT("HTTP request failed"));
-				return;
-			}
-			UE_LOG(LogTemp, Log, TEXT("Response: %s"), *Response->GetContentAsString());
-		}
-	);
-
-	Request->ProcessRequest();
+	HttpClient->SetMatchData(Version, GameInst);
 }
 
 void AFirstPersonGameMode::Logout(AController* Exiting)

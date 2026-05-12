@@ -4,6 +4,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "ServerHttpClient.generated.h"
 
+class UOverrideGameInstance;
 class IHttpRequester;
 class ACustomPlayerController;
 
@@ -20,7 +21,7 @@ public:
 
 	void JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
 
-	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide = false);
+	void NotifyLeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide = false);
 
 	void SendLobbyHeartbeat(FString TargetLobbyId);
 
@@ -32,6 +33,8 @@ public:
 #pragma region Telemetry
 	void FetchMatchesData(IHttpRequester* Requester,
 		FString VersionId, FString MatchId, FString PlayerId, FString TeamId);
+
+	void SetMatchData(FString Version, UOverrideGameInstance* GameInst);
 #pragma endregion
 
 private:
@@ -58,7 +61,7 @@ private:
 	void JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                       ACustomPlayerController* Requester);
 
-	void LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+	void NotifyLeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                        ACustomPlayerController* Requester);
 
 	void SendHeartbeatCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
@@ -69,4 +72,6 @@ private:
 
 	void FetchMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                            IHttpRequester* Requester);
+
+	void SetMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess);
 };

@@ -42,8 +42,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnLobbyJoined(const FString& LobbyId);
 
+	// Callback when lobby leave has been acknowledged by master server
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnLobbyLeft();
+	void OnNotifyLobbyLeft();
 	
 	void ConnectToLobbyServer(FString LobbyId, FString LobbyIp, int LobbyPort);
 	

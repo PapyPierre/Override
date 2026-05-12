@@ -39,8 +39,10 @@ void ACustomPlayerController::JoinLobby(FString LobbyId)
 void ACustomPlayerController::OnLogout() // Server-Sided
 {
 	FString LobbyId = GetGameInstance<UOverrideGameInstance>()->CurrentLobbyId;
+	
+	UE_LOG(LogTemp, Log, TEXT("ACustomPlayerController::OnLogout"));
 
-	HttpClient->LeaveLobby(LobbyId, this, true);
+	HttpClient->NotifyLeaveLobby(LobbyId, this, true);
 }
 
 void ACustomPlayerController::SetLobbyInGame(FString LobbyId, bool Value) // Server-Sided
@@ -50,7 +52,15 @@ void ACustomPlayerController::SetLobbyInGame(FString LobbyId, bool Value) // Ser
 
 void ACustomPlayerController::LeaveLobby(FString LobbyId)
 {
-	HttpClient->LeaveLobby(LobbyId, this, false);
+#if WITH_EDITOR
+	OnNotifyLobbyLeft();
+#else
+	UE_LOG(LogTemp, Log, TEXT("ACustomPlayerController::LeaveLobby, Disconnecting client"), *Address);
+
+	ClientTravel("/Game/Maps/Lvl_Menu", TRAVEL_Absolute)
+	//ConsoleCommand("disconnect"); // To disconnect client of game server instance
+	HttpClient->NotifyLeaveLobby(LobbyId, this, false);
+#endif
 }
 
 void ACustomPlayerController::ConnectToLobbyServer(FString LobbyId, FString LobbyIp, int LobbyPort)

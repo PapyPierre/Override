@@ -74,6 +74,13 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
                                              FActorComponentTickFunction* ThisTickFunction)
 {
 	JumpTimeline.TickTimeline(DeltaTime);
+
+	if (IsSlowed)
+	{
+		float Z = Velocity.Z;
+		Velocity *= SlowedSpeed;
+		Velocity.Z = Z;
+	}
 	
 	if (CharacterRef->HasAuthority())
 	{
@@ -85,7 +92,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			FMath::Abs(Velocity.Z) < 1.f &&
 			CurrentFloor.FloorDist <= MaxStepHeight &&
 			!bJustTeleported &&
-				bHasFlagCMC;
+			bHasFlagCMC;
 
 		if (bValidGrounded)
 		{
@@ -102,13 +109,23 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	{
 		return;
 	}
-
+	
 	if (!bWantsToDash)
 	{
 		SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime,Iterations);
 		return;
 	}
+
+	if (!bIsDashing)
+	{
+		bIsDashing = true;
+		DashStartTime = GetWorld()->GetTimeSeconds();
+		CharacterRef->Dash();
+		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+	}
+
 	
 	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
@@ -126,19 +143,11 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 0;
 	MaxAcceleration = 0;
-
-	if (!bIsDashing)
-	{
-		DashStartTime = GetWorld()->GetTimeSeconds();
-		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
-			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-	}
-
-	bIsDashing = true;
 }
 
 void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
 {
+	if (!bIsDashing)
 	MoveDirectionMelee = Direction;
 }
 
@@ -519,9 +528,6 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 	float ForwardDot = FVector::DotProduct(Forward, VelocityDir);
 
 	float SuperMaxSpeed = Super::GetMaxSpeed();
-	
-	if (IsSlowed)
-		SuperMaxSpeed *= SlowedSpeed;
 
 	float ShootingSpeedBase = 1.0f;
 	if (bIsShooting)

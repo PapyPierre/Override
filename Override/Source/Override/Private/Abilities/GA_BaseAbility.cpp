@@ -135,14 +135,8 @@ void UGA_BaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	{
 		UE_LOG(LogTemp, Error, TEXT("ABILITY : GameplayEventData is INVALID!"));
 	}
-
-	/*
-	UE_LOG(LogTemp, Log, TEXT("ABILITY : Calling OnAbilityActivated with Location=%s, Targets=%d"),
-			   *Location.ToString(), Targets.Num());
-	*/
+	
 	OnAbilityActivated(Location, Targets);
-
-	//UE_LOG(LogTemp, Log, TEXT("SERVER:  %s Activate %s"), *ActorInfo->OwnerActor->GetName(), *this->GetName());
 	
 	ApplyCooldown(Handle, ActorInfo, ActivationInfo);
 }
