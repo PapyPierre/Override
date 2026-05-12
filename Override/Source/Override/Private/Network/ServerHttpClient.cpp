@@ -96,7 +96,7 @@ void UServerHttpClient::JoinLobby(FString TargetLobbyId, ACustomPlayerController
 	Request->ProcessRequest();
 }
 
-void UServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide)
+void UServerHttpClient::NotifyLeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide)
 {
 	UE_LOG(LogTemp, Log, TEXT("Sending Leave %s Request to Master Server"), *TargetLobbyId);
 
@@ -122,7 +122,7 @@ void UServerHttpClient::LeaveLobby(FString TargetLobbyId, ACustomPlayerControlle
 
 	Request->SetContentAsString(JsonString);
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::LeaveLobbyCallback, Requester);
+	Request->OnProcessRequestComplete().BindUObject(this, &UServerHttpClient::NotifyLeaveLobbyCallback, Requester);
 
 	Request->ProcessRequest();
 }
@@ -365,7 +365,7 @@ void UServerHttpClient::JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSha
 	                                Obj->GetIntegerField(TEXT("serverPort")));
 }
 
-void UServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
+void UServerHttpClient::NotifyLeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
                                            bool bSuccess, ACustomPlayerController* Requester)
 {
 	if (!bSuccess || !Response.IsValid())
@@ -379,7 +379,7 @@ void UServerHttpClient::LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSh
 
 	UE_LOG(LogTemp, Log, TEXT("Leave Lobby Callback: Status: %d | Body: %s"), StatusCode, *Body);
 
-	Requester->OnLobbyLeft();
+	Requester->OnNotifyLobbyLeft();
 }
 
 void UServerHttpClient::FetchMatchDataCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response,
