@@ -127,7 +127,7 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	}
 
 	
-	FVector Dash = MoveDirectionMelee * Da	shImpulse;
+	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
 	Velocity = Dash;
 	FVector Delta = Velocity * DeltaTime;
