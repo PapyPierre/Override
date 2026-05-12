@@ -21,7 +21,7 @@ public:
 
 	void JoinLobby(FString TargetLobbyId, ACustomPlayerController* Requester);
 
-	void LeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide = false);
+	void NotifyLeaveLobby(FString TargetLobbyId, ACustomPlayerController* Requester, bool ServerSide = false);
 
 	void SendLobbyHeartbeat(FString TargetLobbyId);
 
@@ -61,7 +61,7 @@ private:
 	void JoinLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                       ACustomPlayerController* Requester);
 
-	void LeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
+	void NotifyLeaveLobbyCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
 	                        ACustomPlayerController* Requester);
 
 	void SendHeartbeatCallback(TSharedPtr<IHttpRequest> Request, TSharedPtr<IHttpResponse> Response, bool bSuccess,
