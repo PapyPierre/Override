@@ -92,7 +92,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			FMath::Abs(Velocity.Z) < 1.f &&
 			CurrentFloor.FloorDist <= MaxStepHeight &&
 			!bJustTeleported &&
-				bHasFlagCMC;
+			bHasFlagCMC;
 
 		if (bValidGrounded)
 		{
@@ -109,13 +109,23 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	{
 		return;
 	}
-
+	
 	if (!bWantsToDash)
 	{
 		SetMovementMode(MOVE_Walking);
 		StartNewPhysics(DeltaTime,Iterations);
 		return;
 	}
+
+	if (!bIsDashing)
+	{
+		bIsDashing = true;
+		DashStartTime = GetWorld()->GetTimeSeconds();
+		CharacterRef->Dash();
+		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
+			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
+	}
+
 	
 	FVector Dash = MoveDirectionMelee * DashImpulse;
 	Dash.Z = 0;
@@ -133,20 +143,11 @@ void UPlayerMovementComponent::PhysDash(float DeltaTime, int32 Iterations)
 	GroundFriction = 0.0;
 	BrakingDecelerationWalking = 0;
 	MaxAcceleration = 0;
-
-	if (!bIsDashing)
-	{
-		DashStartTime = GetWorld()->GetTimeSeconds();
-		CharacterRef->Dash();
-		if (CharacterRef->IsLocallyControlled() && CharacterRef->FirstPersonCameraComponent)
-			CharacterRef->FirstPersonCameraComponent->StartCameraShake(CharacterRef->ShakeDash, 1.0f, ECameraShakePlaySpace::CameraLocal, FRotator::ZeroRotator);
-	}
-
-	bIsDashing = true;
 }
 
 void UPlayerMovementComponent::Server_GetInputLastDirection_Implementation(const FVector& Direction)
 {
+	if (!bIsDashing)
 	MoveDirectionMelee = Direction;
 }
 
