@@ -106,6 +106,9 @@ public:
 #pragma region Skills
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills|Slow")
 	float SlowedSpeedReduction = 0.75;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills|Armor")
+	float armorDuration = 10;
 #pragma endregion
 
 };
