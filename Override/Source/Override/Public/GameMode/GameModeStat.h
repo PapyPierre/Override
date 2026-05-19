@@ -51,6 +51,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GameMode")
 	float EnemiesSpawnInhibitRange = 1500;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GameMode")
+	float invincibilityDurationOnSpawn = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GameMode")
+	float invincibilityDurationOnTorchTaken = 2;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Points")
 	int FlagInitialTake = 0;
 
