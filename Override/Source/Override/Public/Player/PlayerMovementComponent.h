@@ -81,6 +81,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "CMC|CaC")
 	bool bIsDashing = false;
 	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CMC|CaC")
 	bool bWantsToDash;
 
