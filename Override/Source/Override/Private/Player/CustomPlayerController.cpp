@@ -52,15 +52,7 @@ void ACustomPlayerController::SetLobbyInGame(FString LobbyId, bool Value) // Ser
 
 void ACustomPlayerController::LeaveLobby(FString LobbyId)
 {
-#if WITH_EDITOR
 	OnNotifyLobbyLeft();
-#else
-	UE_LOG(LogTemp, Log, TEXT("ACustomPlayerController::LeaveLobby, Disconnecting client"));
-
-	ClientTravel("/Game/Maps/Lvl_Menu", TRAVEL_Absolute);
-	//ConsoleCommand("disconnect"); // To disconnect client of game server instance
-	HttpClient->NotifyLeaveLobby(LobbyId, this, false);
-#endif
 }
 
 void ACustomPlayerController::ConnectToLobbyServer(FString LobbyId, FString LobbyIp, int LobbyPort)
