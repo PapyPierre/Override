@@ -41,6 +41,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
 	float speedValueForMaxEffect = 900.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
+	float speedValueForMaxSFX = 1400.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
 	bool allowOvershoot = true;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|SpeedVignette")
 	float effectIntensityMultiplier = 5.f;
