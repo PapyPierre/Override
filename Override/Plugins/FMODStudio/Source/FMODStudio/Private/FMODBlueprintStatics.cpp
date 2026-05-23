@@ -521,7 +521,7 @@ void UFMODBlueprintStatics::EventInstancePlay(FFMODEventInstance EventInstance)
 
 void UFMODBlueprintStatics::EventInstanceStop(FFMODEventInstance EventInstance, bool Release)
 {
-    if (EventInstance.Instance)
+    if (EventInstance.Instance && EventInstance.Instance->isValid())
     {
         FMOD_RESULT Result = EventInstance.Instance->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
         if (Result != FMOD_OK)
@@ -536,6 +536,10 @@ void UFMODBlueprintStatics::EventInstanceStop(FFMODEventInstance EventInstance, 
                 //EventInstance.Instance->release();
             }
         }
+    }
+    else
+    {
+        UE_LOG(LogFMOD, VeryVerbose, TEXT("EventInstanceStop ignored : instance not valid (normal on server)"));
     }
 }
 
