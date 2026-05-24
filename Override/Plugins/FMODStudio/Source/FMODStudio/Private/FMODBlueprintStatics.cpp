@@ -521,7 +521,12 @@ void UFMODBlueprintStatics::EventInstancePlay(FFMODEventInstance EventInstance)
 
 void UFMODBlueprintStatics::EventInstanceStop(FFMODEventInstance EventInstance, bool Release)
 {
-    if (EventInstance.Instance && EventInstance.Instance->isValid())
+    if (GEngine && GEngine->GetNetMode(GWorld) == NM_DedicatedServer)
+    {
+        return; 
+    }
+    
+    if (EventInstance.Instance)
     {
         FMOD_RESULT Result = EventInstance.Instance->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
         if (Result != FMOD_OK)
