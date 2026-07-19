@@ -15,5 +15,18 @@ struct OVERRIDE_API FMatchPlayerData
 	int32 TeamId = -1;
 
 	UPROPERTY(BlueprintReadWrite)
+	int32 KillsCount = -1;
+
+	UPROPERTY(BlueprintReadWrite)
+	int32 DeathsCount = -1;
+
+	// Nb of flags scored
+	UPROPERTY(BlueprintReadWrite)
+	int32 FlagsCount = -1;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool HasWon = false;
+
+	UPROPERTY(BlueprintReadWrite)
 	TArray<FPlayerPosition> Positions;
 };
