@@ -228,6 +228,10 @@ void UServerHttpClient::SetMatchData(FString Version, UOverrideGameInstance* Gam
 		TSharedPtr<FJsonObject> PlayerObj = MakeShared<FJsonObject>();
 		PlayerObj->SetNumberField(TEXT("playerId"), Player.PlayerId);
 		PlayerObj->SetNumberField(TEXT("teamId"), Player.TeamId);
+		PlayerObj->SetNumberField(TEXT("kills"), Player.KillsCount);
+		PlayerObj->SetNumberField(TEXT("deaths"), Player.DeathsCount);
+		PlayerObj->SetNumberField(TEXT("flags"), Player.FlagsCount);
+		PlayerObj->SetBoolField(TEXT("hasWon"), Player.HasWon);
 
 		TArray<TSharedPtr<FJsonValue>> PositionsArray;
 		for (const FPlayerPosition& Pos : Player.Positions)
